@@ -8,7 +8,7 @@ import AinkradAppKit
 /// (OrbStack, Docker Desktop, Podman) through the Docker Engine API over an
 /// AF_UNIX socket, and through `docker compose` for the orchestration verbs the
 /// API does not expose.
-public struct ThrallApp: AinkradApp, AinkradAppTeardown {
+public struct ThrallApp: AinkradApp, AinkradAppTeardown, AinkradAppMCP {
     public static let id = "thrall"
     public static let displayName = "Thrall"
     public static let icon = "cube.transparent"
@@ -23,6 +23,14 @@ public struct ThrallApp: AinkradApp, AinkradAppTeardown {
                                store: ThrallRuntime.settingsStore(for: host))
                 .ainkradHostTheme(host.theme)
         )
+    }
+
+    /// **MCP is the only front door the assistant has.** No
+    /// `AgentActionProvider` actions are registered: GitMage deleted its
+    /// `git_op` action seam once MCP existed, and two seams onto the same
+    /// capability means two places to forget a guard.
+    public static func makeMCPServer(host: HostServices) -> MCPAppServer {
+        ThrallRuntime.mcpServer(for: host)
     }
 
     /// **Mandatory here, and heavier than for a plugin that only reads files.**

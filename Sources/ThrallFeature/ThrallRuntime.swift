@@ -42,6 +42,25 @@ enum ThrallRuntime {
         }
     }
 
+    private static let mcpServers = PluginInstanceStorage<MCPAppServer>()
+
+    /// The per-instance MCP server, sharing the live view model so a tool
+    /// drives the on-screen instance rather than a detached copy.
+    static func mcpServer(for host: HostServices) -> MCPAppServer {
+        let id = instance(of: host)
+        return mcpServers.value(for: id) {
+            let (server, failures) = ThrallMCPServer.make(
+                appID: ThrallApp.id,
+                model: { viewModel(for: host) })
+            // A dropped tool is a silently missing capability — say so rather
+            // than let the assistant simply never see it.
+            if !failures.isEmpty {
+                host.log.error("Thrall MCP: rejected — \(failures.joined(separator: ", "))")
+            }
+            return server
+        }
+    }
+
     /// Releases everything scoped to `instance`.
     ///
     /// **Heavier than a plugin that only reads files.** An uncancelled
@@ -51,6 +70,7 @@ enum ThrallRuntime {
     /// from the registry without that would leak both.
     static func teardown(instance: PluginInstanceID) {
         stores.remove(instance)
+        mcpServers.remove(instance)
         models.remove(instance)?.shutdown()
         legacyIDs = legacyIDs.filter { $0.value != instance }
     }

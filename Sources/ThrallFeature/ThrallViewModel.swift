@@ -42,6 +42,9 @@ public final class ThrallViewModel: ObservableObject {
     private let resolver: ThrallContextResolver
     private let compose: ThrallComposeClient
     private var client: ThrallEngineClient?
+    /// Exposed for the MCP layer, which needs to read logs without going
+    /// through a view. Read-only: nothing outside this class may replace it.
+    var engineClient: ThrallEngineClient? { client }
     private var pollTask: Task<Void, Never>?
     private var actionTasks: [ThrallStackID: Task<Void, Never>] = [:]
     private var supervisor: ThrallStreamSupervisor?
