@@ -34,6 +34,11 @@ struct ThrallSettingsView: View {
             }
         }
         .padding()
+        // Top-aligned explicitly. The card is intrinsically sized, so without
+        // this it floats wherever the container puts it — bottom of the pane in
+        // the Dev Host — and settings that start halfway down the window read
+        // as a rendering fault.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onChange(of: mode) { _, newValue in presentation.set(newValue) }
     }
 }
