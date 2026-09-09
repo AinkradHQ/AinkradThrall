@@ -9,13 +9,17 @@ import AinkradAppKit
 /// is opened — it never morphs an already-open window.
 struct ThrallSettingsView: View {
     let presentation: any PluginPresentationControl
+    /// The same store the root view and `chromeFill` read — the trio that has
+    /// to agree, which is what `ThrallRuntime` exists for.
+    @ObservedObject var store: ThrallSettingsStore
 
     @Environment(\.ainkradTheme) private var theme
     @Environment(\.ainkradTypography) private var typo
     @State private var mode: PluginPresentation
 
-    init(presentation: any PluginPresentationControl) {
+    init(presentation: any PluginPresentationControl, store: ThrallSettingsStore) {
         self.presentation = presentation
+        self.store = store
         _mode = State(initialValue: presentation.current)
     }
 
@@ -30,6 +34,24 @@ struct ThrallSettingsView: View {
                     AinkradSegmentedPicker(items: [PluginPresentation.overlay, .pane], selection: $mode) {
                         $0 == .overlay ? "Overlay" : "Pane"
                     }
+                }
+
+                AinkradFormRow(title: "Unmanaged containers",
+                               help: "Containers with no compose project get their own row. "
+                                   + "Two on this machine have no labels at all, and a running "
+                                   + "container you cannot see is worse than a crowded list.") {
+                    AinkradToggle(isOn: Binding(
+                        get: { store.settings.showUnmanaged },
+                        set: { store.settings.showUnmanaged = $0 }))
+                }
+
+                AinkradFormRow(title: "Confirm before Down",
+                               help: "Down destroys state. Restart and Up never confirm — "
+                                   + "gating an action that fixes a broken service is what "
+                                   + "makes people stop using the tool.") {
+                    AinkradToggle(isOn: Binding(
+                        get: { store.settings.confirmBeforeDown },
+                        set: { store.settings.confirmBeforeDown = $0 }))
                 }
             }
         }
