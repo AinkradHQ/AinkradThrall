@@ -34,6 +34,8 @@ public final class ThrallViewModel: ObservableObject {
     /// Up never confirm — gating the action that *fixes* a broken service is
     /// what makes people stop using the tool.
     @Published public var pendingDown: ThrallStack?
+    /// A pending by-label teardown of an orphaned stack.
+    @Published public var pendingTeardown: ThrallStack?
 
     private let host: HostServices
     private let settings: ThrallSettingsStore
@@ -51,6 +53,7 @@ public final class ThrallViewModel: ObservableObject {
     /// The triage surface's own model. Public so the shell can hand it to
     /// `TriageView` without the shell owning the scan schedule.
     public let triage = ThrallTriageModel()
+    private let reporter = ThrallSignalReporter()
     @Published public private(set) var eventStreamConnected = false
 
     public init(host: HostServices,
@@ -149,6 +152,22 @@ public final class ThrallViewModel: ObservableObject {
         run(.down, on: stack)
     }
 
+    public func confirmPendingTeardown() {
+        guard let stack = pendingTeardown, let client else { return }
+        pendingTeardown = nil
+        lastUserAction[stack.id] = Date()
+        busyStacks.insert(stack.id)
+        Task { [weak self] in
+            let outcome = await ThrallOrphanTeardown.run(stack: stack, using: client)
+            guard let self else { return }
+            self.busyStacks.remove(stack.id)
+            self.lastActionMessage = outcome.failures.isEmpty
+                ? "Tore down \(stack.displayName) by label — \(outcome.summary)."
+                : "Teardown of \(stack.displayName) partly failed: \(outcome.summary)"
+            await self.refresh()
+        }
+    }
+
     private func run(_ action: ThrallStackAction, on stack: ThrallStack) {
         guard actionTasks[stack.id] == nil else { return }
         // Opens the settle window before the verb runs, so the `die` events it
@@ -238,6 +257,9 @@ public final class ThrallViewModel: ObservableObject {
         activeContext = context
         engineVersion = nil
         client = nil
+        // Switching engines must not announce every incident on the old one as
+        // recovered.
+        reporter.reset()
         guard let context else {
             world = .empty(engineKey: "")
             state = .failed("No engine is selected.")
@@ -323,6 +345,15 @@ public final class ThrallViewModel: ObservableObject {
             world: suppressedWorld(),
             inspect: { try await client.inspect(containerID: $0) },
             readLog: { try await client.logTail(containerID: $0) })
+        reporter.report(incidents: triage.incidents,
+                        suppressedStacks: settlingStacks(),
+                        to: host.signals)
+    }
+
+    /// Stacks inside their 30 s settle window.
+    private func settlingStacks() -> Set<ThrallStackID> {
+        let now = Date()
+        return Set(lastUserAction.filter { now.timeIntervalSince($0.value) < 30 }.keys)
     }
 
     /// The world with recently-actioned stacks removed.
@@ -332,10 +363,7 @@ public final class ThrallViewModel: ObservableObject {
     /// without this the user pressing Restart fires a crash-loop incident per
     /// service — which will happen in the first demo.
     private func suppressedWorld() -> ThrallWorld {
-        let now = Date()
-        let settling = Set(lastUserAction
-            .filter { now.timeIntervalSince($0.value) < 30 }
-            .keys)
+        let settling = settlingStacks()
         guard !settling.isEmpty else { return world }
         return ThrallWorld(engineKey: world.engineKey,
                            stacks: world.stacks.filter { !settling.contains($0.id) },
@@ -353,7 +381,10 @@ public final class ThrallViewModel: ObservableObject {
         case .pullStack:
             perform(.pull, on: stack)
         case .teardownByLabel:
-            pendingDown = stack
+            // Confirmed like Down, because it removes containers. Named
+            // separately in the dialog so the user knows it goes by label —
+            // which is what makes it work where compose cannot.
+            pendingTeardown = stack
         }
     }
 

@@ -58,6 +58,14 @@ public struct ThrallShell: View {
         // The kit's toast host is mounted once at the root, and messages are
         // pushed into `\.ainkradToastCenter` — the shared queue every Ainkrad
         // surface uses, rather than a local banner of Thrall's own.
+        .ainkradConfirmDialog(
+            isPresented: Binding(get: { model.pendingTeardown != nil },
+                                 set: { if !$0 { model.pendingTeardown = nil } }),
+            title: "Tear down \(model.pendingTeardown?.displayName ?? "") by label?",
+            message: teardownMessage,
+            confirmTitle: "Tear down",
+            isDestructive: true,
+            onConfirm: { model.confirmPendingTeardown() })
         .ainkradToastHost()
         .onChange(of: model.lastActionMessage) { _, message in
             guard let message else { return }
@@ -76,6 +84,18 @@ public struct ThrallShell: View {
         return "This stops and removes \(count) container\(count == 1 ? "" : "s") in "
             + "\(stack.displayName). Named volumes are kept — Thrall never removes a volume "
             + "as part of Down."
+    }
+
+    /// Says out loud that volumes survive. This is the remedy for a stack that
+    /// cannot be reached any other way, so the user needs to know exactly how
+    /// far it goes.
+    private var teardownMessage: String {
+        guard let stack = model.pendingTeardown else { return "" }
+        let count = stack.containerCount
+        return "\(stack.displayName)'s compose file is gone, so `docker compose down` cannot "
+            + "reach it. Thrall will stop and remove its \(count) container"
+            + "\(count == 1 ? "" : "s") by matching the compose project label. "
+            + "**Volumes are not touched.**"
     }
 
     // MARK: - Top bar
