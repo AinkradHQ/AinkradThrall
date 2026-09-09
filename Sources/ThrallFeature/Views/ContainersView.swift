@@ -46,6 +46,7 @@ struct ContainersView: View {
             header
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: AinkradSpacing.md) {
+                    RunCommandCard(model: model)
                     enginePanel
                     networksCard
                     containerTable
