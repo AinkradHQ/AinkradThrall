@@ -42,7 +42,12 @@ public enum NavArea: String, CaseIterable, Identifiable, Sendable {
         case .stacks: return "square.stack.3d.up"
         case .containers: return "cube"
         case .logs: return "text.alignleft"
-        case .images: return "opticaldiscdrive"
+        // Not a second drive glyph: `opticaldiscdrive` and `internaldrive` are
+        // the same silhouette at 16 pt, differing only by a slot versus a row
+        // of dots, so Images and Storage were indistinguishable in the rail.
+        // An image is a stored artifact you pull, which `archivebox` reads as
+        // and which shares no outline with the cube or the drive.
+        case .images: return "archivebox"
         case .storage: return "internaldrive"
         }
     }

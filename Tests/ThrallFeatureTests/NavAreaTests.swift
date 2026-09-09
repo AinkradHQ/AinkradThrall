@@ -18,6 +18,12 @@ struct NavAreaTests {
         }
     }
 
+    @Test("icons are distinct — two rail items that look alike are unusable")
+    func iconsAreDistinct() {
+        let icons = NavArea.built.map(\.icon)
+        #expect(Set(icons).count == icons.count)
+    }
+
     @Test("ids are unique — they key selection and persisted UI state")
     func idsAreUnique() {
         #expect(Set(NavArea.built.map(\.id)).count == NavArea.built.count)
