@@ -54,6 +54,8 @@ public final class ThrallViewModel: ObservableObject {
     /// `TriageView` without the shell owning the scan schedule.
     public let triage = ThrallTriageModel()
     private let reporter = ThrallSignalReporter()
+    /// The logs area's own model, so its reads are not on the reconcile path.
+    public let logs = ThrallLogsModel()
     @Published public private(set) var eventStreamConnected = false
 
     public init(host: HostServices,
@@ -119,6 +121,7 @@ public final class ThrallViewModel: ObservableObject {
         // spawning containers after the window closed.
         for task in actionTasks.values { task.cancel() }
         actionTasks = [:]
+        logs.stop()
         client = nil
     }
 
@@ -385,6 +388,22 @@ public final class ThrallViewModel: ObservableObject {
             // separately in the dialog so the user knows it goes by label —
             // which is what makes it work where compose cannot.
             pendingTeardown = stack
+        }
+    }
+
+    /// Points the logs pane at a set of containers.
+    ///
+    /// Lives here rather than in `ThrallLogsModel` because the engine client
+    /// is the view model's, and a log read is the one place where handing the
+    /// client out would let a view open a socket.
+    public func tailLogs(_ containers: [(id: String, service: String)],
+                         into logs: ThrallLogsModel) async {
+        guard let client else {
+            logs.tail(containers: [], read: { _ in [] })
+            return
+        }
+        logs.tail(containers: containers) { id in
+            try await client.logs(containerID: id, tail: 400)
         }
     }
 

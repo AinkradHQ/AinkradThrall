@@ -227,6 +227,8 @@ public struct ThrallShell: View {
             StacksView(model: model)
         case .triage:
             TriageView(model: model, triage: triage)
+        case .logs:
+            LogsView(model: model, logs: model.logs)
         default:
             AinkradEmptyState(icon: area.icon,
                               title: area.title,
