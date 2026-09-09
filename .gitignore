@@ -1,0 +1,8 @@
+.DS_Store
+DerivedData/
+build/
+.build/
+.ainkrad-build/
+dist/
+*.bundle.zip
+*.xcodeproj

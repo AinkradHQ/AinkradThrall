@@ -1,0 +1,95 @@
+name: AinkradThrall
+
+options:
+  bundleIdPrefix: com.ainkrad
+  deploymentTarget: { macOS: "14.0" }
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGNING_REQUIRED: NO
+    CODE_SIGNING_ALLOWED: NO
+    EAGER_LINKING: NO
+
+packages:
+  AinkradAppKit:
+    url: https://github.com/AinkradHQ/AinkradAppKit
+    # MUST stay AT OR BEHIND the revision the HOST embeds — currently the
+    # host's own pin (Ainkrad/project.yml). The host embeds the single dynamic
+    # copy of the SDK; a plugin built against a NEWER revision links symbols
+    # that copy does not define and dies at `Bundle.load()` with no diagnostic,
+    # which surfaces to the user as "the app has no apps".
+    #
+    # AppKit `main` is ahead of this. Do not "update" it without moving the
+    # host first.
+    revision: 91ed630a24dc187f8988c104d16a640d3ee7562c
+
+targets:
+  # All logic lives here, statically linked into the bundle, so it is reachable
+  # from a test target. AinkradAppKit is the one exception to static linking.
+  ThrallFeature:
+    type: library.static
+    platform: macOS
+    sources:
+      - path: Sources/ThrallFeature
+    dependencies:
+      - package: AinkradAppKit
+        embed: false
+
+  ThrallPlugin:
+    type: bundle
+    platform: macOS
+    sources:
+      - path: Sources/ThrallPlugin
+    dependencies:
+      - target: ThrallFeature
+      - package: AinkradAppKit
+        embed: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ainkrad.plugin.thrall
+        PRODUCT_NAME: ThrallPlugin
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: Sources/ThrallPlugin/Info.plist
+        MACH_O_TYPE: mh_bundle
+        LD_RUNPATH_SEARCH_PATHS: "@executable_path/../Frameworks"
+        OTHER_LDFLAGS: ["-lThrallFeature"]
+    postBuildScripts:
+      # Derive AinkradAPIVersion from the linked SDK rather than trusting the
+      # hand-typed value in Info.plist — see the script's own header.
+      - script: "\"$SRCROOT/scripts/stamp-api-version.sh\""
+        name: Stamp AinkradAPIVersion
+        # The plist is an INPUT, not an output: declaring it orders this phase
+        # after the task that copies it into the bundle. Without it the script
+        # races that copy and finds nothing.
+        inputFiles:
+          - $(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)
+        # No outputs, so keep it running every build: the linked SDK revision
+        # can change generation without any source file changing.
+        basedOnDependencyAnalysis: false
+
+  ThrallFeatureTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/ThrallFeatureTests
+    dependencies:
+      - target: ThrallFeature
+      - package: AinkradAppKit
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  ThrallPlugin:
+    build:
+      targets:
+        ThrallPlugin: all
+        ThrallFeatureTests: [test]
+    test:
+      config: Debug
+      targets:
+        - ThrallFeatureTests

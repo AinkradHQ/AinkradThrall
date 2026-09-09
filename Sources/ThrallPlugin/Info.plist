@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key><string>com.ainkrad.plugin.thrall</string>
+    <key>CFBundleName</key><string>ThrallPlugin</string>
+    <!-- REQUIRED: the host renames an installed bundle to <appID>.bundle, so
+         this must be set explicitly or the bundle won't load. -->
+    <key>CFBundleExecutable</key><string>ThrallPlugin</string>
+    <key>CFBundlePackageType</key><string>BNDL</string>
+    <key>NSPrincipalClass</key><string>ThrallEntryPoint</string>
+    <key>AinkradAppID</key><string>thrall</string>
+    <key>AinkradDisplayName</key><string>Thrall</string>
+    <key>AinkradIconSymbol</key><string>cube.transparent</string>
+    <key>AinkradAPIVersion</key><integer>10</integer>
+    <!-- Thrall opens as a floating overlay by default, like Leyline: it is
+         something you summon over what you are already doing, not a surface
+         you keep tiled. Overridable per user via HostServices.presentation,
+         surfaced as the Presentation control in settings. -->
+    <key>AinkradPresentation</key><string>overlay</string>
+    <key>AinkradAuthor</key><string>Ahmed M. Elhalaby</string>
+    <key>description</key><string>Container manager framed around the stack: compose projects, crash-loop triage, logs and reclaim — over the engine you already run.</string>
+</dict>
+</plist>
