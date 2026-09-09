@@ -72,6 +72,11 @@ public struct ThrallShell: View {
             isDestructive: true,
             onConfirm: { model.confirmPendingTeardown() })
         .ainkradToastHost()
+        .onChange(of: model.storage.lastReclaim) { _, message in
+            guard let message else { return }
+            toasts.show(message, status: message.contains("failed") ? .warning : .success)
+            model.storage.lastReclaim = nil
+        }
         .onChange(of: model.lastActionMessage) { _, message in
             guard let message else { return }
             toasts.show(message, status: message.contains("failed")
@@ -242,11 +247,12 @@ public struct ThrallShell: View {
             TriageView(model: model, triage: triage)
         case .logs:
             LogsView(model: model, logs: model.logs)
-        default:
-            AinkradEmptyState(icon: area.icon,
-                              title: area.title,
-                              message: "Coming in a later milestone.")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        case .images:
+            ImagesView(model: model, storage: model.storage)
+        case .storage:
+            StorageView(model: model, storage: model.storage)
+        case .containers:
+            ContainersView(model: model, storage: model.storage)
         }
     }
 }

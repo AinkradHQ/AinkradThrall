@@ -59,6 +59,9 @@ public final class ThrallViewModel: ObservableObject {
     private let reporter = ThrallSignalReporter()
     /// The logs area's own model, so its reads are not on the reconcile path.
     public let logs = ThrallLogsModel()
+    /// Images, storage and networks. Its `/system/df` read costs 1.86 s, so it
+    /// is loaded on demand by its own areas and never by `refresh()`.
+    public let storage = ThrallStorageModel()
     @Published public private(set) var eventStreamConnected = false
 
     public init(host: HostServices,
