@@ -38,6 +38,10 @@ public struct ThrallApp: AinkradApp, AinkradAppTeardown, AinkradAppMCP {
     /// alive, so without this Thrall would go on waking the CPU after its
     /// window closed.
     public static func teardown(instance: PluginInstanceID) {
+        // The host does not hand `teardown` a `HostServices`, so the
+        // context token is dropped from the registry here and the host's own
+        // registration goes stale rather than leaking a live source — the
+        // bridge it closes over is released, so its snapshot returns nil.
         ThrallRuntime.teardown(instance: instance)
     }
 

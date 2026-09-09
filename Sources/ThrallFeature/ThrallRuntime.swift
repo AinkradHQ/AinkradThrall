@@ -42,6 +42,27 @@ enum ThrallRuntime {
         }
     }
 
+    private static let bridges = PluginInstanceStorage<ThrallContextBridge>()
+    private static let contextTokens = PluginInstanceStorage<PluginContextToken>()
+
+    /// The per-instance context bridge, **registered with the host exactly
+    /// once** and its token kept so teardown can remove it. GitMage's version
+    /// of this was "never removed", which left a dead context source
+    /// registered for every instance ever opened.
+    static func contextBridge(for host: HostServices) -> ThrallContextBridge {
+        let id = instance(of: host)
+        var created: ThrallContextBridge?
+        let bridge = bridges.value(for: id) {
+            let made = ThrallContextBridge()
+            created = made
+            return made
+        }
+        if created != nil {
+            contextTokens.value(for: id) { host.context.register { bridge.snapshot() } }
+        }
+        return bridge
+    }
+
     private static let mcpServers = PluginInstanceStorage<MCPAppServer>()
 
     /// The per-instance MCP server, sharing the live view model so a tool
@@ -68,7 +89,9 @@ enum ThrallRuntime {
     /// go on waking the CPU after Thrall's window closed. The view model's own
     /// `shutdown()` cancels its poll task and closes anything open; dropping it
     /// from the registry without that would leak both.
-    static func teardown(instance: PluginInstanceID) {
+    static func teardown(instance: PluginInstanceID, host: HostServices? = nil) {
+        if let token = contextTokens.remove(instance) { host?.context.remove(token) }
+        bridges.remove(instance)
         stores.remove(instance)
         mcpServers.remove(instance)
         models.remove(instance)?.shutdown()

@@ -44,6 +44,11 @@ public struct ThrallShell: View {
             model.bootstrap()
             model.startPolling()
         }
+        // Registered once by the runtime; this only says which model is live,
+        // so a closed window stops contributing context instead of publishing
+        // a stale machine.
+        .onAppear { ThrallRuntime.contextBridge(for: host).setSource(model) }
+        .onDisappear { ThrallRuntime.contextBridge(for: host).clearSource(model) }
         // Down is the only verb that destroys state, so it is the only one
         // that asks. Restart is unconfirmed on purpose: the service is already
         // broken and restart is idempotent.
@@ -123,6 +128,14 @@ public struct ThrallShell: View {
 
             summary
 
+            if !triage.incidents.isEmpty {
+                AinkradIconButton(systemName: "sparkles", size: 24,
+                                  tooltip: "Ask Sage about this") {
+                    let message = ThrallRuntime.contextBridge(for: host)
+                        .handOff(model: model, host: host)
+                    toasts.show(message, status: .neutral)
+                }
+            }
             AinkradIconButton(systemName: "arrow.clockwise", size: 24, tooltip: "Refresh") {
                 Task { await model.refresh() }
             }
