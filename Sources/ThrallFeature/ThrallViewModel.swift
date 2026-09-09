@@ -26,18 +26,32 @@ public final class ThrallViewModel: ObservableObject {
     @Published public var expandedStacks: Set<ThrallStackID> = []
     @Published public var expandedServices: Set<String> = []
 
+    /// A finished action, shown as a toast and then dismissed.
+    @Published public var lastActionMessage: String?
+    /// Stacks with a compose verb in flight, so a row can show a spinner.
+    @Published public private(set) var busyStacks: Set<ThrallStackID> = []
+    /// A pending Down awaiting confirmation. Down destroys state; Restart and
+    /// Up never confirm — gating the action that *fixes* a broken service is
+    /// what makes people stop using the tool.
+    @Published public var pendingDown: ThrallStack?
+
     private let host: HostServices
     private let settings: ThrallSettingsStore
     private let resolver: ThrallContextResolver
+    private let compose: ThrallComposeClient
     private var client: ThrallEngineClient?
     private var pollTask: Task<Void, Never>?
+    private var actionTasks: [ThrallStackID: Task<Void, Never>] = [:]
 
     public init(host: HostServices,
                 settings: ThrallSettingsStore,
-                resolver: ThrallContextResolver = .system()) {
+                resolver: ThrallContextResolver = .system(),
+                compose: ThrallComposeClient = ThrallComposeClient(
+                    runner: ThrallProcessRunner())) {
         self.host = host
         self.settings = settings
         self.resolver = resolver
+        self.compose = compose
         self.world = .empty(engineKey: "")
     }
 
@@ -81,7 +95,113 @@ public final class ThrallViewModel: ObservableObject {
     public func shutdown() {
         pollTask?.cancel()
         pollTask = nil
+        // Cancelling an action task sends SIGINT then SIGKILL to its compose
+        // process — see `ThrallProcessRunner`. Leaving them running would keep
+        // spawning containers after the window closed.
+        for task in actionTasks.values { task.cancel() }
+        actionTasks = [:]
         client = nil
+    }
+
+    // MARK: - Actions
+
+    /// What a stack can actually be asked to do.
+    ///
+    /// An **orphaned** stack — config files gone, which is `aai1058` and both
+    /// `compose` stacks here — cannot use compose at all: every compose verb
+    /// needs the file it was started from. Those stacks get engine-level
+    /// container verbs instead, which is what makes them actionable rather
+    /// than merely visible.
+    public func actions(for stack: ThrallStack) -> [ThrallStackAction] {
+        if stack.isConfigMissing {
+            return [.engineStart, .engineRestart, .engineStop]
+        }
+        return [.up, .restart, .pull, .down]
+    }
+
+    public func perform(_ action: ThrallStackAction, on stack: ThrallStack) {
+        if action == .down, settings.settings.confirmBeforeDown {
+            pendingDown = stack
+            return
+        }
+        run(action, on: stack)
+    }
+
+    public func confirmPendingDown() {
+        guard let stack = pendingDown else { return }
+        pendingDown = nil
+        run(.down, on: stack)
+    }
+
+    private func run(_ action: ThrallStackAction, on stack: ThrallStack) {
+        guard actionTasks[stack.id] == nil else { return }
+        busyStacks.insert(stack.id)
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.execute(action, on: stack)
+        }
+        actionTasks[stack.id] = task
+    }
+
+    private func execute(_ action: ThrallStackAction, on stack: ThrallStack) async {
+        defer {
+            busyStacks.remove(stack.id)
+            actionTasks[stack.id] = nil
+        }
+        do {
+            if let verb = action.composeVerb {
+                guard let directory = stack.workingDirectoryDisplay,
+                      let project = stack.id.projectName else {
+                    lastActionMessage = "\(stack.displayName) has no project directory to run in."
+                    return
+                }
+                let command = ThrallComposeCommand(verb: verb,
+                                                   projectName: project,
+                                                   projectDirectory: directory,
+                                                   configFiles: stack.configFiles)
+                let result = try await compose.run(command, stack: stack.id,
+                                                   dockerHost: dockerHostValue)
+                lastActionMessage = result.succeeded
+                    ? "\(action.title) finished on \(stack.displayName)."
+                    : "\(action.title) failed on \(stack.displayName): \(result.summary)"
+            } else if let engineVerb = action.engineVerb {
+                try await runEngineVerb(engineVerb, on: stack)
+                lastActionMessage = "\(action.title) finished on \(stack.displayName)."
+            }
+        } catch let error as ThrallProcessError {
+            lastActionMessage = Self.describe(error)
+        } catch let error as ThrallComposeArgumentGuard.Rejection {
+            lastActionMessage = "Refused: \(error.message)"
+        } catch let error as ThrallEngineError {
+            lastActionMessage = Self.describe(error)
+        } catch is CancellationError {
+            lastActionMessage = "\(action.title) on \(stack.displayName) was cancelled."
+        } catch {
+            lastActionMessage = "\(error)"
+        }
+        // The engine event that would invalidate this is M2's; until then the
+        // refresh is what makes the row reflect the action.
+        await refresh()
+    }
+
+    private func runEngineVerb(_ verb: ThrallStackAction.EngineVerb,
+                               on stack: ThrallStack) async throws {
+        guard let client else { throw ThrallEngineError.noEngineSelected(name: engineLabel) }
+        let containers = stack.services.flatMap(\.containers)
+        for container in containers {
+            switch verb {
+            case .start: try await client.start(containerID: container.id)
+            case .stop: try await client.stop(containerID: container.id)
+            case .restart: try await client.restart(containerID: container.id)
+            }
+        }
+    }
+
+    /// The `DOCKER_HOST` value compose is given, derived from the socket
+    /// Thrall is already reading — never a context name.
+    private var dockerHostValue: String? {
+        guard case .unixSocket(let path) = activeContext?.endpoint else { return nil }
+        return "unix://" + path
     }
 
     // MARK: - Engine selection
@@ -169,6 +289,15 @@ public final class ThrallViewModel: ObservableObject {
 
     // `nonisolated` because both are pure string mapping — the view model's
     // isolation is about its published state, not about phrasing an error.
+    nonisolated static func describe(_ error: ThrallProcessError) -> String {
+        switch error {
+        case .binaryNotFound(let message): return message
+        case .launchFailed(let detail): return "Could not launch docker: \(detail)"
+        case .rejected(let message): return "Refused: \(message)"
+        case .cancelled: return "The command was cancelled."
+        }
+    }
+
     nonisolated static func describe(_ error: ThrallEngineError) -> String {
         switch error {
         case .unsupportedEndpoint(let reason):

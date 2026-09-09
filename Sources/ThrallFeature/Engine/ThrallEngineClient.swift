@@ -121,6 +121,54 @@ public actor ThrallEngineClient {
         try await versioned(path: "/system/df")
     }
 
+    // MARK: - Writes
+
+    /// Engine-level container verbs.
+    ///
+    /// These exist for the **orphaned stack**: `aai1058`'s compose files are
+    /// gone, so `docker compose` cannot touch it at all — it needs the file it
+    /// was started from. Stopping and starting containers by id is what makes
+    /// the largest broken stack on this machine actionable rather than merely
+    /// visible.
+    ///
+    /// Deliberately absent: any form of *remove*. Container removal is on its
+    /// own explicit path, never a side effect of a lifecycle verb.
+    public func start(containerID: String) async throws {
+        try await post(path: "/containers/\(try Self.identifier(containerID))/start",
+                       // 304 means "already started", which is success from the
+                       // caller's point of view and must not read as an error.
+                       accepting: [204, 304])
+    }
+
+    public func stop(containerID: String, timeoutSeconds: Int = 10) async throws {
+        try await post(path: "/containers/\(try Self.identifier(containerID))/stop",
+                       query: [("t", String(timeoutSeconds))],
+                       accepting: [204, 304])
+    }
+
+    public func restart(containerID: String, timeoutSeconds: Int = 10) async throws {
+        try await post(path: "/containers/\(try Self.identifier(containerID))/restart",
+                       query: [("t", String(timeoutSeconds))],
+                       accepting: [204])
+    }
+
+    private func post(path: String,
+                      query: [(String, String)] = [],
+                      accepting: Set<Int>) async throws {
+        let prefix = try await version().pathPrefix
+        let response = try await ThrallHTTPExchange.perform(
+            ThrallHTTPRequest(method: "POST",
+                              target: Self.target(prefix + path, query: query)),
+            over: makeStream(),
+            timeout: requestTimeout)
+        guard accepting.contains(response.head.statusCode) else {
+            let message = (try? JSONDecoder().decode(ThrallEngineMessageDTO.self,
+                                                     from: response.body))?.message
+            throw ThrallEngineError.http(status: response.head.statusCode,
+                                         message: message ?? response.head.reasonPhrase)
+        }
+    }
+
     // MARK: - Plumbing
 
     private func versioned<Value: Decodable>(path: String,

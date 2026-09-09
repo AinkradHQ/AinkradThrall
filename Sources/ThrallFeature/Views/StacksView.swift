@@ -50,6 +50,9 @@ struct StacksView: View {
             StackRow(stack: stack,
                      isExpanded: model.expandedStacks.contains(stack.id),
                      isSelected: model.selectedStack == stack.id,
+                     isBusy: model.busyStacks.contains(stack.id),
+                     actions: model.actions(for: stack),
+                     onAction: { model.perform($0, on: stack) },
                      onTap: {
                          model.selectedStack = stack.id
                          model.toggle(stack: stack.id)
@@ -72,6 +75,9 @@ private struct StackRow: View {
     let stack: ThrallStack
     let isExpanded: Bool
     let isSelected: Bool
+    let isBusy: Bool
+    let actions: [ThrallStackAction]
+    let onAction: (ThrallStackAction) -> Void
     let onTap: () -> Void
 
     @Environment(\.ainkradTheme) private var theme
@@ -111,7 +117,7 @@ private struct StackRow: View {
                         .font(.system(size: 11, weight: .medium).monospacedDigit())
                         .foregroundStyle(theme.foreground.opacity(0.6))
                         .frame(width: 22, alignment: .trailing)
-                    actions
+                    actionCluster
                 }
             })
         .onHover { hovering = $0 }
@@ -119,18 +125,31 @@ private struct StackRow: View {
 
     /// Present at rest, invisible until hover. Reserving the space is the whole
     /// point: `.opacity` cannot shift a layout, `if hovering` can.
-    private var actions: some View {
+    ///
+    /// While a verb is in flight the cluster stays visible and shows a spinner
+    /// **in the same footprint**, so a row does not resize the moment the user
+    /// clicks it.
+    private var actionCluster: some View {
         HStack(spacing: AinkradSpacing.xs) {
-            AinkradIconButton(systemName: "play.fill", size: 22, tooltip: "Up") {}
-                .disabled(stack.isConfigMissing)
-            AinkradIconButton(systemName: "arrow.clockwise", size: 22, tooltip: "Restart") {}
-            AinkradIconButton(systemName: "stop.fill", size: 22, tooltip: "Down") {}
+            if isBusy {
+                AinkradSpinner(size: 14)
+                    .frame(width: 22 * CGFloat(actions.count)
+                           + AinkradSpacing.xs * CGFloat(max(0, actions.count - 1)),
+                           height: 22)
+            } else {
+                ForEach(actions) { action in
+                    AinkradIconButton(systemName: action.icon, size: 22,
+                                      tooltip: action.title) {
+                        onAction(action)
+                    }
+                }
+            }
         }
-        .opacity(hovering ? 1 : 0)
+        .opacity(hovering || isBusy ? 1 : 0)
         .animation(reduceMotion ? nil : AinkradMotion.hover, value: hovering)
         // Not focusable while invisible, or tabbing would land on a hidden
         // control.
-        .allowsHitTesting(hovering)
+        .allowsHitTesting(hovering && !isBusy)
     }
 
     /// Kept to one line. A wrapped subtitle makes this row taller than its

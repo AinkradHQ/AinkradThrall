@@ -11,6 +11,7 @@ public struct ThrallShell: View {
     @ObservedObject private var settings: ThrallSettingsStore
     @State private var area: NavArea = .stacks
     @Environment(\.ainkradReduceMotion) private var reduceMotion
+    @Environment(\.ainkradToastCenter) private var toasts
 
     public init(host: HostServices) {
         self.host = host
@@ -36,6 +37,38 @@ public struct ThrallShell: View {
             model.bootstrap()
             model.startPolling()
         }
+        // Down is the only verb that destroys state, so it is the only one
+        // that asks. Restart is unconfirmed on purpose: the service is already
+        // broken and restart is idempotent.
+        .ainkradConfirmDialog(
+            isPresented: Binding(get: { model.pendingDown != nil },
+                                 set: { if !$0 { model.pendingDown = nil } }),
+            title: "Take \(model.pendingDown?.displayName ?? "") down?",
+            message: downMessage,
+            confirmTitle: "Down",
+            isDestructive: true,
+            onConfirm: { model.confirmPendingDown() })
+        // The kit's toast host is mounted once at the root, and messages are
+        // pushed into `\.ainkradToastCenter` — the shared queue every Ainkrad
+        // surface uses, rather than a local banner of Thrall's own.
+        .ainkradToastHost()
+        .onChange(of: model.lastActionMessage) { _, message in
+            guard let message else { return }
+            toasts.show(message, status: message.contains("failed")
+                        || message.contains("Refused") ? .danger : .success)
+            model.lastActionMessage = nil
+        }
+    }
+
+    /// Names the containers, and says explicitly what is **not** removed.
+    /// `down` without `--volumes` keeps the data; saying so is what stops the
+    /// user hesitating over the one verb they will use most.
+    private var downMessage: String {
+        guard let stack = model.pendingDown else { return "" }
+        let count = stack.containerCount
+        return "This stops and removes \(count) container\(count == 1 ? "" : "s") in "
+            + "\(stack.displayName). Named volumes are kept — Thrall never removes a volume "
+            + "as part of Down."
     }
 
     // MARK: - Top bar
