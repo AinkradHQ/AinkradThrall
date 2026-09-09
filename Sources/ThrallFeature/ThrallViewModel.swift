@@ -42,6 +42,16 @@ public final class ThrallViewModel: ObservableObject {
     private var client: ThrallEngineClient?
     private var pollTask: Task<Void, Never>?
     private var actionTasks: [ThrallStackID: Task<Void, Never>] = [:]
+    private var supervisor: ThrallStreamSupervisor?
+    /// The last user action, per stack. Feeds the **30 s settle window**: `up`
+    /// legitimately emits a `die` per recreated container, so without it the
+    /// user's own Restart button fires a crash-loop alert per service.
+    private var lastUserAction: [ThrallStackID: Date] = [:]
+
+    /// The triage surface's own model. Public so the shell can hand it to
+    /// `TriageView` without the shell owning the scan schedule.
+    public let triage = ThrallTriageModel()
+    @Published public private(set) var eventStreamConnected = false
 
     public init(host: HostServices,
                 settings: ThrallSettingsStore,
@@ -95,6 +105,12 @@ public final class ThrallViewModel: ObservableObject {
     public func shutdown() {
         pollTask?.cancel()
         pollTask = nil
+        // The one long-lived socket in the app. An uncancelled `NWConnection`
+        // keeps a socket *and* a dispatch source alive, so this is not
+        // optional.
+        let supervisor = self.supervisor
+        self.supervisor = nil
+        Task { await supervisor?.stop() }
         // Cancelling an action task sends SIGINT then SIGKILL to its compose
         // process — see `ThrallProcessRunner`. Leaving them running would keep
         // spawning containers after the window closed.
@@ -135,6 +151,9 @@ public final class ThrallViewModel: ObservableObject {
 
     private func run(_ action: ThrallStackAction, on stack: ThrallStack) {
         guard actionTasks[stack.id] == nil else { return }
+        // Opens the settle window before the verb runs, so the `die` events it
+        // is about to cause are already suppressed when they arrive.
+        lastUserAction[stack.id] = Date()
         busyStacks.insert(stack.id)
         let task = Task { [weak self] in
             guard let self else { return }
@@ -179,8 +198,6 @@ public final class ThrallViewModel: ObservableObject {
         } catch {
             lastActionMessage = "\(error)"
         }
-        // The engine event that would invalidate this is M2's; until then the
-        // refresh is what makes the row reflect the action.
         await refresh()
     }
 
@@ -252,6 +269,8 @@ public final class ThrallViewModel: ObservableObject {
             world = ThrallReconciler.reconcile(engineKey: context.endpoint.engineKey,
                                                containers: containers)
             state = .loaded
+            startEventStream(version: version)
+            await scanForIncidents()
         } catch let error as ThrallEngineError {
             state = .failed(Self.describe(error))
             host.log.error("Thrall: \(Self.describe(error))")
@@ -259,6 +278,82 @@ public final class ThrallViewModel: ObservableObject {
             state = .failed(Self.describe(error, endpoint: context.endpoint))
         } catch {
             state = .failed("\(error)")
+        }
+    }
+
+    // MARK: - Events and triage
+
+    /// Starts the events stream once a version is negotiated. Idempotent.
+    private func startEventStream(version: ThrallEngineVersion) {
+        guard supervisor == nil, case .unixSocket(let path) = activeContext?.endpoint else {
+            return
+        }
+        let engineKey = activeContext?.endpoint.engineKey ?? ""
+        let supervisor = ThrallStreamSupervisor(socketPath: path,
+                                                apiVersion: version.negotiated)
+        self.supervisor = supervisor
+        Task {
+            // Each handler carries its own `[weak self]`: they outlive the
+            // enclosing task and a shared captured `self` var is not sendable
+            // into them.
+            await supervisor.start(onEvent: { [weak self] event in
+                await self?.handle(event, engineKey: engineKey)
+            }, onConnected: { [weak self] connected in
+                await self?.setEventStreamConnected(connected)
+            })
+        }
+    }
+
+    private func setEventStreamConnected(_ connected: Bool) {
+        eventStreamConnected = connected
+    }
+
+    /// **An event is an invalidation plus a history append, never a delta.**
+    /// One dropped event would otherwise leave the UI permanently wrong, and
+    /// the daemon keeps no replay to recover from.
+    private func handle(_ event: ThrallEvent, engineKey: String) async {
+        triage.record(event, engineKey: engineKey)
+        await refresh()
+    }
+
+    private func scanForIncidents() async {
+        guard let client else { return }
+        triage.prune(world: world)
+        await triage.scan(
+            world: suppressedWorld(),
+            inspect: { try await client.inspect(containerID: $0) },
+            readLog: { try await client.logTail(containerID: $0) })
+    }
+
+    /// The world with recently-actioned stacks removed.
+    ///
+    /// The **30 s settle window**, and it is mandatory rather than polish:
+    /// `docker compose up` emits a `die` for every container it recreates, so
+    /// without this the user pressing Restart fires a crash-loop incident per
+    /// service — which will happen in the first demo.
+    private func suppressedWorld() -> ThrallWorld {
+        let now = Date()
+        let settling = Set(lastUserAction
+            .filter { now.timeIntervalSince($0.value) < 30 }
+            .keys)
+        guard !settling.isEmpty else { return world }
+        return ThrallWorld(engineKey: world.engineKey,
+                           stacks: world.stacks.filter { !settling.contains($0.id) },
+                           generatedAt: world.generatedAt)
+    }
+
+    /// Runs a remedy. Only a state-destroying one confirms.
+    public func apply(_ remedy: ThrallRemedy, to incident: ThrallIncident) {
+        guard let stack = world.stack(incident.key.stack) else { return }
+        switch remedy.kind {
+        case .restartDependencyThenDependents, .restartServices:
+            perform(stack.isConfigMissing ? .engineRestart : .restart, on: stack)
+        case .upStack:
+            perform(.up, on: stack)
+        case .pullStack:
+            perform(.pull, on: stack)
+        case .teardownByLabel:
+            pendingDown = stack
         }
     }
 

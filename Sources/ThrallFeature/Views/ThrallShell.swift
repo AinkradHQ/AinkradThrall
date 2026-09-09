@@ -8,6 +8,11 @@ import AinkradAppKit
 public struct ThrallShell: View {
     private let host: HostServices
     @ObservedObject private var model: ThrallViewModel
+    /// Observed **separately** from `model`. A nested `ObservableObject` does
+    /// not propagate its changes to a parent's observer, so with only `model`
+    /// observed the rail's incident badge never appeared — the count changed
+    /// and nothing invalidated this body. Caught by screenshot.
+    @ObservedObject private var triage: ThrallTriageModel
     @ObservedObject private var settings: ThrallSettingsStore
     @State private var area: NavArea = .stacks
     @Environment(\.ainkradReduceMotion) private var reduceMotion
@@ -15,7 +20,9 @@ public struct ThrallShell: View {
 
     public init(host: HostServices) {
         self.host = host
-        self.model = ThrallRuntime.viewModel(for: host)
+        let model = ThrallRuntime.viewModel(for: host)
+        self.model = model
+        self.triage = model.triage
         self.settings = ThrallRuntime.settingsStore(for: host)
     }
 
@@ -180,6 +187,8 @@ public struct ThrallShell: View {
                 RailItem(area: item,
                          isSelected: item == area,
                          tokens: tokens,
+                         // Triage is the only area that carries a badge.
+                         badge: item == .triage ? triage.incidents.count : nil,
                          onTap: { area = item })
             }
             Spacer(minLength: 0)
@@ -196,6 +205,8 @@ public struct ThrallShell: View {
         switch area {
         case .stacks:
             StacksView(model: model)
+        case .triage:
+            TriageView(model: model, triage: triage)
         default:
             AinkradEmptyState(icon: area.icon,
                               title: area.title,
@@ -211,6 +222,7 @@ private struct RailItem: View {
     let area: NavArea
     let isSelected: Bool
     let tokens: HostThemeTokens
+    let badge: Int?
     let onTap: () -> Void
 
     @Environment(\.ainkradReduceMotion) private var reduceMotion
@@ -229,6 +241,19 @@ private struct RailItem: View {
                         .fill(tokens.foreground.opacity(isSelected ? 0.10
                                                         : (hovering ? 0.06 : 0)))
                 )
+                // Inside the fixed 40x34 frame, so a count appearing or
+                // changing width cannot move the rail or the items below it.
+                .overlay(alignment: .topTrailing) {
+                    if let badge, badge > 0 {
+                        Text(badge > 99 ? "99+" : "\(badge)")
+                            .font(.system(size: 9, weight: .bold).monospacedDigit())
+                            .foregroundStyle(.black)
+                            .padding(.horizontal, 3)
+                            .padding(.vertical, 1)
+                            .background(Capsule().fill(Color.orange))
+                            .offset(x: -1, y: 1)
+                    }
+                }
         }
         .buttonStyle(.plain)
         .help(area.title)

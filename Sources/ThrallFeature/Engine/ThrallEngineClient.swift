@@ -35,8 +35,12 @@ public actor ThrallEngineClient {
     public typealias StreamFactory = @Sendable () -> any ThrallByteStream
 
     public let endpoint: ThrallEngineEndpoint
-    private let makeStream: StreamFactory
-    private let requestTimeout: Duration
+    /// `internal` rather than `private` so the log read in
+    /// `ThrallEngineClient+Logs` can open its own connection — a log tail is
+    /// framed differently from every other response and needs the raw
+    /// reader, not the unary JSON path.
+    let makeStream: StreamFactory
+    let requestTimeout: Duration
     private var cachedVersion: ThrallEngineVersion?
 
     public init(endpoint: ThrallEngineEndpoint,

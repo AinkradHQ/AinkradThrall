@@ -274,6 +274,21 @@ struct ThrallCrashLoopDetectorTests {
         #expect(loop?.evidence == .restartCount(41, since: recent))
     }
 
+    /// **The live-run bug.** Docker's restart backoff is exponential, so a
+    /// container at `RestartCount: 13` was dying every ~40 s — only two deaths
+    /// inside the 120 s window. Warm detection fails, and the first version
+    /// then refused to fall back to `RestartCount` because *some* deaths had
+    /// been seen. Thrall went blind on the long-running loops that matter most.
+    @Test("a slow loop is caught by RestartCount even though some deaths were observed")
+    func partialHistoryStillFallsBackToRestartCount() throws {
+        let recentFinish = Self.now.addingTimeInterval(-37)
+        let loop = try #require(ThrallCrashLoopDetector.detect(
+            candidate: candidate(restartCount: 13, finishedAt: recentFinish),
+            // Two deaths only: below the threshold, but not zero.
+            history: history(deaths: 2), now: Self.now))
+        #expect(loop.evidence == .restartCount(13, since: recentFinish))
+    }
+
     @Test("RestartCount with no finish time at all is not trusted")
     func restartCountWithoutFinishTime() {
         #expect(ThrallCrashLoopDetector.detect(candidate: candidate(restartCount: 41),

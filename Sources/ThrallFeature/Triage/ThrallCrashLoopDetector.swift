@@ -107,7 +107,17 @@ public enum ThrallCrashLoopDetector {
         }
 
         // Cold: RestartCount, with the recency clause.
-        guard recent.isEmpty else { return nil }
+        //
+        // **Reached even when some deaths were observed**, and that matters.
+        // The first version guarded on `recent.isEmpty` — "once events exist
+        // they are authoritative" — which made a *partial* event history worse
+        // than none. Docker's restart backoff is exponential: a container
+        // observed live at `RestartCount: 13` was dying every ~40 s, so only
+        // two deaths landed inside the 120 s window, warm detection failed,
+        // and the guard then blocked the fallback that would have caught it.
+        // The result was Thrall going blind on exactly the long-running crash
+        // loops that matter most. Found by running it against a real looping
+        // stack; no unit test would have suggested it.
         for container in restartable {
             let count = candidate.restartCounts[container.id] ?? 0
             guard count >= restartCountThreshold else { continue }
