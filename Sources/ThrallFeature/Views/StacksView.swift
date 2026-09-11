@@ -106,11 +106,23 @@ private struct StackRow: View {
             title: stack.displayName,
             subtitle: subtitle,
             trailing: {
+                // `.fixedSize()` on the badges and priority on the whole
+                // cluster are both load-bearing, not tidying. `AinkradListRow`
+                // line-limits neither title nor subtitle and gives `trailing`
+                // no layout priority, so in the overlay's narrow width a long
+                // working-directory path makes the text column claim the row
+                // and starves this side. A starved `AinkradBadge` does not
+                // clip — it wraps "No compose file" one character per line and
+                // draws as a ~8pt-wide, ~230pt-tall stripe, which drags the
+                // whole row to that height. Seen on both `compose` stacks,
+                // which are exactly the config-missing ones.
                 HStack(spacing: AinkradSpacing.md) {
                     if stack.isConfigMissing {
                         AinkradBadge(text: "No compose file", status: .warning)
+                            .fixedSize()
                     } else if stack.isStaleRelativeToConfig {
                         AinkradBadge(text: "Config changed", status: .warning)
+                            .fixedSize()
                     }
                     StateRibbon(breakdown: stack.breakdown)
                     Text("\(stack.containerCount)")
@@ -119,6 +131,7 @@ private struct StackRow: View {
                         .frame(width: 22, alignment: .trailing)
                     actionCluster
                 }
+                .layoutPriority(1)
             })
         .onHover { hovering = $0 }
     }
