@@ -168,13 +168,16 @@ private struct StackRow: View {
     /// Kept to one line. A wrapped subtitle makes this row taller than its
     /// neighbours, and a list whose row heights depend on how long a path
     /// happens to be is the same defect as a list that reorders.
+    ///
+    /// The count leads. `AinkradListRow` truncates the subtitle's tail, so
+    /// with the path first a long working directory cost the reader the one
+    /// number the row exists to show — "…/wt-1058 · 24 servi…".
     private var subtitle: String? {
-        var parts: [String] = []
+        let services = stack.services.count
+        var parts = [services == 1 ? "1 service" : "\(services) services"]
         if let directory = stack.workingDirectoryDisplay {
             parts.append(ThrallPathDisplay.abbreviate(directory))
         }
-        let services = stack.services.count
-        parts.append(services == 1 ? "1 service" : "\(services) services")
         return parts.joined(separator: "  ·  ")
     }
 }
