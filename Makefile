@@ -22,15 +22,23 @@ sideload: build
 	rm -rf "$(DEV_PLUGINS)/ThrallPlugin.bundle"
 	cp -R build/Build/Products/Debug/ThrallPlugin.bundle "$(DEV_PLUGINS)/ThrallPlugin.bundle"
 
-# Publishing goes through `ainkrad publish` and nowhere else. A bundled
-# release.sh that assembles its own ainkrad-plugin.json is a second publish
-# path producing manifests the host's StorePolicy refuses; the template's copy
-# was deleted for exactly that reason. Do not reintroduce one.
+# Publishing goes through scripts/release.sh, as it does in every other plugin
+# repo. `ainkrad publish` is NOT sufficient on its own: it does not codesign,
+# and the host demands a Developer-ID signature on every plugin as soon as the
+# host itself carries one. An ad-hoc bundle is rejected before `Bundle.load()`,
+# so it installs cleanly and then never appears — which is exactly what
+# happened to v0.1.0.
+#
+# The warning this replaces said a bundled release.sh produces manifests the
+# host refuses. That is true of the PLUGIN TEMPLATE's primitive copy, which
+# hardcodes `apiVersion: 1`; it is not true of this one, which reads the
+# stamped value out of the built bundle and updates the catalog.
 releasebuild: generate
 	xcodebuild -scheme $(SCHEME) -configuration Release -derivedDataPath build \
 	  -destination 'platform=macOS' build
 
-release: releasebuild
-	ainkrad publish build/Build/Products/Release/ThrallPlugin.bundle $(V)
+# SIGN_IDENTITY is required for a release anyone can actually load:
+#   SIGN_IDENTITY="Developer ID Application: ULINK sp. z o.o. (RT9AA68C38)" make release V=v0.1.0
+release: ; ./scripts/release.sh $(V)
 
 .PHONY: generate build test sideload release releasebuild
