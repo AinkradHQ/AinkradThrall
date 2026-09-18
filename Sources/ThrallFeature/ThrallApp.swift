@@ -20,6 +20,7 @@ public struct ThrallApp: AinkradApp, AinkradAppTeardown, AinkradAppMCP {
     public static func makeSettingsView(host: HostServices) -> AnyView {
         AnyView(
             ThrallSettingsView(presentation: host.presentation,
+                               modeControl: host.mode,
                                store: ThrallRuntime.settingsStore(for: host))
                 .ainkradHostTheme(host.theme)
         )
