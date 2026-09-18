@@ -14,7 +14,7 @@ public struct ThrallApp: AinkradApp, AinkradAppTeardown, AinkradAppMCP {
     public static let icon = "cube.transparent"
 
     public static func makeRootView(host: HostServices) -> AnyView {
-        AnyView(ThrallShell(host: host))
+        makeRootView(host: host, mode: .advanced)
     }
 
     public static func makeSettingsView(host: HostServices) -> AnyView {
@@ -49,5 +49,18 @@ public struct ThrallApp: AinkradApp, AinkradAppTeardown, AinkradAppMCP {
     /// body rather than as a separate bar above it.
     public static func chromeFill(host: HostServices) -> Color? {
         host.theme.tokens.background
+    }
+}
+
+/// Generation 11: Thrall's basic mode is the stacks and the verbs on them.
+extension ThrallApp: AinkradAppModes {
+    public static func makeRootView(host: HostServices, mode: PluginMode) -> AnyView {
+        switch mode {
+        case .basic:    return AnyView(ThrallBasicView(host: host))
+        case .advanced: return AnyView(ThrallShell(host: host))
+        // Resilient enum: fall back to advanced, never to a stripped view for a
+        // mode this build does not understand.
+        @unknown default: return AnyView(ThrallShell(host: host))
+        }
     }
 }
