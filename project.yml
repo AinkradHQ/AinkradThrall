@@ -25,7 +25,9 @@ packages:
     #
     # AppKit `main` is ahead of this. Do not "update" it without moving the
     # host first.
-    revision: 7bb80e9f1d01d468949f6c776dd111c9d6b8d690
+    # c315110: generation 11 -- Basic Mode. NOT releasable until an installed
+    # host is generation 11.
+    revision: c315110481461b1b2f14c129401b72d25107aab3
 
 targets:
   # All logic lives here, statically linked into the bundle, so it is reachable
