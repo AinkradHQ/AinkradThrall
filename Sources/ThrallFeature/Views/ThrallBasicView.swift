@@ -49,7 +49,7 @@ struct ThrallBasicView: View {
             isPresented: Binding(get: { model.pendingDown != nil },
                                  set: { if !$0 { model.pendingDown = nil } }),
             title: "Take \(model.pendingDown?.displayName ?? "") down?",
-            message: "This stops its containers and removes them.",
+            message: model.pendingDown.map(ThrallConfirmations.down) ?? "",
             confirmTitle: "Down",
             isDestructive: true,
             onConfirm: { model.confirmPendingDown() })

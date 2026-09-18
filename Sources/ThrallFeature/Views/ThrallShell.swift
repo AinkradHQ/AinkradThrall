@@ -90,10 +90,7 @@ public struct ThrallShell: View {
     /// user hesitating over the one verb they will use most.
     private var downMessage: String {
         guard let stack = model.pendingDown else { return "" }
-        let count = stack.containerCount
-        return "This stops and removes \(count) container\(count == 1 ? "" : "s") in "
-            + "\(stack.displayName). Named volumes are kept — Thrall never removes a volume "
-            + "as part of Down."
+        return ThrallConfirmations.down(stack)
     }
 
     /// Says out loud that volumes survive. This is the remedy for a stack that
