@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode-beta.app/Contents/Developer}"
+export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 VERSION="${1:?usage: release.sh vX.Y.Z}"
 ID="thrall"; NAME="Thrall"; ICON="cube.transparent"
 DESC="Container manager framed around the stack: compose projects, crash-loop triage, logs and reclaim — over the engine you already run."
