@@ -1,4 +1,4 @@
-DEVELOPER_DIR ?= /Applications/Xcode-beta.app/Contents/Developer
+DEVELOPER_DIR ?= /Applications/Xcode.app/Contents/Developer
 export DEVELOPER_DIR
 # The sideload directory is `<cacheRoot>/DevPlugins`, and cacheRoot is
 # `~/Library/Application Support/<bundle-id>/Cache` (AinkradHome.defaultCacheRoot).
