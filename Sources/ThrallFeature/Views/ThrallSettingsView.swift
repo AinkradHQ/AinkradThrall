@@ -9,18 +9,19 @@ import AinkradAppKit
 /// is opened — it never morphs an already-open window.
 struct ThrallSettingsView: View {
     let presentation: any PluginPresentationControl
+    let modeControl: any PluginModeControl
     /// The same store the root view and `chromeFill` read — the trio that has
     /// to agree, which is what `ThrallRuntime` exists for.
     @ObservedObject var store: ThrallSettingsStore
 
     @Environment(\.ainkradTheme) private var theme
     @Environment(\.ainkradTypography) private var typo
-    @State private var mode: PluginPresentation
-
-    init(presentation: any PluginPresentationControl, store: ThrallSettingsStore) {
+    init(presentation: any PluginPresentationControl,
+         modeControl: any PluginModeControl,
+         store: ThrallSettingsStore) {
         self.presentation = presentation
+        self.modeControl = modeControl
         self.store = store
-        _mode = State(initialValue: presentation.current)
     }
 
     var body: some View {
@@ -30,11 +31,11 @@ struct ThrallSettingsView: View {
                     .font(AinkradFontResolver.font(.body, typography: typo))
                     .foregroundStyle(theme.foreground)
 
-                AinkradFormRow(title: "Presentation", help: "Applies the next time Thrall opens.") {
-                    AinkradSegmentedPicker(items: [PluginPresentation.overlay, .pane], selection: $mode) {
-                        $0 == .overlay ? "Overlay" : "Pane"
-                    }
-                }
+                // The shared rows, not a local copy: "Open as" and "Open in"
+                // must read the same and sit in the same place in every app.
+                AinkradSurfaceSettings(appName: "Thrall",
+                                       presentation: presentation,
+                                       mode: modeControl)
 
                 AinkradFormRow(title: "Unmanaged containers",
                                help: "Containers with no compose project get their own row. "
@@ -61,6 +62,5 @@ struct ThrallSettingsView: View {
         // the Dev Host — and settings that start halfway down the window read
         // as a rendering fault.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .onChange(of: mode) { _, newValue in presentation.set(newValue) }
     }
 }

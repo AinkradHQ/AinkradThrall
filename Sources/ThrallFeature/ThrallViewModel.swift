@@ -34,6 +34,14 @@ public final class ThrallViewModel: ObservableObject {
     /// Up never confirm — gating the action that *fixes* a broken service is
     /// what makes people stop using the tool.
     @Published public var pendingDown: ThrallStack?
+
+    /// Whether `refresh()` also scans for incidents.
+    ///
+    /// Basic mode turns it off: the scan reads container logs to fingerprint
+    /// crash loops, and its only consumers are the triage area and the rail's
+    /// incident badge, neither of which basic has. Default `true`, so advanced
+    /// and anything that forgets to set it keep the old behaviour.
+    public var scansForIncidents = true
     /// A pending by-label teardown of an orphaned stack.
     @Published public var pendingTeardown: ThrallStack?
 

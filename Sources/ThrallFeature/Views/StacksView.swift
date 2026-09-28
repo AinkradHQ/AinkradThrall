@@ -106,11 +106,23 @@ private struct StackRow: View {
             title: stack.displayName,
             subtitle: subtitle,
             trailing: {
+                // `.fixedSize()` on the badges and priority on the whole
+                // cluster are both load-bearing, not tidying. `AinkradListRow`
+                // line-limits neither title nor subtitle and gives `trailing`
+                // no layout priority, so in the overlay's narrow width a long
+                // working-directory path makes the text column claim the row
+                // and starves this side. A starved `AinkradBadge` does not
+                // clip — it wraps "No compose file" one character per line and
+                // draws as a ~8pt-wide, ~230pt-tall stripe, which drags the
+                // whole row to that height. Seen on both `compose` stacks,
+                // which are exactly the config-missing ones.
                 HStack(spacing: AinkradSpacing.md) {
                     if stack.isConfigMissing {
                         AinkradBadge(text: "No compose file", status: .warning)
+                            .fixedSize()
                     } else if stack.isStaleRelativeToConfig {
                         AinkradBadge(text: "Config changed", status: .warning)
+                            .fixedSize()
                     }
                     StateRibbon(breakdown: stack.breakdown)
                     Text("\(stack.containerCount)")
@@ -119,6 +131,7 @@ private struct StackRow: View {
                         .frame(width: 22, alignment: .trailing)
                     actionCluster
                 }
+                .layoutPriority(1)
             })
         .onHover { hovering = $0 }
     }
@@ -155,13 +168,16 @@ private struct StackRow: View {
     /// Kept to one line. A wrapped subtitle makes this row taller than its
     /// neighbours, and a list whose row heights depend on how long a path
     /// happens to be is the same defect as a list that reorders.
+    ///
+    /// The count leads. `AinkradListRow` truncates the subtitle's tail, so
+    /// with the path first a long working directory cost the reader the one
+    /// number the row exists to show — "…/wt-1058 · 24 servi…".
     private var subtitle: String? {
-        var parts: [String] = []
+        let services = stack.services.count
+        var parts = [services == 1 ? "1 service" : "\(services) services"]
         if let directory = stack.workingDirectoryDisplay {
             parts.append(ThrallPathDisplay.abbreviate(directory))
         }
-        let services = stack.services.count
-        parts.append(services == 1 ? "1 service" : "\(services) services")
         return parts.joined(separator: "  ·  ")
     }
 }

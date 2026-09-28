@@ -178,7 +178,12 @@ extension ThrallViewModel {
                                                containers: containers)
             state = .loaded
             startEventStream(version: version)
-            await scanForIncidents()
+            // Skipped in basic mode: the scan reads container logs to fingerprint
+            // crash loops, and its only consumers are the triage area and the
+            // rail's incident badge — neither of which basic has. Scoped here
+            // rather than in the view, because a view cannot decline work a
+            // refresh already did.
+            if scansForIncidents { await scanForIncidents() }
         } catch let error as ThrallEngineError {
             state = .failed(Self.describe(error))
             host.log.error("Thrall: \(Self.describe(error))")

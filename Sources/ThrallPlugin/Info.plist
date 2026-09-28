@@ -18,6 +18,9 @@
          you keep tiled. Overridable per user via HostServices.presentation,
          surfaced as the Presentation control in settings. -->
     <key>AinkradPresentation</key><string>overlay</string>
+    <!-- Advanced by default: triage is the reason to open Thrall unprompted,
+         and it is an advanced-only area. Basic is a deliberate switch. -->
+    <key>AinkradMode</key><string>advanced</string>
     <key>AinkradAuthor</key><string>Ahmed M. Elhalaby</string>
     <key>description</key><string>Container manager framed around the stack: compose projects, crash-loop triage, logs and reclaim — over the engine you already run.</string>
 </dict>
