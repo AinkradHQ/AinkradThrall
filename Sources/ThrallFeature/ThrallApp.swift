@@ -17,6 +17,10 @@ public struct ThrallApp: AinkradApp, AinkradAppTeardown, AinkradAppMCP {
         makeRootView(host: host, mode: .advanced)
     }
 
+    public static func settingsCatalog(host: HostServices) -> SettingsPage? {
+        ThrallSettingsCatalog.page(store: ThrallRuntime.settingsStore(for: host))
+    }
+
     public static func makeSettingsView(host: HostServices) -> AnyView {
         AnyView(
             ThrallSettingsView(presentation: host.presentation,
