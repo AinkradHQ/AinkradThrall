@@ -136,11 +136,19 @@ struct ThrallReconcilerTests {
     /// A directory check would report the largest broken stack as healthy.
     @Test("a present working directory does not clear config-missing")
     func directoryIsNotAProxyForTheConfig() throws {
-        let stacks = try world(probe: .filesystem).stacks
+        // The premise, stated rather than read off this Mac's disk: the working
+        // directory is there, every compose file is not. It was the real
+        // filesystem, and the day that directory was deleted too the test
+        // failed on its premise instead of on the behaviour.
+        let aaiFiles = ThrallReconciler.configFiles(
+            from: try #require(try fixtureContainers().first {
+                $0.labels["com.docker.compose.project"] == "aai1058"
+            }).labels)
+        let directoryOnly = ThrallFileProbe { !aaiFiles.contains($0) }
+        let stacks = try world(probe: directoryOnly).stacks
         let aai = try #require(stacks.first { $0.displayName == "aai1058" })
         let directory = try #require(aai.workingDirectoryDisplay)
-        #expect(FileManager.default.fileExists(atPath: directory),
-                "the fixture's premise: the directory outlived the config")
+        #expect(directoryOnly.exists(directory), "the premise: the directory outlived the config")
         #expect(aai.isConfigMissing)
     }
 
