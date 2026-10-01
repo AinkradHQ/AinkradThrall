@@ -38,6 +38,7 @@ public struct ThrallSettings: Codable, Equatable, Sendable {
 public final class ThrallSettingsStore: ObservableObject {
     private static let documentKey = "thrall.settings.v1"
     private let documents: any PluginDocumentStore
+    private var canSave = true
 
     @Published public var settings: ThrallSettings {
         didSet { persist() }
@@ -45,15 +46,20 @@ public final class ThrallSettingsStore: ObservableObject {
 
     public init(documents: any PluginDocumentStore) {
         self.documents = documents
-        if let data = documents.data(forKey: Self.documentKey),
-           let decoded = try? JSONDecoder().decode(ThrallSettings.self, from: data) {
-            settings = decoded
-        } else {
-            settings = .default
-        }
+        let loaded = loadDocument(
+            ThrallSettings.self, key: Self.documentKey, from: documents, app: "thrall")
+        // canSave first, so the guard already holds the loaded value if this
+        // init assignment ever reaches persist() through the didSet.
+        canSave = loaded.canSave
+        settings = loaded.value ?? .default
     }
 
     private func persist() {
+        guard canSave else {
+            AinkradLog.logger(app: "thrall", area: "persistence")
+                .error("saving is off: the loaded document did not decode and could not be set aside")
+            return
+        }
         // A settings write that cannot be encoded is dropped rather than
         // thrown: losing a preference is better than failing the UI action
         // that changed it.
