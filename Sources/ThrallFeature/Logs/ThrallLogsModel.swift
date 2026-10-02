@@ -4,7 +4,7 @@ import AinkradAppKit
 /// Drives one log pane: which services, following or not, and the buffer.
 @MainActor
 public final class ThrallLogsModel: ObservableObject {
-    @Published public private(set) var buffer = ThrallLogBuffer()
+    @Published public private(set) var buffer = AinkradLogBuffer()
     @Published public var isFollowing = true
     @Published public var filter = ""
     @Published public private(set) var isLoading = false
@@ -16,7 +16,7 @@ public final class ThrallLogsModel: ObservableObject {
 
     public init() {}
 
-    public var visibleLines: [ThrallLogLine] {
+    public var visibleLines: [AinkradLogLine] {
         buffer.filtered(filter)
     }
 
@@ -44,7 +44,7 @@ public final class ThrallLogsModel: ObservableObject {
                     let frames = try await read(container.id)
                     guard let self, !Task.isCancelled else { return }
                     for frame in frames {
-                        self.buffer.append(frame: frame, service: container.service)
+                        self.buffer.append(frame.payload, stream: frame.stream == .stderr ? .stderr : .stdout, source: container.service)
                     }
                     self.buffer.flush()
                     self.isLoading = false

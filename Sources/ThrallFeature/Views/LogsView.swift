@@ -86,12 +86,12 @@ struct LogsView: View {
                                   ? "Choose a stack to tail."
                                   : "\(selectedStack?.displayName ?? "") has written nothing yet.")
         } else {
-            ThrallLogTextView(lines: logs.visibleLines,
-                              palette: ThrallANSIPalette(theme: theme,
-                                                          statusColors: statusColors),
-                              foreground: theme.foreground,
-                              showsServicePrefix: logs.showsServicePrefix,
-                              isFollowing: logs.isFollowing)
+            AinkradLogView(lines: logs.visibleLines,
+                           palette: AinkradANSIPalette(theme: theme,
+                                                       statusColors: statusColors),
+                           foreground: theme.foreground,
+                           showsSourcePrefix: logs.showsServicePrefix,
+                           isFollowing: logs.isFollowing)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
