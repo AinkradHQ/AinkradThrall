@@ -124,7 +124,8 @@ private struct StackRow: View {
                         AinkradBadge(text: "Config changed", status: .warning)
                             .fixedSize()
                     }
-                    StateRibbon(breakdown: stack.breakdown)
+                    AinkradStackedStatusBar(runs: statusRuns(for: stack.breakdown))
+                        .frame(width: 64)
                     Text("\(stack.containerCount)")
                         .font(.system(size: 11, weight: .medium).monospacedDigit())
                         .foregroundStyle(theme.foreground.opacity(0.6))
@@ -258,4 +259,17 @@ private struct ContainerRow: View {
                     .frame(maxWidth: 220, alignment: .trailing)
             })
     }
+}
+
+/// Maps `ThrallStateBreakdown` counts to `[AinkradStatusRun]` for `AinkradStackedStatusBar`.
+func statusRuns(for breakdown: ThrallStateBreakdown) -> [AinkradStatusRun] {
+    [
+        AinkradStatusRun(count: breakdown.running, status: .success),
+        AinkradStatusRun(count: breakdown.created, status: .neutral),
+        AinkradStatusRun(count: breakdown.paused, status: .neutral),
+        AinkradStatusRun(count: breakdown.other, status: .neutral),
+        AinkradStatusRun(count: breakdown.exited, status: .warning),
+        AinkradStatusRun(count: breakdown.restarting, status: .danger),
+        AinkradStatusRun(count: breakdown.dead, status: .danger),
+    ].filter { $0.count > 0 }
 }
