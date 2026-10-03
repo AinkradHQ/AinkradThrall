@@ -165,7 +165,9 @@ struct ThrallHTTPExchangeTests {
 /// resolution (`~/.docker/config.json`, `contexts/meta/*/meta.json`) is Task C
 /// and belongs in the feature, not in a test helper.
 enum LiveEngine {
+    // Live tests are opt-in per S-TST-9: set THRALL_LIVE_DOCKER=1 to run them.
     static let socketPath: String? = {
+        guard ProcessInfo.processInfo.environment["THRALL_LIVE_DOCKER"] == "1" else { return nil }
         if let host = ProcessInfo.processInfo.environment["DOCKER_HOST"],
            host.hasPrefix("unix://") {
             let path = String(host.dropFirst("unix://".count))
