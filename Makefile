@@ -9,11 +9,11 @@ SCHEME := ThrallPlugin
 
 generate: ; xcodegen generate
 
-build: generate
+build: lint generate
 	xcodebuild -scheme $(SCHEME) -configuration Debug -derivedDataPath build \
 	  -destination 'platform=macOS' build
 
-test: generate
+test: lint generate
 	xcodebuild -scheme $(SCHEME) -configuration Debug -derivedDataPath build \
 	  -destination 'platform=macOS' test
 
@@ -42,3 +42,5 @@ releasebuild: generate
 release: ; ./scripts/release.sh $(V)
 
 .PHONY: generate build test sideload release releasebuild
+
+include scripts/guardrails.mk
