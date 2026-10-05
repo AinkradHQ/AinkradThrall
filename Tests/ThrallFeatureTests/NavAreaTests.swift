@@ -1,4 +1,5 @@
 import Testing
+
 @testable import ThrallFeature
 
 /// Thrall's areas are argued from how the machine actually looks, so the

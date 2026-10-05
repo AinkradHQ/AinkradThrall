@@ -1,6 +1,6 @@
+import AinkradAppKit
 import Foundation
 import os
-import AinkradAppKit
 
 /// Reads `key`. Bytes that no longer decode are MOVED to `<key>.corrupt-<UTC stamp>`
 /// (verified by reading the copy back) and the caller starts empty. If the copy

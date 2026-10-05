@@ -69,10 +69,12 @@ public enum ThrallCrashLoopDetector {
         public let restartPolicies: [String: Bool]
         public let finishedAt: [String: Date]
 
-        public init(stack: ThrallStackID, service: String, containers: [ThrallContainer],
-                    restartCounts: [String: Int] = [:],
-                    restartPolicies: [String: Bool] = [:],
-                    finishedAt: [String: Date] = [:]) {
+        public init(
+            stack: ThrallStackID, service: String, containers: [ThrallContainer],
+            restartCounts: [String: Int] = [:],
+            restartPolicies: [String: Bool] = [:],
+            finishedAt: [String: Date] = [:]
+        ) {
             self.stack = stack
             self.service = service
             self.containers = containers
@@ -82,9 +84,11 @@ public enum ThrallCrashLoopDetector {
         }
     }
 
-    public static func detect(candidate: Candidate,
-                              history: ThrallEventHistory,
-                              now: Date) -> ThrallCrashLoop? {
+    public static func detect(
+        candidate: Candidate,
+        history: ThrallEventHistory,
+        now: Date
+    ) -> ThrallCrashLoop? {
         // Rule 0: a container the engine will not restart cannot loop.
         let restartable = candidate.containers.filter {
             candidate.restartPolicies[$0.id] ?? true
@@ -95,9 +99,11 @@ public enum ThrallCrashLoopDetector {
         let recent = history.recentDeaths(for: key, since: now.addingTimeInterval(-window))
         // Warm: same nonzero exit code, at or over the threshold.
         let byExitCode = Dictionary(grouping: recent.filter { $0.exitCode != 0 }, by: \.exitCode)
-        if let (exitCode, deaths) = byExitCode
+        if let (exitCode, deaths) =
+            byExitCode
             .filter({ $0.value.count >= deathThreshold })
-            .max(by: { $0.value.count < $1.value.count }) {
+            .max(by: { $0.value.count < $1.value.count })
+        {
             return ThrallCrashLoop(
                 stack: candidate.stack,
                 service: candidate.service,
@@ -122,7 +128,8 @@ public enum ThrallCrashLoopDetector {
             let count = candidate.restartCounts[container.id] ?? 0
             guard count >= restartCountThreshold else { continue }
             guard let finished = candidate.finishedAt[container.id],
-                  now.timeIntervalSince(finished) <= restartCountRecency else { continue }
+                now.timeIntervalSince(finished) <= restartCountRecency
+            else { continue }
             return ThrallCrashLoop(
                 stack: candidate.stack,
                 service: candidate.service,
@@ -134,9 +141,11 @@ public enum ThrallCrashLoopDetector {
     }
 
     /// Runs the detector over a whole world.
-    public static func detectAll(candidates: [Candidate],
-                                 history: ThrallEventHistory,
-                                 now: Date) -> [ThrallCrashLoop] {
+    public static func detectAll(
+        candidates: [Candidate],
+        history: ThrallEventHistory,
+        now: Date
+    ) -> [ThrallCrashLoop] {
         candidates.compactMap { detect(candidate: $0, history: history, now: now) }
             // Ordered by identity, not by severity: the triage list must not
             // reshuffle as counts tick up.

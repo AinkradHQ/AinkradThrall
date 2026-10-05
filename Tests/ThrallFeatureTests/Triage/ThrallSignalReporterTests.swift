@@ -1,6 +1,7 @@
+import AinkradAppKit
 import Foundation
 import Testing
-import AinkradAppKit
+
 @testable import ThrallFeature
 
 /// Records what was emitted, so the three suppression gates can be asserted
@@ -16,15 +17,21 @@ final class RecordingSignalEmitter: PluginSignalEmitter {
     }
     var emitted: [Emitted] = []
 
-    func emit(kind: String, severity: SignalSeverity, title: String, body: String?,
-              importance: SignalImportance, deepLink: SignalDeepLink?,
-              actions: [SignalAction], dedupeKey: String?) {
-        emitted.append(Emitted(kind: kind, severity: severity, title: title,
-                               importance: importance, dedupeKey: dedupeKey))
+    func emit(
+        kind: String, severity: SignalSeverity, title: String, body: String?,
+        importance: SignalImportance, deepLink: SignalDeepLink?,
+        actions: [SignalAction], dedupeKey: String?
+    ) {
+        emitted.append(
+            Emitted(
+                kind: kind, severity: severity, title: title,
+                importance: importance, dedupeKey: dedupeKey))
     }
     func own(limit: Int) -> [SignalEvent] { [] }
-    func handleAction(_ actionID: String,
-                      _ handler: @escaping @MainActor () async -> Void) -> AgentActionToken {
+    func handleAction(
+        _ actionID: String,
+        _ handler: @escaping @MainActor () async -> Void
+    ) -> AgentActionToken {
         AgentActionToken()
     }
     func removeActionHandler(_ token: AgentActionToken) {}
@@ -35,18 +42,22 @@ final class RecordingSignalEmitter: PluginSignalEmitter {
 @MainActor
 @Suite("ThrallSignalReporter")
 struct ThrallSignalReporterTests {
-    private static let stackID = ThrallStackID(engineKey: "e", projectName: "aai1058",
-                                                workingDirectory: ThrallPathKey("/tmp/wt"))
+    private static let stackID = ThrallStackID(
+        engineKey: "e", projectName: "aai1058",
+        workingDirectory: ThrallPathKey("/tmp/wt"))
 
-    private func incident(_ fingerprint: String, services: [String] = ["worker"],
-                          stack: ThrallStackID = stackID) -> ThrallIncident {
-        ThrallIncident(key: .init(stack: stack, fingerprint: fingerprint),
-                       stackName: "aai1058", services: services,
-                       containerIDs: services.map { "c-\($0)" }, exitCode: 1,
-                       evidence: "Connection refused", imageDigest: "sha256:a",
-                       firstSeen: Date(timeIntervalSince1970: 1),
-                       lastSeen: Date(timeIntervalSince1970: 2),
-                       restartTotal: 7, brokenDependencies: [])
+    private func incident(
+        _ fingerprint: String, services: [String] = ["worker"],
+        stack: ThrallStackID = stackID
+    ) -> ThrallIncident {
+        ThrallIncident(
+            key: .init(stack: stack, fingerprint: fingerprint),
+            stackName: "aai1058", services: services,
+            containerIDs: services.map { "c-\($0)" }, exitCode: 1,
+            evidence: "Connection refused", imageDigest: "sha256:a",
+            firstSeen: Date(timeIntervalSince1970: 1),
+            lastSeen: Date(timeIntervalSince1970: 2),
+            restartTotal: 7, brokenDependencies: [])
     }
 
     /// **Gate 3.** Opening Thrall on the machine the plan was written against
@@ -55,8 +66,9 @@ struct ThrallSignalReporterTests {
     func firstScanIsSilent() {
         let emitter = RecordingSignalEmitter()
         let reporter = ThrallSignalReporter()
-        reporter.report(incidents: (1...15).map { incident("f\($0)") },
-                        suppressedStacks: [], to: emitter)
+        reporter.report(
+            incidents: (1...15).map { incident("f\($0)") },
+            suppressedStacks: [], to: emitter)
         #expect(emitter.emitted.isEmpty)
     }
 
@@ -94,8 +106,9 @@ struct ThrallSignalReporterTests {
         let emitter = RecordingSignalEmitter()
         let reporter = ThrallSignalReporter()
         reporter.report(incidents: [], suppressedStacks: [], to: emitter)
-        reporter.report(incidents: [incident("f1"), incident("f2")],
-                        suppressedStacks: [Self.stackID], to: emitter)
+        reporter.report(
+            incidents: [incident("f1"), incident("f2")],
+            suppressedStacks: [Self.stackID], to: emitter)
         #expect(emitter.emitted.isEmpty)
     }
 
@@ -123,8 +136,9 @@ struct ThrallSignalReporterTests {
         let emitter = RecordingSignalEmitter()
         let reporter = ThrallSignalReporter()
         reporter.report(incidents: [], suppressedStacks: [], to: emitter)
-        reporter.report(incidents: [incident("f1", services: ["worker"])],
-                        suppressedStacks: [], to: emitter)
+        reporter.report(
+            incidents: [incident("f1", services: ["worker"])],
+            suppressedStacks: [], to: emitter)
         emitter.emitted.removeAll()
         reporter.report(incidents: [], suppressedStacks: [], to: emitter)
 
@@ -163,8 +177,9 @@ struct ThrallSignalReporterTests {
         let emitter = RecordingSignalEmitter()
         let reporter = ThrallSignalReporter()
         reporter.report(incidents: [], suppressedStacks: [], to: emitter)
-        reporter.report(incidents: (1...5).map { incident("f\($0)") },
-                        suppressedStacks: [], to: emitter)
+        reporter.report(
+            incidents: (1...5).map { incident("f\($0)") },
+            suppressedStacks: [], to: emitter)
         emitter.emitted.removeAll()
         reporter.reset()
         reporter.report(incidents: [], suppressedStacks: [], to: emitter)
@@ -175,11 +190,13 @@ struct ThrallSignalReporterTests {
     func perStackSignals() {
         let emitter = RecordingSignalEmitter()
         let reporter = ThrallSignalReporter()
-        let other = ThrallStackID(engineKey: "e", projectName: "optimus",
-                                  workingDirectory: ThrallPathKey("/tmp/o"))
+        let other = ThrallStackID(
+            engineKey: "e", projectName: "optimus",
+            workingDirectory: ThrallPathKey("/tmp/o"))
         reporter.report(incidents: [], suppressedStacks: [], to: emitter)
-        reporter.report(incidents: [incident("f1"), incident("f1", stack: other)],
-                        suppressedStacks: [], to: emitter)
+        reporter.report(
+            incidents: [incident("f1"), incident("f1", stack: other)],
+            suppressedStacks: [], to: emitter)
         #expect(emitter.emitted.count == 2)
         #expect(Set(emitter.emitted.compactMap(\.dedupeKey)).count == 2)
     }

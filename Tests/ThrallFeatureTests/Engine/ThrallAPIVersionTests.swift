@@ -1,20 +1,25 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 @Suite("ThrallAPIVersion")
 struct ThrallAPIVersionTests {
-    @Test("parses what the engine and Podman send", arguments: [
-        ("1.54", 1, 54), ("1.41", 1, 41), ("1.9", 1, 9), ("1.54.0", 1, 54), ("  1.51 ", 1, 51),
-    ])
+    @Test(
+        "parses what the engine and Podman send",
+        arguments: [
+            ("1.54", 1, 54), ("1.41", 1, 41), ("1.9", 1, 9), ("1.54.0", 1, 54), ("  1.51 ", 1, 51),
+        ])
     func parses(text: String, major: Int, minor: Int) throws {
         let parsed = try #require(ThrallAPIVersion(text))
         #expect(parsed == ThrallAPIVersion(major: major, minor: minor))
     }
 
-    @Test("refuses anything that is not a version", arguments: [
-        "", "1", "1.", ".1", "v1.41", "1.41.2.3", "1.x", "latest", "-1.4", "1.41 beta", "99999.1",
-    ])
+    @Test(
+        "refuses anything that is not a version",
+        arguments: [
+            "", "1", "1.", ".1", "v1.41", "1.41.2.3", "1.x", "latest", "-1.4", "1.41 beta", "99999.1",
+        ])
     func refuses(text: String) {
         #expect(ThrallAPIVersion(text) == nil)
     }
@@ -65,11 +70,13 @@ struct ThrallEngineNegotiationTests {
     @Test("below the floor it refuses rather than degrades", arguments: ["1.40", "1.24", "1.0"])
     func belowFloorFailsClosed(reported: String) throws {
         let version = try #require(ThrallAPIVersion(reported))
-        #expect(throws: ThrallEngineError.apiTooOld(
-            reported: reported,
-            minimumSupported: ThrallEngineNegotiation.floor.description)) {
-                try ThrallEngineNegotiation.negotiate(reported: version, serverMinimum: nil)
-            }
+        #expect(
+            throws: ThrallEngineError.apiTooOld(
+                reported: reported,
+                minimumSupported: ThrallEngineNegotiation.floor.description)
+        ) {
+            try ThrallEngineNegotiation.negotiate(reported: version, serverMinimum: nil)
+        }
     }
 
     @Test("a server that will not serve the chosen version is refused")

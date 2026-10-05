@@ -1,5 +1,5 @@
-import Foundation
 import AinkradAppKit
+import Foundation
 
 /// The stacks surface's state, and the only place that decides *when* to talk
 /// to the engine.
@@ -75,11 +75,13 @@ public final class ThrallViewModel: ObservableObject {
     public let storage = ThrallStorageModel()
     @Published public internal(set) var eventStreamConnected = false
 
-    public init(host: HostServices,
-                settings: ThrallSettingsStore,
-                resolver: ThrallContextResolver = .system(),
-                compose: ThrallComposeClient = ThrallComposeClient(
-                    runner: ThrallProcessRunner())) {
+    public init(
+        host: HostServices,
+        settings: ThrallSettingsStore,
+        resolver: ThrallContextResolver = .system(),
+        compose: ThrallComposeClient = ThrallComposeClient(
+            runner: ThrallProcessRunner())
+    ) {
         self.host = host
         self.settings = settings
         self.resolver = resolver
@@ -88,10 +90,11 @@ public final class ThrallViewModel: ObservableObject {
     }
 
     public var rows: [ThrallRow] {
-        ThrallRowBuilder.rows(for: world,
-                              expandedStacks: expandedStacks,
-                              expandedServices: expandedServices,
-                              showUnmanaged: settings.settings.showUnmanaged)
+        ThrallRowBuilder.rows(
+            for: world,
+            expandedStacks: expandedStacks,
+            expandedServices: expandedServices,
+            showUnmanaged: settings.settings.showUnmanaged)
     }
 
     /// What the engine chip reads. The context name, not the socket path —
@@ -147,8 +150,10 @@ public final class ThrallViewModel: ObservableObject {
     /// Lives here rather than in `ThrallLogsModel` because the engine client
     /// is the view model's, and a log read is the one place where handing the
     /// client out would let a view open a socket.
-    public func tailLogs(_ containers: [(id: String, service: String)],
-                         into logs: ThrallLogsModel) async {
+    public func tailLogs(
+        _ containers: [(id: String, service: String)],
+        into logs: ThrallLogsModel
+    ) async {
         guard let client else {
             logs.tail(containers: [], read: { _ in [] })
             return
@@ -221,8 +226,10 @@ public final class ThrallViewModel: ObservableObject {
     /// reports it as `POSIXErrorCode(rawValue: 2)`, which is true, useless,
     /// and exactly the kind of raw framework text that should never reach a
     /// window. Naming the socket instead tells the user which engine to start.
-    nonisolated static func describe(_ error: ThrallTransportError,
-                                     endpoint: ThrallEngineEndpoint?) -> String {
+    nonisolated static func describe(
+        _ error: ThrallTransportError,
+        endpoint: ThrallEngineEndpoint?
+    ) -> String {
         let socket: String
         if case .unixSocket(let path) = endpoint {
             socket = ThrallPathDisplay.abbreviate(path, maxLength: 44)

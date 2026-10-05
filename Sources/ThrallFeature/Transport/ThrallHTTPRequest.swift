@@ -23,10 +23,12 @@ public struct ThrallHTTPRequest: Equatable, Sendable {
     public var headers: [(name: String, value: String)]
     public var body: Data?
 
-    public init(method: String = "GET",
-                target: String,
-                headers: [(name: String, value: String)] = [],
-                body: Data? = nil) {
+    public init(
+        method: String = "GET",
+        target: String,
+        headers: [(name: String, value: String)] = [],
+        body: Data? = nil
+    ) {
         self.method = method
         self.target = target
         self.headers = headers
@@ -105,7 +107,10 @@ public struct ThrallHTTPRequest: Equatable, Sendable {
     private static func isTokenCharacter(_ character: Character) -> Bool {
         guard let ascii = character.asciiValue else { return false }
         if (ascii >= 0x30 && ascii <= 0x39) || (ascii >= 0x41 && ascii <= 0x5A)
-            || (ascii >= 0x61 && ascii <= 0x7A) { return true }
+            || (ascii >= 0x61 && ascii <= 0x7A)
+        {
+            return true
+        }
         return "!#$%&'*+-.^_`|~".utf8.contains(ascii)
     }
 

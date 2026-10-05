@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 /// The request encoder is the last place a container name, image reference or
@@ -32,10 +33,11 @@ struct ThrallHTTPRequestTests {
     @Test("a body sets Content-Length and is appended after the blank line")
     func bodyLength() throws {
         let body = Data(#"{"Force":true}"#.utf8)
-        let request = ThrallHTTPRequest(method: "POST",
-                                        target: "/v1.51/containers/abc/stop",
-                                        headers: [(name: "Content-Type", value: "application/json")],
-                                        body: body)
+        let request = ThrallHTTPRequest(
+            method: "POST",
+            target: "/v1.51/containers/abc/stop",
+            headers: [(name: "Content-Type", value: "application/json")],
+            body: body)
         let encoded = try request.encoded()
         let text = String(decoding: encoded, as: UTF8.self)
         #expect(text.contains("\r\nContent-Length: \(body.count)\r\n"))
@@ -44,8 +46,9 @@ struct ThrallHTTPRequestTests {
 
     @Test("a caller-set default is not duplicated")
     func callerOverridesDefault() throws {
-        let request = ThrallHTTPRequest(target: "/v1.51/version",
-                                        headers: [(name: "Host", value: "localhost")])
+        let request = ThrallHTTPRequest(
+            target: "/v1.51/version",
+            headers: [(name: "Host", value: "localhost")])
         let fields = try lines(request)
         #expect(fields.filter { $0.hasPrefix("Host:") } == ["Host: localhost"])
     }
@@ -53,14 +56,16 @@ struct ThrallHTTPRequestTests {
     /// One unescaped CRLF in a container name would smuggle a second request
     /// onto the socket. Every one of these is data that arrives from the
     /// engine or from a compose file, not from a literal in our source.
-    @Test("a target that could smuggle a request is refused", arguments: [
-        "/v1.51/containers/abc\r\nX-Injected: 1/stop",
-        "/v1.51/containers/ab c/stop",
-        "/v1.51/containers/abc\n/stop",
-        "/v1.51/containers/n\u{00E4}me/stop",
-        "v1.51/version",
-        "",
-    ])
+    @Test(
+        "a target that could smuggle a request is refused",
+        arguments: [
+            "/v1.51/containers/abc\r\nX-Injected: 1/stop",
+            "/v1.51/containers/ab c/stop",
+            "/v1.51/containers/abc\n/stop",
+            "/v1.51/containers/n\u{00E4}me/stop",
+            "v1.51/version",
+            "",
+        ])
     func invalidTargets(target: String) {
         #expect(throws: ThrallTransportError.self) {
             try ThrallHTTPRequest(target: target).encoded()
@@ -76,15 +81,17 @@ struct ThrallHTTPRequestTests {
 
     @Test("a header value containing CR or LF is refused")
     func invalidHeaderValue() {
-        let request = ThrallHTTPRequest(target: "/v1.51/version",
-                                        headers: [(name: "X-Filter", value: "a\r\nX-Injected: 1")])
+        let request = ThrallHTTPRequest(
+            target: "/v1.51/version",
+            headers: [(name: "X-Filter", value: "a\r\nX-Injected: 1")])
         #expect(throws: ThrallTransportError.self) { try request.encoded() }
     }
 
     @Test("a header name that is not a token is refused")
     func invalidHeaderName() {
-        let request = ThrallHTTPRequest(target: "/v1.51/version",
-                                        headers: [(name: "X Filter", value: "1")])
+        let request = ThrallHTTPRequest(
+            target: "/v1.51/version",
+            headers: [(name: "X Filter", value: "1")])
         #expect(throws: ThrallTransportError.self) { try request.encoded() }
     }
 

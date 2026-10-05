@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 /// Log framing is the one place in this transport where getting it wrong does
@@ -7,10 +8,12 @@ import Testing
 /// the desync detection that makes a wrong selection loud.
 @Suite("ThrallLogFrameDecoder")
 struct ThrallLogFrameDecoderTests {
-    @Test("framing comes from the Content-Type and nothing else", arguments: [
-        ("application/vnd.docker.multiplexed-stream", ThrallLogFrameDecoder.Framing.multiplexed),
-        ("application/vnd.docker.raw-stream", ThrallLogFrameDecoder.Framing.raw),
-    ])
+    @Test(
+        "framing comes from the Content-Type and nothing else",
+        arguments: [
+            ("application/vnd.docker.multiplexed-stream", ThrallLogFrameDecoder.Framing.multiplexed),
+            ("application/vnd.docker.raw-stream", ThrallLogFrameDecoder.Framing.raw),
+        ])
     func framingSelection(contentType: String, expected: ThrallLogFrameDecoder.Framing) {
         #expect(ThrallLogFrameDecoder.framing(forContentType: contentType) == expected)
     }
@@ -18,8 +21,9 @@ struct ThrallLogFrameDecoderTests {
     /// Nil is a hard stop at the call site. There is no defensible default:
     /// guessing multiplexed on a raw stream renders garbage, and guessing raw
     /// on a multiplexed one prints the frame headers.
-    @Test("an unrecognised or absent Content-Type selects nothing",
-          arguments: [nil, "application/json", "text/plain", "application/vnd.docker.multiplexed"])
+    @Test(
+        "an unrecognised or absent Content-Type selects nothing",
+        arguments: [nil, "application/json", "text/plain", "application/vnd.docker.multiplexed"])
     func unknownFramingIsRefused(contentType: String?) {
         #expect(ThrallLogFrameDecoder.framing(forContentType: contentType) == nil)
     }
@@ -155,7 +159,8 @@ struct ThrallLogFrameDecoderTests {
         }
         #expect(try #require(head).contentType == ThrallLogFrameDecoder.multiplexedContentType)
         #expect(decoded.map(\.stream) == [.stdout, .stderr, .stdout])
-        #expect(decoded.map { String(decoding: $0.payload, as: UTF8.self) }
-            == ["starting worker\n", "SQLSTATE[HY000] connection refused\n", "exiting\n"])
+        #expect(
+            decoded.map { String(decoding: $0.payload, as: UTF8.self) }
+                == ["starting worker\n", "SQLSTATE[HY000] connection refused\n", "exiting\n"])
     }
 }

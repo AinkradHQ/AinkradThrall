@@ -75,7 +75,8 @@ enum RawResponses {
     /// The engine's answer to a mis-typed path: a redirect with a zero-length
     /// body. It must complete rather than sit waiting for bytes.
     static var redirectEmptyBody: Data {
-        bytes("""
+        bytes(
+            """
             HTTP/1.1 301 Moved Permanently\r
             Connection: close\r
             Content-Length: 0\r
@@ -144,30 +145,31 @@ enum RawResponses {
     ///    indexer seeds from this label, and treating it as a single path
     ///    would produce a config file that does not exist.
     static func eventLine(action: String, container: String) -> String {
-        let worktree = "/private/tmp/claude-501/-Users-ahmedmelhalaby-Home-Projects-AutomotiveAi"
+        let worktree =
+            "/private/tmp/claude-501/-Users-ahmedmelhalaby-Home-Projects-AutomotiveAi"
             + "/0ab18311-2c30-4dcd-a4da-4d1f9b3535e7/scratchpad/wt-1058"
         return """
-        {"status":"\(action)","id":"\(container)","Type":"container","Action":"\(action)",\
-        "Actor":{"ID":"\(container)","Attributes":{\
-        "com.docker.compose.config-hash":\
-        "d4901ca3b16d5315557af06063e81bee651b2eb9f01a1d8abc92354256223b13",\
-        "com.docker.compose.container-number":"1","com.docker.compose.depends_on":"",\
-        "com.docker.compose.image":\
-        "sha256:64bc52bbd293bac7a0e8e1eb653a6ed5020f06bc1ddba49e54f245f487599a52",\
-        "com.docker.compose.oneoff":"False","com.docker.compose.project":"aai1058",\
-        "com.docker.compose.project.config_files":\
-        "\(worktree)/docker-compose.yml,\(worktree)/docker-compose.dev.yml",\
-        "com.docker.compose.project.working_dir":"\(worktree)",\
-        "com.docker.compose.service":"mailpit","com.docker.compose.version":"5.1.2",\
-        "org.opencontainers.image.description":\
-        "An email and SMTP testing tool with API for developers",\
-        "org.opencontainers.image.documentation":"https://mailpit.axllent.org/docs/",\
-        "org.opencontainers.image.licenses":"MIT",\
-        "org.opencontainers.image.source":"https://github.com/axllent/mailpit",\
-        "org.opencontainers.image.title":"Mailpit",\
-        "org.opencontainers.image.url":"https://mailpit.axllent.org",\
-        "exitCode":"1","image":"axllent/mailpit:latest","name":"aai1058-mailpit-1"}},\
-        "scope":"local","time":1789041600,"timeNano":1789041600123456789}
-        """
+            {"status":"\(action)","id":"\(container)","Type":"container","Action":"\(action)",\
+            "Actor":{"ID":"\(container)","Attributes":{\
+            "com.docker.compose.config-hash":\
+            "d4901ca3b16d5315557af06063e81bee651b2eb9f01a1d8abc92354256223b13",\
+            "com.docker.compose.container-number":"1","com.docker.compose.depends_on":"",\
+            "com.docker.compose.image":\
+            "sha256:64bc52bbd293bac7a0e8e1eb653a6ed5020f06bc1ddba49e54f245f487599a52",\
+            "com.docker.compose.oneoff":"False","com.docker.compose.project":"aai1058",\
+            "com.docker.compose.project.config_files":\
+            "\(worktree)/docker-compose.yml,\(worktree)/docker-compose.dev.yml",\
+            "com.docker.compose.project.working_dir":"\(worktree)",\
+            "com.docker.compose.service":"mailpit","com.docker.compose.version":"5.1.2",\
+            "org.opencontainers.image.description":\
+            "An email and SMTP testing tool with API for developers",\
+            "org.opencontainers.image.documentation":"https://mailpit.axllent.org/docs/",\
+            "org.opencontainers.image.licenses":"MIT",\
+            "org.opencontainers.image.source":"https://github.com/axllent/mailpit",\
+            "org.opencontainers.image.title":"Mailpit",\
+            "org.opencontainers.image.url":"https://mailpit.axllent.org",\
+            "exitCode":"1","image":"axllent/mailpit:latest","name":"aai1058-mailpit-1"}},\
+            "scope":"local","time":1789041600,"timeNano":1789041600123456789}
+            """
     }
 }

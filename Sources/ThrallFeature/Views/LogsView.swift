@@ -1,5 +1,5 @@
-import SwiftUI
 import AinkradAppKit
+import SwiftUI
 
 /// The logs area.
 ///
@@ -32,12 +32,16 @@ struct LogsView: View {
 
     private var controls: some View {
         HStack(spacing: AinkradSpacing.md) {
-            AinkradMenuButton(items: model.world.stacks.map { stack in
-                AinkradMenuItem(title: "\(stack.displayName) (\(stack.containerCount))",
-                                systemName: "square.stack.3d.up") {
-                    selected = stack.id
+            AinkradMenuButton(
+                items: model.world.stacks.map { stack in
+                    AinkradMenuItem(
+                        title: "\(stack.displayName) (\(stack.containerCount))",
+                        systemName: "square.stack.3d.up"
+                    ) {
+                        selected = stack.id
+                    }
                 }
-            }) {
+            ) {
                 HStack(spacing: AinkradSpacing.xs) {
                     Text(selectedStack?.displayName ?? "Choose a stack")
                         .font(.system(size: 11, weight: .medium))
@@ -47,8 +51,9 @@ struct LogsView: View {
                 }
                 .padding(.horizontal, AinkradSpacing.sm)
                 .padding(.vertical, 3)
-                .background(RoundedRectangle(cornerRadius: AinkradRadius.sm, style: .continuous)
-                    .fill(theme.foreground.opacity(0.06)))
+                .background(
+                    RoundedRectangle(cornerRadius: AinkradRadius.sm, style: .continuous)
+                        .fill(theme.foreground.opacity(0.06)))
             }
             .fixedSize()
 
@@ -61,8 +66,9 @@ struct LogsView: View {
                 .font(.system(size: 10).monospacedDigit())
                 .foregroundStyle(theme.foreground.opacity(0.45))
 
-            AinkradToggleButton(isOn: $logs.isFollowing, systemName: "arrow.down.to.line",
-                                title: "Follow")
+            AinkradToggleButton(
+                isOn: $logs.isFollowing, systemName: "arrow.down.to.line",
+                title: "Follow")
             AinkradIconButton(systemName: "trash", size: 24, tooltip: "Clear") { logs.clear() }
             AinkradIconButton(systemName: "arrow.clockwise", size: 24, tooltip: "Reload") {
                 Task { await load() }
@@ -76,23 +82,28 @@ struct LogsView: View {
     @ViewBuilder
     private var content: some View {
         if let error = logs.error {
-            AinkradEmptyState(icon: "exclamationmark.triangle", title: "Could not read logs",
-                              message: error)
+            AinkradEmptyState(
+                icon: "exclamationmark.triangle", title: "Could not read logs",
+                message: error)
         } else if logs.isLoading && logs.buffer.count == 0 {
             AinkradLoadingState(label: "Reading logs…")
         } else if logs.buffer.count == 0 {
-            AinkradEmptyState(icon: "text.alignleft", title: "No output",
-                              message: selectedStack == nil
-                                  ? "Choose a stack to tail."
-                                  : "\(selectedStack?.displayName ?? "") has written nothing yet.")
+            AinkradEmptyState(
+                icon: "text.alignleft", title: "No output",
+                message: selectedStack == nil
+                    ? "Choose a stack to tail."
+                    : "\(selectedStack?.displayName ?? "") has written nothing yet.")
         } else {
-            AinkradLogView(lines: logs.visibleLines,
-                           palette: AinkradANSIPalette(theme: theme,
-                                                       statusColors: statusColors),
-                           foreground: theme.foreground,
-                           showsSourcePrefix: logs.showsServicePrefix,
-                           isFollowing: logs.isFollowing)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            AinkradLogView(
+                lines: logs.visibleLines,
+                palette: AinkradANSIPalette(
+                    theme: theme,
+                    statusColors: statusColors),
+                foreground: theme.foreground,
+                showsSourcePrefix: logs.showsServicePrefix,
+                isFollowing: logs.isFollowing
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 

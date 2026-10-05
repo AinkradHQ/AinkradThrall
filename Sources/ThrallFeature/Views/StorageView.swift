@@ -1,5 +1,5 @@
-import SwiftUI
 import AinkradAppKit
+import SwiftUI
 
 /// Tasks P and Q — volumes, build cache and reclaim.
 ///
@@ -17,8 +17,9 @@ struct StorageView: View {
         VStack(spacing: 0) {
             header
             if let error = storage.error {
-                AinkradEmptyState(icon: "exclamationmark.triangle",
-                                  title: "Could not read storage", message: error)
+                AinkradEmptyState(
+                    icon: "exclamationmark.triangle",
+                    title: "Could not read storage", message: error)
             } else if storage.usage == nil {
                 AinkradLoadingState(label: "Reading storage… (system/df takes a moment)")
             } else {
@@ -64,22 +65,27 @@ struct StorageView: View {
         AinkradCard {
             VStack(alignment: .leading, spacing: AinkradSpacing.sm) {
                 let usage = storage.usage
-                AinkradStatRow(label: "Image layers",
-                               value: ThrallReclaimPlan.humanBytes(usage?.layersSize ?? 0))
-                AinkradStatRow(label: "Volumes",
-                               value: "\(usage?.volumes.count ?? 0) · "
-                                   + ThrallReclaimPlan.humanBytes(
-                                       usage?.volumes.reduce(0) {
-                                           $0 + max(0, $1.usage?.size ?? 0) } ?? 0))
-                AinkradStatRow(label: "Unused volumes",
-                               value: ThrallReclaimPlan.humanBytes(
-                                   usage?.reclaimableVolumes ?? 0),
-                               status: .warning)
-                AinkradStatRow(label: "Build cache",
-                               value: "\(usage?.buildCache.count ?? 0) entries · "
-                                   + ThrallReclaimPlan.humanBytes(
-                                       usage?.reclaimableBuildCache ?? 0),
-                               status: .warning)
+                AinkradStatRow(
+                    label: "Image layers",
+                    value: ThrallReclaimPlan.humanBytes(usage?.layersSize ?? 0))
+                AinkradStatRow(
+                    label: "Volumes",
+                    value: "\(usage?.volumes.count ?? 0) · "
+                        + ThrallReclaimPlan.humanBytes(
+                            usage?.volumes.reduce(0) {
+                                $0 + max(0, $1.usage?.size ?? 0)
+                            } ?? 0))
+                AinkradStatRow(
+                    label: "Unused volumes",
+                    value: ThrallReclaimPlan.humanBytes(
+                        usage?.reclaimableVolumes ?? 0),
+                    status: .warning)
+                AinkradStatRow(
+                    label: "Build cache",
+                    value: "\(usage?.buildCache.count ?? 0) entries · "
+                        + ThrallReclaimPlan.humanBytes(
+                            usage?.reclaimableBuildCache ?? 0),
+                    status: .warning)
             }
         }
     }
@@ -91,18 +97,23 @@ struct StorageView: View {
             VStack(alignment: .leading, spacing: AinkradSpacing.md) {
                 Text("Reclaim")
                     .font(.system(size: 13, weight: .semibold))
-                Text("Thrall never runs `prune`. It lists exactly what it will remove, then "
-                     + "removes each item by its own id.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(theme.foreground.opacity(0.6))
+                Text(
+                    "Thrall never runs `prune`. It lists exactly what it will remove, then "
+                        + "removes each item by its own id."
+                )
+                .font(.system(size: 11))
+                .foregroundStyle(theme.foreground.opacity(0.6))
 
-                AinkradCheckbox(isOn: $storage.includeImages,
-                                label: "Unused images")
-                AinkradCheckbox(isOn: $storage.includeBuildCache,
-                                label: "Build cache not in use")
+                AinkradCheckbox(
+                    isOn: $storage.includeImages,
+                    label: "Unused images")
+                AinkradCheckbox(
+                    isOn: $storage.includeBuildCache,
+                    label: "Build cache not in use")
                 // Off by default and labelled as the irreversible one.
-                AinkradCheckbox(isOn: $storage.includeVolumes,
-                                label: "Unused volumes — cannot be undone")
+                AinkradCheckbox(
+                    isOn: $storage.includeVolumes,
+                    label: "Unused volumes — cannot be undone")
 
                 let plan = storage.plan
                 if plan.isEmpty {
@@ -110,15 +121,18 @@ struct StorageView: View {
                         .font(.system(size: 11))
                         .foregroundStyle(theme.foreground.opacity(0.45))
                 } else {
-                    Text("\(plan.targets.count) items · "
-                         + ThrallReclaimPlan.humanBytes(plan.totalBytes))
-                        .font(.system(size: 11, weight: .medium).monospacedDigit())
+                    Text(
+                        "\(plan.targets.count) items · "
+                            + ThrallReclaimPlan.humanBytes(plan.totalBytes)
+                    )
+                    .font(.system(size: 11, weight: .medium).monospacedDigit())
                     // Enumerated by name. The list is the safety mechanism, so
                     // it is not collapsed behind a disclosure.
                     ForEach(plan.targets.prefix(12)) { target in
                         HStack(spacing: AinkradSpacing.sm) {
-                            AinkradBadge(text: target.kind.rawValue,
-                                         status: target.kind == .volume ? .danger : .neutral)
+                            AinkradBadge(
+                                text: target.kind.rawValue,
+                                status: target.kind == .volume ? .danger : .neutral)
                             Text(target.displayName)
                                 .font(.system(size: 10).monospaced())
                                 .lineLimit(1)
@@ -127,17 +141,21 @@ struct StorageView: View {
                             Text(ThrallReclaimPlan.humanBytes(target.bytes))
                                 .font(.system(size: 10).monospacedDigit())
                                 .foregroundStyle(theme.foreground.opacity(0.5))
-                            AinkradIconButton(systemName: "minus.circle", size: 20,
-                                              tooltip: "Leave this one alone") {
+                            AinkradIconButton(
+                                systemName: "minus.circle", size: 20,
+                                tooltip: "Leave this one alone"
+                            ) {
                                 storage.excluded.insert(target.id)
                             }
                         }
                     }
                     if plan.targets.count > 12 {
-                        Text("… and \(plan.targets.count - 12) more, all listed in the "
-                             + "confirmation before anything is removed.")
-                            .font(.system(size: 10))
-                            .foregroundStyle(theme.foreground.opacity(0.45))
+                        Text(
+                            "… and \(plan.targets.count - 12) more, all listed in the "
+                                + "confirmation before anything is removed."
+                        )
+                        .font(.system(size: 10))
+                        .foregroundStyle(theme.foreground.opacity(0.45))
                     }
                     AinkradButton(title: "Remove these", style: .danger) {
                         confirmingReclaim = true
@@ -161,8 +179,11 @@ struct StorageView: View {
                     isExpanded: Binding(
                         get: { expandedGroups.contains(group.owner) },
                         set: { expanded in
-                            if expanded { expandedGroups.insert(group.owner) }
-                            else { expandedGroups.remove(group.owner) }
+                            if expanded {
+                                expandedGroups.insert(group.owner)
+                            } else {
+                                expandedGroups.remove(group.owner)
+                            }
                         }),
                     hitCount: group.volumes.filter { ($0.usage?.refCount ?? -1) == 0 }.count
                 ) {
@@ -179,10 +200,12 @@ struct StorageView: View {
                                     AinkradBadge(text: "unused", status: .warning)
                                 }
                                 Spacer(minLength: 0)
-                                Text(ThrallReclaimPlan.humanBytes(
-                                    max(0, volume.usage?.size ?? 0)))
-                                    .font(.system(size: 10).monospacedDigit())
-                                    .foregroundStyle(theme.foreground.opacity(0.5))
+                                Text(
+                                    ThrallReclaimPlan.humanBytes(
+                                        max(0, volume.usage?.size ?? 0))
+                                )
+                                .font(.system(size: 10).monospacedDigit())
+                                .foregroundStyle(theme.foreground.opacity(0.5))
                             }
                             .padding(.vertical, 1)
                         }

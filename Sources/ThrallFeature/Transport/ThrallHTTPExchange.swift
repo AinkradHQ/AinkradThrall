@@ -19,8 +19,10 @@ public actor ThrallHTTPResponseReader {
     private var queued: [ThrallHTTPResponseParser.Output] = []
     private var isDone = false
 
-    public init(stream: any ThrallByteStream,
-                limits: ThrallHTTPResponseParser.Limits = .default) {
+    public init(
+        stream: any ThrallByteStream,
+        limits: ThrallHTTPResponseParser.Limits = .default
+    ) {
         self.stream = stream
         self.parser = ThrallHTTPResponseParser(limits: limits)
     }

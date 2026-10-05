@@ -33,8 +33,10 @@ public struct ThrallOrphanTeardown: Sendable {
     /// container needs `force`, and `force` is a SIGKILL. A database that
     /// would have flushed on SIGTERM loses its last writes, which is a data
     /// loss this app has no business causing while tidying up.
-    public static func run(stack: ThrallStack,
-                           using client: ThrallEngineClient) async -> Outcome {
+    public static func run(
+        stack: ThrallStack,
+        using client: ThrallEngineClient
+    ) async -> Outcome {
         var stopped: [String] = []
         var removed: [String] = []
         var failures: [String] = []
@@ -71,17 +73,22 @@ extension ThrallEngineClient {
     private func deleteContainer(id: String) async throws {
         let prefix = try await version().pathPrefix
         let response = try await ThrallHTTPExchange.perform(
-            ThrallHTTPRequest(method: "DELETE",
-                              target: Self.target(prefix + "/containers/\(id)",
-                                                  query: [("v", "0"), ("force", "0")])),
+            ThrallHTTPRequest(
+                method: "DELETE",
+                target: Self.target(
+                    prefix + "/containers/\(id)",
+                    query: [("v", "0"), ("force", "0")])),
             over: makeStream(),
             timeout: requestTimeout)
         // 404 means it is already gone, which is the outcome the caller wanted.
         guard response.head.statusCode == 204 || response.head.statusCode == 404 else {
-            let message = (try? JSONDecoder().decode(ThrallEngineMessageDTO.self,
-                                                     from: response.body))?.message
-            throw ThrallEngineError.http(status: response.head.statusCode,
-                                         message: message ?? response.head.reasonPhrase)
+            let message =
+                (try? JSONDecoder().decode(
+                    ThrallEngineMessageDTO.self,
+                    from: response.body))?.message
+            throw ThrallEngineError.http(
+                status: response.head.statusCode,
+                message: message ?? response.head.reasonPhrase)
         }
     }
 }
@@ -94,9 +101,10 @@ extension ThrallEngineClient {
     /// refuses because something depends on it, that refusal is correct and is
     /// surfaced rather than overridden.
     public func removeImage(id: String) async throws {
-        try await delete(path: "/images/\(try Self.imageReference(id))",
-                         query: [("force", "0"), ("noprune", "0")],
-                         accepting: [200, 404])
+        try await delete(
+            path: "/images/\(try Self.imageReference(id))",
+            query: [("force", "0"), ("noprune", "0")],
+            accepting: [200, 404])
     }
 
     /// Removes one volume by **exact name**.
@@ -106,15 +114,17 @@ extension ThrallEngineClient {
     /// exact name. `force=0`, so a volume that turns out to be in use is
     /// refused by the engine instead of destroyed.
     public func removeVolume(name: String) async throws {
-        try await delete(path: "/volumes/\(try Self.identifier(name))",
-                         query: [("force", "0")],
-                         accepting: [204, 404])
+        try await delete(
+            path: "/volumes/\(try Self.identifier(name))",
+            query: [("force", "0")],
+            accepting: [204, 404])
     }
 
     public func removeNetwork(id: String) async throws {
-        try await delete(path: "/networks/\(try Self.identifier(id))",
-                         query: [],
-                         accepting: [204, 404])
+        try await delete(
+            path: "/networks/\(try Self.identifier(id))",
+            query: [],
+            accepting: [204, 404])
     }
 
     /// Deletes one build-cache record by id.
@@ -132,15 +142,22 @@ extension ThrallEngineClient {
         }
         let prefix = try await version().pathPrefix
         let response = try await ThrallHTTPExchange.perform(
-            ThrallHTTPRequest(method: "POST",
-                              target: Self.target(prefix + "/build/prune",
-                                                  query: [("filters",
-                                                           String(decoding: data, as: UTF8.self))])),
+            ThrallHTTPRequest(
+                method: "POST",
+                target: Self.target(
+                    prefix + "/build/prune",
+                    query: [
+                        (
+                            "filters",
+                            String(decoding: data, as: UTF8.self)
+                        )
+                    ])),
             over: makeStream(),
             timeout: requestTimeout)
         guard response.head.isSuccess else {
-            throw ThrallEngineError.http(status: response.head.statusCode,
-                                         message: response.head.reasonPhrase)
+            throw ThrallEngineError.http(
+                status: response.head.statusCode,
+                message: response.head.reasonPhrase)
         }
         struct Reply: Decodable {
             let spaceReclaimed: Int64?
@@ -149,19 +166,25 @@ extension ThrallEngineClient {
         return (try? JSONDecoder().decode(Reply.self, from: response.body))?.spaceReclaimed ?? 0
     }
 
-    private func delete(path: String, query: [(String, String)],
-                        accepting: Set<Int>) async throws {
+    private func delete(
+        path: String, query: [(String, String)],
+        accepting: Set<Int>
+    ) async throws {
         let prefix = try await version().pathPrefix
         let response = try await ThrallHTTPExchange.perform(
-            ThrallHTTPRequest(method: "DELETE",
-                              target: Self.target(prefix + path, query: query)),
+            ThrallHTTPRequest(
+                method: "DELETE",
+                target: Self.target(prefix + path, query: query)),
             over: makeStream(),
             timeout: requestTimeout)
         guard accepting.contains(response.head.statusCode) else {
-            let message = (try? JSONDecoder().decode(ThrallEngineMessageDTO.self,
-                                                     from: response.body))?.message
-            throw ThrallEngineError.http(status: response.head.statusCode,
-                                         message: message ?? response.head.reasonPhrase)
+            let message =
+                (try? JSONDecoder().decode(
+                    ThrallEngineMessageDTO.self,
+                    from: response.body))?.message
+            throw ThrallEngineError.http(
+                status: response.head.statusCode,
+                message: message ?? response.head.reasonPhrase)
         }
     }
 
@@ -171,14 +194,17 @@ extension ThrallEngineClient {
     /// path — `..`, `?`, whitespace, control characters — still cannot pass.
     static func imageReference(_ raw: String) throws -> String {
         let allowed = { (character: Character) -> Bool in
-            character.isASCII && (character.isLetter || character.isNumber
-                || "_.-:/@".contains(character))
+            character.isASCII
+                && (character.isLetter || character.isNumber
+                    || "_.-:/@".contains(character))
         }
         guard !raw.isEmpty, raw.count <= 255, raw.allSatisfy(allowed),
-              !raw.contains(".."), let first = raw.first,
-              first.isLetter || first.isNumber else {
-            throw ThrallEngineError.decoding(type: "image reference",
-                                             detail: "\(raw.debugDescription) is not an image id")
+            !raw.contains(".."), let first = raw.first,
+            first.isLetter || first.isNumber
+        else {
+            throw ThrallEngineError.decoding(
+                type: "image reference",
+                detail: "\(raw.debugDescription) is not an image id")
         }
         // Percent-encoded because a tag's `:` and `/` are path-significant.
         var allowedSet = CharacterSet.alphanumerics

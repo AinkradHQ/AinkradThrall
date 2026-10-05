@@ -1,5 +1,5 @@
-import Foundation
 import AinkradAppKit
+import Foundation
 
 /// Drives one log pane: which services, following or not, and the buffer.
 @MainActor
@@ -26,8 +26,10 @@ public final class ThrallLogsModel: ObservableObject {
 
     /// Replaces what is being tailed. Cancels anything no longer selected, so
     /// switching stacks does not leave sockets open.
-    public func tail(containers: [(id: String, service: String)],
-                     read: @escaping @Sendable (String) async throws -> [ThrallLogFrame]) {
+    public func tail(
+        containers: [(id: String, service: String)],
+        read: @escaping @Sendable (String) async throws -> [ThrallLogFrame]
+    ) {
         let wanted = Set(containers.map(\.id))
         for (id, task) in tasks where !wanted.contains(id) {
             task.cancel()
@@ -44,7 +46,9 @@ public final class ThrallLogsModel: ObservableObject {
                     let frames = try await read(container.id)
                     guard let self, !Task.isCancelled else { return }
                     for frame in frames {
-                        self.buffer.append(frame.payload, stream: frame.stream == .stderr ? .stderr : .stdout, source: container.service)
+                        self.buffer.append(
+                            frame.payload, stream: frame.stream == .stderr ? .stderr : .stdout,
+                            source: container.service)
                     }
                     self.buffer.flush()
                     self.isLoading = false

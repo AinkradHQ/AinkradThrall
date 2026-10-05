@@ -23,10 +23,12 @@ public struct ThrallEngineContext: Equatable, Hashable, Sendable, Identifiable {
     public var id: String { name }
     public var isSupported: Bool { endpoint.isSupported }
 
-    public init(name: String,
-                description: String? = nil,
-                endpoint: ThrallEngineEndpoint,
-                source: Source) {
+    public init(
+        name: String,
+        description: String? = nil,
+        endpoint: ThrallEngineEndpoint,
+        source: Source
+    ) {
         self.name = name
         self.description = description
         self.endpoint = endpoint

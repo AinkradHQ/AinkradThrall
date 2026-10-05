@@ -1,5 +1,5 @@
-import Foundation
 import AinkradAppKit
+import Foundation
 
 /// Thrall's MCP surface — **the only front door the assistant has.**
 ///
@@ -27,9 +27,12 @@ enum ThrallMCPServer {
     /// Builds the server. Returns the dropped tool names alongside it: a tool
     /// the host refuses is a silently missing capability, so the caller logs
     /// it rather than letting the assistant simply never see it.
-    static func make(appID: String,
-                     model: @escaping @MainActor @Sendable () -> ThrallViewModel)
-        -> (server: MCPAppServer, failures: [String]) {
+    static func make(
+        appID: String,
+        model: @escaping @MainActor @Sendable () -> ThrallViewModel
+    )
+        -> (server: MCPAppServer, failures: [String])
+    {
         let server = MCPAppServer(appID: appID)
         var failures: [String] = []
 
@@ -48,7 +51,8 @@ enum ThrallMCPServer {
     // MARK: - Read tools
 
     private static func readTools(model: @escaping @MainActor @Sendable () -> ThrallViewModel)
-        -> [MCPToolSpec] {
+        -> [MCPToolSpec]
+    {
         [
             MCPToolSpec(
                 name: "thrall_diagnose",
@@ -134,7 +138,8 @@ enum ThrallMCPServer {
     // MARK: - Resources
 
     private static func resources(model: @escaping @MainActor @Sendable () -> ThrallViewModel)
-        -> [MCPResourceSpec] {
+        -> [MCPResourceSpec]
+    {
         var incidents = MCPResourceSpec(
             uri: "thrall://incidents",
             title: "Container incidents",
@@ -142,7 +147,8 @@ enum ThrallMCPServer {
             provider: { await diagnose(model()).text })
         // `purpose` is what tells the agent WHEN to read this rather than
         // leaving it to guess from the title.
-        incidents.purpose = "Read when the user mentions containers, Docker, compose, a service "
+        incidents.purpose =
+            "Read when the user mentions containers, Docker, compose, a service "
             + "that will not start, or something restarting. Contains the grouped incident list "
             + "with verbatim error text and ordered remedies."
         return [incidents]
@@ -218,8 +224,9 @@ enum ThrallMCPServer {
                     + "instead: \(matches.map(\.id.description).joined(separator: ", "))",
                 isError: true)
         }
-        return AgentActionResult(text: ThrallMCPPayloads.encode(detail(for: found, in: model)),
-                                 isError: false)
+        return AgentActionResult(
+            text: ThrallMCPPayloads.encode(detail(for: found, in: model)),
+            isError: false)
     }
 
     static func logs(_ model: ThrallViewModel, arguments: String) async -> AgentActionResult {
@@ -232,9 +239,10 @@ enum ThrallMCPServer {
         let wanted = min(max(1, requested), maximumLogLines)
         let includeStdout = (args["includeStdout"] as? Bool) ?? false
         do {
-            let text = try await client.logTail(containerID: container,
-                                                lines: wanted,
-                                                stderrOnly: !includeStdout)
+            let text = try await client.logTail(
+                containerID: container,
+                lines: wanted,
+                stderrOnly: !includeStdout)
             var lines = text.split(separator: "\n", omittingEmptySubsequences: false)
                 .map(String.init)
             var truncated = false
@@ -262,8 +270,9 @@ enum ThrallMCPServer {
                 truncated: truncated, truncationReason: reason)
             return AgentActionResult(text: ThrallMCPPayloads.encode(payload), isError: false)
         } catch {
-            return AgentActionResult(text: "Could not read logs for \(container): \(error)",
-                                     isError: true)
+            return AgentActionResult(
+                text: "Could not read logs for \(container): \(error)",
+                isError: true)
         }
     }
 
@@ -285,7 +294,8 @@ enum ThrallMCPServer {
     // MARK: - Shaping
 
     static func detail(for stack: ThrallStack, in model: ThrallViewModel)
-        -> ThrallMCPPayloads.StackDetail {
+        -> ThrallMCPPayloads.StackDetail
+    {
         ThrallMCPPayloads.StackDetail(
             name: stack.displayName,
             id: stack.id.description,
@@ -310,7 +320,8 @@ enum ThrallMCPServer {
     }
 
     static func detail(for incident: ThrallIncident, in world: ThrallWorld)
-        -> ThrallMCPPayloads.IncidentDetail {
+        -> ThrallMCPPayloads.IncidentDetail
+    {
         let stack = world.stack(incident.key.stack)
         return ThrallMCPPayloads.IncidentDetail(
             id: incident.id,
@@ -322,10 +333,11 @@ enum ThrallMCPServer {
             evidence: incident.evidence,
             restartTotal: incident.restartTotal,
             brokenDependency: incident.brokenDependencies.first.map {
-                ThrallMCPPayloads.BrokenDependency(dependent: $0.dependent,
-                                                    dependency: $0.dependency,
-                                                    condition: $0.condition,
-                                                    state: $0.stateLabel)
+                ThrallMCPPayloads.BrokenDependency(
+                    dependent: $0.dependent,
+                    dependency: $0.dependency,
+                    condition: $0.condition,
+                    state: $0.stateLabel)
             },
             remedies: ThrallRemedy.remedies(for: incident, stack: stack).map { remedy in
                 ThrallMCPPayloads.RemedyDetail(
@@ -365,7 +377,8 @@ enum ThrallMCPServer {
 
     static func object(from json: String) -> [String: Any] {
         guard let data = json.data(using: .utf8),
-              let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
             return [:]
         }
         return parsed

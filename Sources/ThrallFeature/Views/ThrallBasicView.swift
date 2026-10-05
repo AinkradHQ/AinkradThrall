@@ -1,5 +1,5 @@
-import SwiftUI
 import AinkradAppKit
+import SwiftUI
 
 /// Thrall's **basic** mode: the stacks, and the verbs that act on them.
 ///
@@ -46,8 +46,9 @@ struct ThrallBasicView: View {
         // Down is the only verb that destroys state, so it is the only one that
         // asks — unchanged from advanced, deliberately.
         .ainkradConfirmDialog(
-            isPresented: Binding(get: { model.pendingDown != nil },
-                                 set: { if !$0 { model.pendingDown = nil } }),
+            isPresented: Binding(
+                get: { model.pendingDown != nil },
+                set: { if !$0 { model.pendingDown = nil } }),
             title: "Take \(model.pendingDown?.displayName ?? "") down?",
             message: model.pendingDown.map(ThrallConfirmations.down) ?? "",
             confirmTitle: "Down",

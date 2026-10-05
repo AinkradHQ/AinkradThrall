@@ -42,23 +42,27 @@ public struct ThrallContextResolver: Sendable {
     /// The platform socket for the implicit `default` context.
     public let platformSocketPath: String
 
-    public init(configDirectory: URL,
-                environment: [String: String],
-                platformSocketPath: String = "/var/run/docker.sock") {
+    public init(
+        configDirectory: URL,
+        environment: [String: String],
+        platformSocketPath: String = "/var/run/docker.sock"
+    ) {
         self.configDirectory = configDirectory
         self.environment = environment
         self.platformSocketPath = platformSocketPath
     }
 
     public static func system(environment: [String: String] = ProcessInfo.processInfo.environment)
-        -> ThrallContextResolver {
+        -> ThrallContextResolver
+    {
         let home = FileManager.default.homeDirectoryForCurrentUser
         let configured = environment["DOCKER_CONFIG"].flatMap { value -> URL? in
             value.isEmpty ? nil : URL(fileURLWithPath: value)
         }
-        return ThrallContextResolver(configDirectory: configured
-                                        ?? home.appendingPathComponent(".docker"),
-                                     environment: environment)
+        return ThrallContextResolver(
+            configDirectory: configured
+                ?? home.appendingPathComponent(".docker"),
+            environment: environment)
     }
 
     public func resolve() -> Resolution {
@@ -75,11 +79,13 @@ public struct ThrallContextResolver: Sendable {
                 defaultEndpoint = parsed
                 defaultSource = .environment
                 environmentWins = true
-                notes.append("DOCKER_HOST is set to \(environmentHost), which overrides the "
-                    + "current context.")
+                notes.append(
+                    "DOCKER_HOST is set to \(environmentHost), which overrides the "
+                        + "current context.")
             } else {
-                notes.append("DOCKER_HOST is set to \(environmentHost), which names no endpoint "
-                    + "Thrall understands; falling back to the context store.")
+                notes.append(
+                    "DOCKER_HOST is set to \(environmentHost), which names no endpoint "
+                        + "Thrall understands; falling back to the context store.")
             }
         }
 
@@ -105,16 +111,18 @@ public struct ThrallContextResolver: Sendable {
 
         let active = contexts.first { $0.name == activeName }
         if active == nil {
-            notes.append("The selected context \(activeName) is not in the context store. "
-                + "Thrall will not guess at another engine.")
+            notes.append(
+                "The selected context \(activeName) is not in the context store. "
+                    + "Thrall will not guess at another engine.")
         } else if let active, !active.isSupported, case .unsupported(_, _, let reason) = active.endpoint {
             notes.append("\(active.name) is \(reason).")
         }
 
-        return Resolution(contexts: contexts,
-                          activeName: activeName,
-                          active: active,
-                          notes: notes)
+        return Resolution(
+            contexts: contexts,
+            activeName: activeName,
+            active: active,
+            notes: notes)
     }
 
     // MARK: - Disk
@@ -122,8 +130,9 @@ public struct ThrallContextResolver: Sendable {
     private func currentContextName() -> String? {
         let url = configDirectory.appendingPathComponent("config.json")
         guard let data = try? Data(contentsOf: url),
-              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let current = root["currentContext"] as? String, !current.isEmpty else {
+            let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let current = root["currentContext"] as? String, !current.isEmpty
+        else {
             return nil
         }
         return current
@@ -131,16 +140,19 @@ public struct ThrallContextResolver: Sendable {
 
     private func storedContexts(notes: inout [String]) -> [ThrallEngineContext] {
         let metaRoot = configDirectory.appendingPathComponent("contexts/meta")
-        guard let entries = try? FileManager.default.contentsOfDirectory(
-            at: metaRoot, includingPropertiesForKeys: nil) else {
+        guard
+            let entries = try? FileManager.default.contentsOfDirectory(
+                at: metaRoot, includingPropertiesForKeys: nil)
+        else {
             return []
         }
         var found: [ThrallEngineContext] = []
         for entry in entries.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
             let metaURL = entry.appendingPathComponent("meta.json")
             guard let data = try? Data(contentsOf: metaURL),
-                  let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let name = root["Name"] as? String, !name.isEmpty else {
+                let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                let name = root["Name"] as? String, !name.isEmpty
+            else {
                 continue
             }
             // `default` is synthesised, never read from the store, so a stray
@@ -149,7 +161,8 @@ public struct ThrallContextResolver: Sendable {
 
             let endpoints = root["Endpoints"] as? [String: Any]
             guard let docker = endpoints?["docker"] as? [String: Any],
-                  let host = docker["Host"] as? String else {
+                let host = docker["Host"] as? String
+            else {
                 notes.append("Context \(name) declares no docker endpoint; skipped.")
                 continue
             }
@@ -158,10 +171,12 @@ public struct ThrallContextResolver: Sendable {
                 continue
             }
             let metadata = root["Metadata"] as? [String: Any]
-            found.append(ThrallEngineContext(name: name,
-                                             description: metadata?["Description"] as? String,
-                                             endpoint: endpoint,
-                                             source: .contextStore))
+            found.append(
+                ThrallEngineContext(
+                    name: name,
+                    description: metadata?["Description"] as? String,
+                    endpoint: endpoint,
+                    source: .contextStore))
         }
         return found
     }

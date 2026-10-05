@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 @Suite("ThrallLogFingerprint")
@@ -9,45 +10,54 @@ struct ThrallLogFingerprintTests {
     /// dying on `connection refused` fingerprint as 12 incidents.
     @Test("two containers failing the same way normalise identically")
     func sameCauseSameFingerprint() {
-        let first = "2026-09-09T11:02:54.532431428Z [pid 4127] SQLSTATE[HY000] [2002] "
+        let first =
+            "2026-09-09T11:02:54.532431428Z [pid 4127] SQLSTATE[HY000] [2002] "
             + "Connection refused for pgsql:5432 (container f4b70cccfc26)"
-        let second = "2026-09-09T11:03:11.118920004Z [pid 5810] SQLSTATE[HY000] [2002] "
+        let second =
+            "2026-09-09T11:03:11.118920004Z [pid 5810] SQLSTATE[HY000] [2002] "
             + "Connection refused for pgsql:5433 (container aec9af6e5312)"
-        #expect(ThrallLogFingerprint.normalise(first)
-            == ThrallLogFingerprint.normalise(second))
+        #expect(
+            ThrallLogFingerprint.normalise(first)
+                == ThrallLogFingerprint.normalise(second))
     }
 
     @Test("a genuinely different error does not collapse")
     func differentCauseDifferentFingerprint() {
-        #expect(ThrallLogFingerprint.normalise("Connection refused for pgsql:5432")
-            != ThrallLogFingerprint.normalise("No such host: pgsql"))
+        #expect(
+            ThrallLogFingerprint.normalise("Connection refused for pgsql:5432")
+                != ThrallLogFingerprint.normalise("No such host: pgsql"))
     }
 
     /// A container that colours its errors must not fingerprint differently
     /// from one that does not.
     @Test("ANSI colour is stripped before fingerprinting")
     func ansiStripped() {
-        #expect(ThrallLogFingerprint.normalise("\u{1B}[31mConnection refused\u{1B}[0m")
-            == ThrallLogFingerprint.normalise("Connection refused"))
+        #expect(
+            ThrallLogFingerprint.normalise("\u{1B}[31mConnection refused\u{1B}[0m")
+                == ThrallLogFingerprint.normalise("Connection refused"))
     }
 
-    @Test("timestamps, hex, pids, ports and UUIDs are all replaced", arguments: [
-        "2026-09-09T11:02:54Z", "11:02:54.532", "f4b70cccfc268f07294f4d750df50f09",
-        "pid 4127", "PID=4127", ":5432",
-        "0ab18311-2c30-4dcd-a4da-4d1f9b3535e7",
-    ])
+    @Test(
+        "timestamps, hex, pids, ports and UUIDs are all replaced",
+        arguments: [
+            "2026-09-09T11:02:54Z", "11:02:54.532", "f4b70cccfc268f07294f4d750df50f09",
+            "pid 4127", "PID=4127", ":5432",
+            "0ab18311-2c30-4dcd-a4da-4d1f9b3535e7",
+        ])
     func volatileTokensReplaced(token: String) {
         let normalised = ThrallLogFingerprint.normalise("failure at \(token) end")
-        #expect(!normalised.contains(token.lowercased()),
-                Comment(rawValue: "\(token) survived as \(normalised)"))
+        #expect(
+            !normalised.contains(token.lowercased()),
+            Comment(rawValue: "\(token) survived as \(normalised)"))
     }
 
     /// A dying process puts its reason on the last line with anything on it.
     @Test("the last meaningful line is found past trailing blanks")
     func lastMeaningfulLine() {
         let log = "starting\nconnecting\nSQLSTATE[HY000] Connection refused\n\n   \n"
-        #expect(ThrallLogFingerprint.lastMeaningfulLine(of: log)
-            == "SQLSTATE[HY000] Connection refused")
+        #expect(
+            ThrallLogFingerprint.lastMeaningfulLine(of: log)
+                == "SQLSTATE[HY000] Connection refused")
         #expect(ThrallLogFingerprint.lastMeaningfulLine(of: "\n \n") == nil)
     }
 
@@ -60,8 +70,9 @@ struct ThrallLogFingerprintTests {
 
     @Test("whitespace padding does not change the fingerprint")
     func whitespaceCollapsed() {
-        #expect(ThrallLogFingerprint.normalise("a     b\tc")
-            == ThrallLogFingerprint.normalise("a b c"))
+        #expect(
+            ThrallLogFingerprint.normalise("a     b\tc")
+                == ThrallLogFingerprint.normalise("a b c"))
     }
 }
 
@@ -77,22 +88,29 @@ struct ThrallIncidentGrouperTests {
     /// workers on one image all failing to reach `pgsql`, plus three unrelated
     /// failures.
     private func fifteenLoops() -> (world: ThrallWorld, inputs: [ThrallIncidentGrouper.Input]) {
-        let stackID = ThrallStackID(engineKey: Self.engineKey, projectName: "aai1058",
-                                    workingDirectory: ThrallPathKey("/tmp/wt-1058"))
+        let stackID = ThrallStackID(
+            engineKey: Self.engineKey, projectName: "aai1058",
+            workingDirectory: ThrallPathKey("/tmp/wt-1058"))
         let workers = (1...12).map { "queue-\($0)" }
 
-        func service(_ name: String, dependsOn: [String],
-                     state: ThrallContainerState) -> ThrallService {
+        func service(
+            _ name: String, dependsOn: [String],
+            state: ThrallContainerState
+        ) -> ThrallService {
             ThrallService(
                 name: name,
-                containers: [ThrallContainer(id: "c-\(name)", name: "aai1058-\(name)-1",
-                                             image: "aai1058/app:local", state: state,
-                                             statusText: "Exited (1) 2 seconds ago",
-                                             created: Self.now, replicaNumber: 1,
-                                             isOneOff: false)],
+                containers: [
+                    ThrallContainer(
+                        id: "c-\(name)", name: "aai1058-\(name)-1",
+                        image: "aai1058/app:local", state: state,
+                        statusText: "Exited (1) 2 seconds ago",
+                        created: Self.now, replicaNumber: 1,
+                        isOneOff: false)
+                ],
                 dependsOn: dependsOn.map {
-                    ThrallDependency(service: $0, condition: "service_healthy",
-                                     restartsDependents: false)
+                    ThrallDependency(
+                        service: $0, condition: "service_healthy",
+                        restartsDependents: false)
                 },
                 isDeclaredButAbsent: false)
         }
@@ -108,17 +126,20 @@ struct ThrallIncidentGrouperTests {
         for _ in 0..<15 { breakdown.add(.restarting) }
         breakdown.add(.exited)
 
-        let stack = ThrallStack(id: stackID, displayName: "aai1058",
-                                workingDirectoryDisplay: "/tmp/wt-1058",
-                                configFiles: ["/tmp/wt-1058/docker-compose.yml"],
-                                absentConfigFiles: ["/tmp/wt-1058/docker-compose.yml"],
-                                services: services.sorted { $0.name < $1.name },
-                                breakdown: breakdown, health: .unhealthy,
-                                isStaleRelativeToConfig: false)
+        let stack = ThrallStack(
+            id: stackID, displayName: "aai1058",
+            workingDirectoryDisplay: "/tmp/wt-1058",
+            configFiles: ["/tmp/wt-1058/docker-compose.yml"],
+            absentConfigFiles: ["/tmp/wt-1058/docker-compose.yml"],
+            services: services.sorted { $0.name < $1.name },
+            breakdown: breakdown, health: .unhealthy,
+            isStaleRelativeToConfig: false)
         let world = ThrallWorld(engineKey: Self.engineKey, stacks: [stack], generatedAt: Self.now)
 
-        func input(_ service: String, exitCode: Int, log: String,
-                   digest: String) -> ThrallIncidentGrouper.Input {
+        func input(
+            _ service: String, exitCode: Int, log: String,
+            digest: String
+        ) -> ThrallIncidentGrouper.Input {
             ThrallIncidentGrouper.Input(
                 loop: ThrallCrashLoop(
                     stack: stackID, service: service,
@@ -131,22 +152,29 @@ struct ThrallIncidentGrouperTests {
         // The 12 workers: same image, same exit code, same error with volatile
         // details differing — the collapse case.
         var inputs = workers.enumerated().map { index, name in
-            input(name, exitCode: 1,
-                  log: "2026-09-09T11:0\(index % 10):54.5324Z [pid \(4000 + index)] "
-                      + "SQLSTATE[HY000] [2002] Connection refused for pgsql:5432",
-                  digest: "sha256:aec9af6e5312")
+            input(
+                name, exitCode: 1,
+                log: "2026-09-09T11:0\(index % 10):54.5324Z [pid \(4000 + index)] "
+                    + "SQLSTATE[HY000] [2002] Connection refused for pgsql:5432",
+                digest: "sha256:aec9af6e5312")
         }
         // Three unrelated failures, which must stay separate.
-        inputs.append(input("gateway", exitCode: 137,
-                            log: "2026-09-09T11:02:00Z killed: out of memory",
-                            digest: "sha256:1111111111aa"))
-        inputs.append(input("mailpit", exitCode: 2,
-                            log: "2026-09-09T11:02:00Z bind: address already in use :1025",
-                            digest: "sha256:2222222222bb"))
-        inputs.append(input("laravel.test", exitCode: 1,
-                            log: "2026-09-09T11:02:00Z [pid 9] SQLSTATE[HY000] [2002] "
-                                + "Connection refused for pgsql:5432",
-                            digest: "sha256:3333333333cc"))
+        inputs.append(
+            input(
+                "gateway", exitCode: 137,
+                log: "2026-09-09T11:02:00Z killed: out of memory",
+                digest: "sha256:1111111111aa"))
+        inputs.append(
+            input(
+                "mailpit", exitCode: 2,
+                log: "2026-09-09T11:02:00Z bind: address already in use :1025",
+                digest: "sha256:2222222222bb"))
+        inputs.append(
+            input(
+                "laravel.test", exitCode: 1,
+                log: "2026-09-09T11:02:00Z [pid 9] SQLSTATE[HY000] [2002] "
+                    + "Connection refused for pgsql:5432",
+                digest: "sha256:3333333333cc"))
         return (world, inputs)
     }
 
@@ -187,8 +215,9 @@ struct ThrallIncidentGrouperTests {
     @Test("the incident carries the un-normalised error text")
     func evidenceIsVerbatim() throws {
         let (world, inputs) = fifteenLoops()
-        let biggest = try #require(ThrallIncidentGrouper.group(inputs, world: world)
-            .max { $0.memberCount < $1.memberCount })
+        let biggest = try #require(
+            ThrallIncidentGrouper.group(inputs, world: world)
+                .max { $0.memberCount < $1.memberCount })
         let evidence = try #require(biggest.evidence)
         #expect(evidence.contains("SQLSTATE[HY000] [2002] Connection refused"))
         #expect(!evidence.contains("<ts>"), "the fingerprint's tokens must not leak into the UI")
@@ -211,14 +240,16 @@ struct ThrallIncidentGrouperTests {
     @Test("the same fingerprint in two stacks stays two incidents")
     func stackIsPartOfTheKey() {
         let (world, inputs) = fifteenLoops()
-        let other = ThrallStackID(engineKey: Self.engineKey, projectName: "optimus",
-                                  workingDirectory: ThrallPathKey("/tmp/optimus"))
+        let other = ThrallStackID(
+            engineKey: Self.engineKey, projectName: "optimus",
+            workingDirectory: ThrallPathKey("/tmp/optimus"))
         let mirrored = inputs.prefix(3).map { input in
             ThrallIncidentGrouper.Input(
-                loop: ThrallCrashLoop(stack: other, service: input.loop.service,
-                                      evidence: input.loop.evidence,
-                                      exitCode: input.loop.exitCode,
-                                      containerIDs: input.loop.containerIDs),
+                loop: ThrallCrashLoop(
+                    stack: other, service: input.loop.service,
+                    evidence: input.loop.evidence,
+                    exitCode: input.loop.exitCode,
+                    containerIDs: input.loop.containerIDs),
                 logTail: input.logTail, imageDigest: input.imageDigest,
                 firstSeen: input.firstSeen, lastSeen: input.lastSeen)
         }
@@ -232,9 +263,10 @@ struct ThrallIncidentGrouperTests {
     func groupsWithoutLogs() {
         let (world, inputs) = fifteenLoops()
         let logless = inputs.map {
-            ThrallIncidentGrouper.Input(loop: $0.loop, logTail: nil,
-                                        imageDigest: $0.imageDigest,
-                                        firstSeen: $0.firstSeen, lastSeen: $0.lastSeen)
+            ThrallIncidentGrouper.Input(
+                loop: $0.loop, logTail: nil,
+                imageDigest: $0.imageDigest,
+                firstSeen: $0.firstSeen, lastSeen: $0.lastSeen)
         }
         let incidents = ThrallIncidentGrouper.group(logless, world: world)
         #expect(incidents.count == 4)

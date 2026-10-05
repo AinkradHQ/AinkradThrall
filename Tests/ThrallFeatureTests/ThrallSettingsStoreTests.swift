@@ -1,6 +1,7 @@
-import Testing
-import Foundation
 import AinkradAppKit
+import Foundation
+import Testing
+
 @testable import ThrallFeature
 
 private final class SettingsDocs: PluginDocumentStore {

@@ -30,9 +30,11 @@ public actor ThrallStreamSupervisor {
     private let streamFactory: @Sendable () -> any ThrallByteStream
     private var task: Task<Void, Never>?
 
-    public init(socketPath: String,
-                apiVersion: ThrallAPIVersion,
-                streamFactory: (@Sendable () -> any ThrallByteStream)? = nil) {
+    public init(
+        socketPath: String,
+        apiVersion: ThrallAPIVersion,
+        streamFactory: (@Sendable () -> any ThrallByteStream)? = nil
+    ) {
         self.socketPath = socketPath
         self.apiVersion = apiVersion
         self.streamFactory = streamFactory ?? { ThrallConnection(socketPath: socketPath) }
@@ -40,20 +42,24 @@ public actor ThrallStreamSupervisor {
 
     /// The `filters` value. Container lifecycle only — `exec_*` and
     /// `health_status` are excluded at the server.
-    static let eventFilters = #"{"type":["container"],"#
+    static let eventFilters =
+        #"{"type":["container"],"#
         + #""event":["start","die","stop","kill","restart","create","destroy"]}"#
 
-    public func start(onEvent: @escaping EventHandler,
-                      onConnected: @escaping StateHandler = { _ in }) {
+    public func start(
+        onEvent: @escaping EventHandler,
+        onConnected: @escaping StateHandler = { _ in }
+    ) {
         guard task == nil else { return }
         task = Task { [apiVersion, streamFactory] in
             var attempt = 0
             while !Task.isCancelled {
                 do {
-                    try await Self.consume(apiVersion: apiVersion,
-                                           stream: streamFactory(),
-                                           onEvent: onEvent,
-                                           onConnected: onConnected)
+                    try await Self.consume(
+                        apiVersion: apiVersion,
+                        stream: streamFactory(),
+                        onEvent: onEvent,
+                        onConnected: onConnected)
                     // A clean end means the peer closed: reconnect promptly
                     // rather than treating it as a failure.
                     attempt = 0
@@ -86,12 +92,15 @@ public actor ThrallStreamSupervisor {
 
     public var isRunning: Bool { task != nil }
 
-    private static func consume(apiVersion: ThrallAPIVersion,
-                                stream: any ThrallByteStream,
-                                onEvent: @escaping EventHandler,
-                                onConnected: @escaping StateHandler) async throws {
-        let target = ThrallEngineClient.target(apiVersion.pathPrefix + "/events",
-                                               query: [("filters", eventFilters)])
+    private static func consume(
+        apiVersion: ThrallAPIVersion,
+        stream: any ThrallByteStream,
+        onEvent: @escaping EventHandler,
+        onConnected: @escaping StateHandler
+    ) async throws {
+        let target = ThrallEngineClient.target(
+            apiVersion.pathPrefix + "/events",
+            query: [("filters", eventFilters)])
         try await stream.connect()
         try await stream.send(ThrallHTTPRequest(target: target).encoded())
 
@@ -106,8 +115,9 @@ public actor ThrallStreamSupervisor {
             switch event {
             case .head(let head):
                 guard head.isSuccess else {
-                    throw ThrallEngineError.http(status: head.statusCode,
-                                                 message: head.reasonPhrase)
+                    throw ThrallEngineError.http(
+                        status: head.statusCode,
+                        message: head.reasonPhrase)
                 }
                 if !announced {
                     announced = true

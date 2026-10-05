@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 /// The join: request out, framing events in. Everything here runs against
@@ -49,7 +50,7 @@ struct ThrallHTTPExchangeTests {
     @Test("a unary call refuses an upgrade rather than losing the pipe")
     func unaryRefusesUpgrade() async throws {
         let stream = ScriptedByteStream(reads: [
-            RawResponses.bytes("HTTP/1.1 101 UPGRADED\r\nUpgrade: tcp\r\n\r\nroot@abc:/# "),
+            RawResponses.bytes("HTTP/1.1 101 UPGRADED\r\nUpgrade: tcp\r\n\r\nroot@abc:/# ")
         ])
         await #expect(throws: ThrallTransportError.self) {
             try await ThrallHTTPExchange.perform(
@@ -125,8 +126,9 @@ struct ThrallHTTPExchangeTests {
     /// so the suite stays honest on a machine with no engine. Everything above
     /// is the actual contract; this only confirms the contract describes
     /// reality.
-    @Test("a live engine answers GET /version over AF_UNIX",
-          .enabled(if: LiveEngine.socketPath != nil))
+    @Test(
+        "a live engine answers GET /version over AF_UNIX",
+        .enabled(if: LiveEngine.socketPath != nil))
     func liveVersion() async throws {
         let path = try #require(LiveEngine.socketPath)
         let connection = ThrallConnection(socketPath: path)
@@ -150,8 +152,9 @@ struct ThrallHTTPExchangeTests {
         // retry it forever; ThrallConnection treats that as a failure so an
         // engine-down connect answers in milliseconds rather than at the
         // connect timeout.
-        let connection = ThrallConnection(socketPath: "/nonexistent/thrall-test.sock",
-                                          connectTimeout: .seconds(30))
+        let connection = ThrallConnection(
+            socketPath: "/nonexistent/thrall-test.sock",
+            connectTimeout: .seconds(30))
         let started = ContinuousClock.now
         await #expect(throws: ThrallTransportError.self) {
             try await connection.connect()
@@ -169,7 +172,8 @@ enum LiveEngine {
     static let socketPath: String? = {
         guard ProcessInfo.processInfo.environment["THRALL_LIVE_DOCKER"] == "1" else { return nil }
         if let host = ProcessInfo.processInfo.environment["DOCKER_HOST"],
-           host.hasPrefix("unix://") {
+            host.hasPrefix("unix://")
+        {
             let path = String(host.dropFirst("unix://".count))
             if FileManager.default.fileExists(atPath: path) { return path }
         }

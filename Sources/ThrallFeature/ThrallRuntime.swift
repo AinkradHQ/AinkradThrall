@@ -1,5 +1,5 @@
-import Foundation
 import AinkradAppKit
+import Foundation
 
 /// Bridges Thrall's static `AinkradApp` entry points to one shared settings
 /// store and one view model per plugin instance, so the root view, the

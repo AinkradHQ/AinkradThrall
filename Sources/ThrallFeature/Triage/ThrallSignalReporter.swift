@@ -1,5 +1,5 @@
-import Foundation
 import AinkradAppKit
+import Foundation
 
 /// Emits one signal per incident, and a `.success` when it clears.
 ///
@@ -39,9 +39,11 @@ public final class ThrallSignalReporter {
     ///   - suppressedStacks: stacks inside their settle window. Their
     ///     incidents are neither emitted **nor** cleared — a stack mid-restart
     ///     is not news in either direction.
-    public func report(incidents: [ThrallIncident],
-                       suppressedStacks: Set<ThrallStackID>,
-                       to signals: any PluginSignalEmitter) {
+    public func report(
+        incidents: [ThrallIncident],
+        suppressedStacks: Set<ThrallStackID>,
+        to signals: any PluginSignalEmitter
+    ) {
         let visible = incidents.filter { !suppressedStacks.contains($0.key.stack) }
         let current = Set(visible.map(\.id))
 
@@ -74,11 +76,12 @@ public final class ThrallSignalReporter {
             // recovery the moment the user pressed Restart, before anything
             // had actually recovered.
             guard !isSuppressed(cleared, in: suppressedStacks) else { continue }
-            signals.emit(kind: "thrall.crashloop.cleared",
-                         severity: .success,
-                         title: "Recovered: \(titles[cleared] ?? "a crash loop")",
-                         importance: .normal,
-                         dedupeKey: cleared + ".cleared")
+            signals.emit(
+                kind: "thrall.crashloop.cleared",
+                severity: .success,
+                title: "Recovered: \(titles[cleared] ?? "a crash loop")",
+                importance: .normal,
+                dedupeKey: cleared + ".cleared")
             titles[cleared] = nil
         }
 
@@ -91,8 +94,9 @@ public final class ThrallSignalReporter {
 
     private func body(for incident: ThrallIncident) -> String {
         var lines: [String] = []
-        lines.append("\(incident.stackName) · \(incident.memberCount) container"
-            + "\(incident.memberCount == 1 ? "" : "s") · \(incident.restartTotal) restarts")
+        lines.append(
+            "\(incident.stackName) · \(incident.memberCount) container"
+                + "\(incident.memberCount == 1 ? "" : "s") · \(incident.restartTotal) restarts")
         if let verdict = incident.brokenDependencies.first {
             lines.append("\(verdict.dependency) is \(verdict.stateLabel)")
         }

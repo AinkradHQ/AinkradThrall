@@ -10,8 +10,8 @@ import Testing
 enum Fixtures {
     static func url(_ name: String) -> URL {
         URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()   // Support
-            .deletingLastPathComponent()   // ThrallFeatureTests
+            .deletingLastPathComponent()  // Support
+            .deletingLastPathComponent()  // ThrallFeatureTests
             .appendingPathComponent("Fixtures")
             .appendingPathComponent(name)
     }

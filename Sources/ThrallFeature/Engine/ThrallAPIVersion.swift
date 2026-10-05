@@ -22,8 +22,9 @@ public struct ThrallAPIVersion: Comparable, Hashable, Sendable, CustomStringConv
     /// send three. Anything else is refused rather than coerced, because this
     /// value chooses the URL prefix for every subsequent request.
     public init?(_ text: String) {
-        let parts = text.trimmingCharacters(in: .whitespaces).split(separator: ".",
-                                                                    omittingEmptySubsequences: false)
+        let parts = text.trimmingCharacters(in: .whitespaces).split(
+            separator: ".",
+            omittingEmptySubsequences: false)
         guard parts.count == 2 || parts.count == 3 else { return nil }
         guard let major = Self.number(parts[0]), let minor = Self.number(parts[1]) else { return nil }
         if parts.count == 3, Self.number(parts[2]) == nil { return nil }

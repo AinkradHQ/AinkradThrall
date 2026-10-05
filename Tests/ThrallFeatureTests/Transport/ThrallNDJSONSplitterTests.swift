@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 /// `/events` is the only reason Thrall can report a transition rather than a
@@ -44,8 +45,9 @@ struct ThrallNDJSONSplitterTests {
     /// The measured case: an event carrying a container's full label set runs
     /// well past a kilobyte, so one chunk is never one event. Split at every
     /// awkward size to prove it.
-    @Test("a realistic multi-kilobyte event survives any read boundary",
-          arguments: [1, 7, 64, 500, 1024, 4096])
+    @Test(
+        "a realistic multi-kilobyte event survives any read boundary",
+        arguments: [1, 7, 64, 500, 1024, 4096])
     func realisticEventsAcrossBoundaries(splitEvery: Int) throws {
         let records = [
             RawResponses.eventLine(action: "die", container: "f4b70cccfc26"),

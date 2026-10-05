@@ -1,5 +1,5 @@
-import SwiftUI
 import AinkradAppKit
+import SwiftUI
 
 /// The shell: a top bar carrying the engine chip, a rail on the left, content
 /// on the right, and **no separator line** anywhere. Surfaces are
@@ -53,24 +53,28 @@ public struct ThrallShell: View {
         // that asks. Restart is unconfirmed on purpose: the service is already
         // broken and restart is idempotent.
         .ainkradConfirmDialog(
-            isPresented: Binding(get: { model.pendingDown != nil },
-                                 set: { if !$0 { model.pendingDown = nil } }),
+            isPresented: Binding(
+                get: { model.pendingDown != nil },
+                set: { if !$0 { model.pendingDown = nil } }),
             title: "Take \(model.pendingDown?.displayName ?? "") down?",
             message: downMessage,
             confirmTitle: "Down",
             isDestructive: true,
-            onConfirm: { model.confirmPendingDown() })
+            onConfirm: { model.confirmPendingDown() }
+        )
         // The kit's toast host is mounted once at the root, and messages are
         // pushed into `\.ainkradToastCenter` — the shared queue every Ainkrad
         // surface uses, rather than a local banner of Thrall's own.
         .ainkradConfirmDialog(
-            isPresented: Binding(get: { model.pendingTeardown != nil },
-                                 set: { if !$0 { model.pendingTeardown = nil } }),
+            isPresented: Binding(
+                get: { model.pendingTeardown != nil },
+                set: { if !$0 { model.pendingTeardown = nil } }),
             title: "Tear down \(model.pendingTeardown?.displayName ?? "") by label?",
             message: teardownMessage,
             confirmTitle: "Tear down",
             isDestructive: true,
-            onConfirm: { model.confirmPendingTeardown() })
+            onConfirm: { model.confirmPendingTeardown() }
+        )
         .ainkradToastHost()
         .onChange(of: model.storage.lastReclaim) { _, message in
             guard let message else { return }
@@ -79,8 +83,10 @@ public struct ThrallShell: View {
         }
         .onChange(of: model.lastActionMessage) { _, message in
             guard let message else { return }
-            toasts.show(message, status: message.contains("failed")
-                        || message.contains("Refused") ? .danger : .success)
+            toasts.show(
+                message,
+                status: message.contains("failed")
+                    || message.contains("Refused") ? .danger : .success)
             model.lastActionMessage = nil
         }
     }
@@ -131,8 +137,10 @@ public struct ThrallShell: View {
             summary
 
             if !triage.incidents.isEmpty {
-                AinkradIconButton(systemName: "sparkles", size: 24,
-                                  tooltip: "Ask Sage about this") {
+                AinkradIconButton(
+                    systemName: "sparkles", size: 24,
+                    tooltip: "Ask Sage about this"
+                ) {
                     let message = ThrallRuntime.contextBridge(for: host)
                         .handOff(model: model, host: host)
                     toasts.show(message, status: .neutral)
@@ -157,18 +165,20 @@ public struct ThrallShell: View {
     /// a `Menu`'s label to its first `Text`, so the status dot and the
     /// negotiated API version were being silently dropped from the chip.
     private var engineChip: some View {
-        AinkradMenuButton(items: model.contexts.map { context in
-            AinkradMenuItem(
-                title: context.isSupported ? context.name : "\(context.name) — unavailable",
-                systemName: context.isSupported ? "bolt.horizontal" : "bolt.horizontal.circle"
-            ) {
-                // An unsupported context still appears, and selecting it shows
-                // the reason rather than doing nothing — a control that
-                // silently ignores a click is worse than one that explains.
-                model.select(context)
-                Task { await model.refresh() }
+        AinkradMenuButton(
+            items: model.contexts.map { context in
+                AinkradMenuItem(
+                    title: context.isSupported ? context.name : "\(context.name) — unavailable",
+                    systemName: context.isSupported ? "bolt.horizontal" : "bolt.horizontal.circle"
+                ) {
+                    // An unsupported context still appears, and selecting it shows
+                    // the reason rather than doing nothing — a control that
+                    // silently ignores a click is worse than one that explains.
+                    model.select(context)
+                    Task { await model.refresh() }
+                }
             }
-        }) {
+        ) {
             HStack(spacing: AinkradSpacing.xs) {
                 Circle()
                     .fill(engineIndicator)
@@ -219,12 +229,13 @@ public struct ThrallShell: View {
     private var rail: some View {
         VStack(spacing: AinkradSpacing.xs) {
             ForEach(NavArea.built) { item in
-                RailItem(area: item,
-                         isSelected: item == area,
-                         tokens: tokens,
-                         // Triage is the only area that carries a badge.
-                         badge: item == .triage ? triage.incidents.count : nil,
-                         onTap: { area = item })
+                RailItem(
+                    area: item,
+                    isSelected: item == area,
+                    tokens: tokens,
+                    // Triage is the only area that carries a badge.
+                    badge: item == .triage ? triage.incidents.count : nil,
+                    onTap: { area = item })
             }
             Spacer(minLength: 0)
         }
@@ -271,13 +282,18 @@ private struct RailItem: View {
             Image(systemName: area.icon)
                 .font(.system(size: 16, weight: .regular))
                 .frame(width: 40, height: 34)
-                .foregroundStyle(isSelected
-                                 ? tokens.accentPrimary
-                                 : tokens.foreground.opacity(hovering ? 0.9 : 0.55))
+                .foregroundStyle(
+                    isSelected
+                        ? tokens.accentPrimary
+                        : tokens.foreground.opacity(hovering ? 0.9 : 0.55)
+                )
                 .background(
                     RoundedRectangle(cornerRadius: AinkradRadius.sm, style: .continuous)
-                        .fill(tokens.foreground.opacity(isSelected ? 0.10
-                                                        : (hovering ? 0.06 : 0)))
+                        .fill(
+                            tokens.foreground.opacity(
+                                isSelected
+                                    ? 0.10
+                                    : (hovering ? 0.06 : 0)))
                 )
                 // Inside the fixed 40x34 frame, so a count appearing or
                 // changing width cannot move the rail or the items below it.

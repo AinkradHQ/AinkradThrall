@@ -71,9 +71,11 @@ public struct ThrallHTTPResponseParser {
         public var maximumHeaderBlock: Int
         public var maximumChunkSize: Int
 
-        public init(maximumStatusLine: Int = 8 * 1024,
-                    maximumHeaderBlock: Int = 256 * 1024,
-                    maximumChunkSize: Int = 64 * 1024 * 1024) {
+        public init(
+            maximumStatusLine: Int = 8 * 1024,
+            maximumHeaderBlock: Int = 256 * 1024,
+            maximumChunkSize: Int = 64 * 1024 * 1024
+        ) {
             self.maximumStatusLine = maximumStatusLine
             self.maximumHeaderBlock = maximumHeaderBlock
             self.maximumChunkSize = maximumChunkSize
@@ -189,9 +191,10 @@ public struct ThrallHTTPResponseParser {
                     throw failTooLarge("header block exceeded \(limits.maximumHeaderBlock) bytes")
                 }
                 if line.isEmpty {
-                    let head = ThrallHTTPResponseHead(statusCode: statusCode,
-                                                      reasonPhrase: reasonPhrase,
-                                                      headers: headers)
+                    let head = ThrallHTTPResponseHead(
+                        statusCode: statusCode,
+                        reasonPhrase: reasonPhrase,
+                        headers: headers)
                     outputs.append(.head(head))
                     outputs.append(contentsOf: try enterBody(head))
                     if state == .upgraded || state == .complete { break loop }
@@ -306,7 +309,8 @@ public struct ThrallHTTPResponseParser {
                 // one.
                 throw fail("both Transfer-Encoding and Content-Length are present")
             }
-            let encodings = transferEncodings
+            let encodings =
+                transferEncodings
                 .flatMap { $0.split(separator: ",") }
                 .map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
                 .filter { !$0.isEmpty }
@@ -346,7 +350,8 @@ public struct ThrallHTTPResponseParser {
         // Digits only: `Int(_:)` would accept `+5` and `-0`, and a signed or
         // padded length is a framing trick, not a typo.
         guard !trimmed.isEmpty, trimmed.allSatisfy(\.isASCII),
-              trimmed.allSatisfy({ $0.isNumber }), let value = Int(trimmed), value >= 0 else {
+            trimmed.allSatisfy({ $0.isNumber }), let value = Int(trimmed), value >= 0
+        else {
             throw ThrallTransportError.malformedResponse("Content-Length is not a length: \(raw)")
         }
         return value
@@ -404,7 +409,8 @@ public struct ThrallHTTPResponseParser {
         let sizeField = line.split(separator: ";", maxSplits: 1, omittingEmptySubsequences: false)[0]
             .trimmingCharacters(in: .whitespaces)
         guard !sizeField.isEmpty, sizeField.count <= 16,
-              sizeField.allSatisfy({ $0.isHexDigit }), let size = Int(sizeField, radix: 16) else {
+            sizeField.allSatisfy({ $0.isHexDigit }), let size = Int(sizeField, radix: 16)
+        else {
             throw fail("chunk size is not hex: \(line.debugDescription)")
         }
         guard size <= limits.maximumChunkSize else {

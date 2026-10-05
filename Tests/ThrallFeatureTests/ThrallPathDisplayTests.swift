@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 /// Row height is not cosmetic: `AinkradListRow` puts no line limit on its
@@ -10,15 +11,17 @@ struct ThrallPathDisplayTests {
     @Test("a short path is left alone, with the home directory abbreviated")
     func shortPath() {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
-        #expect(ThrallPathDisplay.abbreviate("\(home)/Home/Projects/Optimus/Run")
-            == "~/Home/Projects/Optimus/Run")
+        #expect(
+            ThrallPathDisplay.abbreviate("\(home)/Home/Projects/Optimus/Run")
+                == "~/Home/Projects/Optimus/Run")
     }
 
     /// The real offender: 96 characters of agent worktree, of which only the
     /// last two components mean anything to a person.
     @Test("a long path keeps its tail and elides the middle")
     func longPath() {
-        let path = "/private/tmp/claude-501/-Users-ahmedmelhalaby-Home-Projects-AutomotiveAi"
+        let path =
+            "/private/tmp/claude-501/-Users-ahmedmelhalaby-Home-Projects-AutomotiveAi"
             + "/0ab18311-2c30-4dcd-a4da-4d1f9b3535e7/scratchpad/wt-1058"
         let short = ThrallPathDisplay.abbreviate(path)
         #expect(short.count <= 52)
@@ -30,13 +33,15 @@ struct ThrallPathDisplayTests {
     func everyFixturePathFits() throws {
         let containers = try JSONDecoder().decode(
             [ThrallContainerDTO].self, from: try Fixtures.data(Fixtures.containersAll48))
-        let directories = Set(containers.compactMap {
-            $0.labels["com.docker.compose.project.working_dir"]
-        })
+        let directories = Set(
+            containers.compactMap {
+                $0.labels["com.docker.compose.project.working_dir"]
+            })
         #expect(!directories.isEmpty)
         for directory in directories {
-            #expect(ThrallPathDisplay.abbreviate(directory).count <= 52,
-                    Comment(rawValue: directory))
+            #expect(
+                ThrallPathDisplay.abbreviate(directory).count <= 52,
+                Comment(rawValue: directory))
         }
     }
 
@@ -50,8 +55,9 @@ struct ThrallPathDisplayTests {
     @Test("a dependency list is capped rather than allowed to wrap")
     func dependencySummary() {
         let many = (1...6).map {
-            ThrallDependency(service: "service-\($0)", condition: "service_started",
-                             restartsDependents: false)
+            ThrallDependency(
+                service: "service-\($0)", condition: "service_started",
+                restartsDependents: false)
         }
         let summary = try? #require(ThrallPathDisplay.dependencySummary(many))
         #expect(summary == "needs service-1, service-2, service-3 +3 more")
@@ -80,23 +86,27 @@ struct ThrallViewModelMessageTests {
     /// The normal state of a configured-but-stopped engine — `desktop-linux`
     /// on this machine. Network.framework calls it
     /// `POSIXErrorCode(rawValue: 2)`, which is true and useless.
-    @Test("a missing socket names the engine, not the errno", arguments: [
-        "POSIXErrorCode(rawValue: 2): No such file or directory",
-        "POSIXErrorCode(rawValue: 61): Connection refused",
-    ])
+    @Test(
+        "a missing socket names the engine, not the errno",
+        arguments: [
+            "POSIXErrorCode(rawValue: 2): No such file or directory",
+            "POSIXErrorCode(rawValue: 61): Connection refused",
+        ])
     func missingSocket(detail: String) {
         let message = ThrallViewModel.describe(.connectionFailed(detail), endpoint: socket)
-        #expect(message == "Nothing is listening at ~/.docker/run/docker.sock. "
-            + "Start the engine and try again.",
-                Comment(rawValue: message))
+        #expect(
+            message == "Nothing is listening at ~/.docker/run/docker.sock. "
+                + "Start the engine and try again.",
+            Comment(rawValue: message))
         #expect(!message.contains("POSIXErrorCode"))
         #expect(!message.contains("rawValue"))
     }
 
     @Test("an unrecognised connection failure still shows its detail")
     func otherConnectionFailure() {
-        let message = ThrallViewModel.describe(.connectionFailed("protocol error"),
-                                               endpoint: socket)
+        let message = ThrallViewModel.describe(
+            .connectionFailed("protocol error"),
+            endpoint: socket)
         #expect(message.contains("protocol error"))
     }
 

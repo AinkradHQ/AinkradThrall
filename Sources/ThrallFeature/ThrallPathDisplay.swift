@@ -44,8 +44,10 @@ public enum ThrallPathDisplay {
     }
 
     /// A one-line summary of what a service needs, capped so it cannot wrap.
-    public static func dependencySummary(_ dependencies: [ThrallDependency],
-                                         limit: Int = 3) -> String? {
+    public static func dependencySummary(
+        _ dependencies: [ThrallDependency],
+        limit: Int = 3
+    ) -> String? {
         guard !dependencies.isEmpty else { return nil }
         let names = dependencies.map(\.service)
         if names.count <= limit { return "needs " + names.joined(separator: ", ") }

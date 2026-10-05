@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 @Suite("ThrallEngineClient")
@@ -60,14 +61,15 @@ struct ThrallEngineClientTests {
         _ = try await client.networks()
         _ = try await client.diskUsage()
 
-        #expect(await engine.requestLines() == [
-            "GET /version HTTP/1.1",
-            "GET /v1.51/containers/json?all=1 HTTP/1.1",
-            "GET /v1.51/images/json?all=0 HTTP/1.1",
-            "GET /v1.51/volumes HTTP/1.1",
-            "GET /v1.51/networks HTTP/1.1",
-            "GET /v1.51/system/df HTTP/1.1",
-        ])
+        #expect(
+            await engine.requestLines() == [
+                "GET /version HTTP/1.1",
+                "GET /v1.51/containers/json?all=1 HTTP/1.1",
+                "GET /v1.51/images/json?all=0 HTTP/1.1",
+                "GET /v1.51/volumes HTTP/1.1",
+                "GET /v1.51/networks HTTP/1.1",
+                "GET /v1.51/system/df HTTP/1.1",
+            ])
     }
 
     /// A stack whose containers have all exited must still get a row — 28 of
@@ -82,7 +84,7 @@ struct ThrallEngineClientTests {
     @Test("an engine below the floor fails the handshake closed")
     func oldEngineFailsClosed() async throws {
         let engine = ScriptedEngine([
-            ScriptedEngine.response(#"{"Version":"19.03.0","ApiVersion":"1.40","MinAPIVersion":"1.12"}"#),
+            ScriptedEngine.response(#"{"Version":"19.03.0","ApiVersion":"1.40","MinAPIVersion":"1.12"}"#)
         ])
         await #expect(throws: ThrallEngineError.apiTooOld(reported: "1.40", minimumSupported: "1.41")) {
             _ = try await client(engine).version()
@@ -103,11 +105,15 @@ struct ThrallEngineClientTests {
     func engineErrorMessage() async throws {
         let engine = ScriptedEngine([
             ScriptedEngine.versionResponse,
-            ScriptedEngine.response(#"{"message":"No such container: abc"}"#,
-                                    status: 404, reason: "Not Found"),
+            ScriptedEngine.response(
+                #"{"message":"No such container: abc"}"#,
+                status: 404, reason: "Not Found"),
         ])
-        await #expect(throws: ThrallEngineError.http(status: 404,
-                                                     message: "No such container: abc")) {
+        await #expect(
+            throws: ThrallEngineError.http(
+                status: 404,
+                message: "No such container: abc")
+        ) {
             _ = try await client(engine).inspect(containerID: "abc")
         }
     }
@@ -143,8 +149,9 @@ struct ThrallEngineClientTests {
 
     /// Identifiers go straight into a path, so they are checked before a socket
     /// is opened. `..` would otherwise address a different endpoint entirely.
-    @Test("a hostile container identifier is refused before any connection",
-          arguments: ["../../info", "abc/json", "", "a b", "-flag", "abc?all=1"])
+    @Test(
+        "a hostile container identifier is refused before any connection",
+        arguments: ["../../info", "abc/json", "", "a b", "-flag", "abc?all=1"])
     func hostileIdentifiers(identifier: String) async throws {
         let engine = ScriptedEngine([ScriptedEngine.versionResponse])
         await #expect(throws: ThrallEngineError.self) {
@@ -184,8 +191,9 @@ struct ThrallEngineClientTests {
 
     // MARK: - Against the real engine, when there is one
 
-    @Test("the live engine negotiates and lists containers",
-          .enabled(if: LiveEngine.socketPath != nil))
+    @Test(
+        "the live engine negotiates and lists containers",
+        .enabled(if: LiveEngine.socketPath != nil))
     func liveReads() async throws {
         let path = try #require(LiveEngine.socketPath)
         let client = try ThrallEngineClient(endpoint: .unixSocket(path: path))
@@ -205,8 +213,9 @@ struct ThrallEngineClientTests {
         #expect(usage.reclaimableBuildCache >= 0)
     }
 
-    @Test("a live inspect carries the fields crash-loop detection needs",
-          .enabled(if: LiveEngine.socketPath != nil))
+    @Test(
+        "a live inspect carries the fields crash-loop detection needs",
+        .enabled(if: LiveEngine.socketPath != nil))
     func liveInspect() async throws {
         let path = try #require(LiveEngine.socketPath)
         let client = try ThrallEngineClient(endpoint: .unixSocket(path: path))

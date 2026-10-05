@@ -1,5 +1,5 @@
-import SwiftUI
 import AinkradAppKit
+import SwiftUI
 
 /// Task S — run one non-interactive command in a container.
 ///
@@ -37,10 +37,12 @@ struct RunCommandCard: View {
             VStack(alignment: .leading, spacing: AinkradSpacing.md) {
                 Text("Run a command")
                     .font(.system(size: 13, weight: .semibold))
-                Text("Runs directly in the container — no shell, so no pipes, redirects or "
-                     + "variable expansion. Rune handles interactive sessions.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(theme.foreground.opacity(0.6))
+                Text(
+                    "Runs directly in the container — no shell, so no pipes, redirects or "
+                        + "variable expansion. Rune handles interactive sessions."
+                )
+                .font(.system(size: 11))
+                .foregroundStyle(theme.foreground.opacity(0.6))
 
                 if candidates.isEmpty {
                     Text("Nothing is running on \(model.engineLabel).")
@@ -48,11 +50,13 @@ struct RunCommandCard: View {
                         .foregroundStyle(theme.foreground.opacity(0.45))
                 } else {
                     HStack(spacing: AinkradSpacing.sm) {
-                        AinkradMenuButton(items: candidates.map { candidate in
-                            AinkradMenuItem(title: candidate.label, systemName: "cube") {
-                                containerID = candidate.id
+                        AinkradMenuButton(
+                            items: candidates.map { candidate in
+                                AinkradMenuItem(title: candidate.label, systemName: "cube") {
+                                    containerID = candidate.id
+                                }
                             }
-                        }) {
+                        ) {
                             HStack(spacing: AinkradSpacing.xs) {
                                 Text(selectedLabel)
                                     .font(.system(size: 11, weight: .medium))
@@ -62,8 +66,11 @@ struct RunCommandCard: View {
                             }
                             .padding(.horizontal, AinkradSpacing.sm)
                             .padding(.vertical, 3)
-                            .background(RoundedRectangle(cornerRadius: AinkradRadius.sm,
-                                                         style: .continuous)
+                            .background(
+                                RoundedRectangle(
+                                    cornerRadius: AinkradRadius.sm,
+                                    style: .continuous
+                                )
                                 .fill(theme.foreground.opacity(0.06)))
                         }
                         .fixedSize()
@@ -79,8 +86,9 @@ struct RunCommandCard: View {
                         // what to do instead.
                         Text(problem)
                             .font(.system(size: 11))
-                            .foregroundStyle(AinkradStatus.warning
-                                .color(in: theme, statusColors: .init()))
+                            .foregroundStyle(
+                                AinkradStatus.warning
+                                    .color(in: theme, statusColors: .init()))
                     }
                     if let result {
                         output(result)
@@ -92,7 +100,8 @@ struct RunCommandCard: View {
 
     private var selectedLabel: String {
         guard let containerID,
-              let match = candidates.first(where: { $0.id == containerID }) else {
+            let match = candidates.first(where: { $0.id == containerID })
+        else {
             return candidates.first?.label ?? "No container"
         }
         return match.label
@@ -102,8 +111,9 @@ struct RunCommandCard: View {
     private func output(_ result: ThrallExecResult) -> some View {
         VStack(alignment: .leading, spacing: AinkradSpacing.xs) {
             HStack(spacing: AinkradSpacing.sm) {
-                AinkradBadge(text: result.exitCode.map { "exit \($0)" } ?? "exit unknown",
-                             status: result.succeeded ? .success : .danger)
+                AinkradBadge(
+                    text: result.exitCode.map { "exit \($0)" } ?? "exit unknown",
+                    status: result.succeeded ? .success : .danger)
                 if result.truncated {
                     AinkradBadge(text: "output truncated", status: .warning)
                 }

@@ -16,8 +16,10 @@ public struct ThrallDiskCandidate: Hashable, Sendable {
     /// Newest mtime across `configFiles`.
     public let configModified: Date?
 
-    public init(projectName: String, workingDirectory: String, configFiles: [String],
-                declaredServices: [String] = [], configModified: Date? = nil) {
+    public init(
+        projectName: String, workingDirectory: String, configFiles: [String],
+        declaredServices: [String] = [], configModified: Date? = nil
+    ) {
         self.projectName = projectName
         self.workingDirectory = workingDirectory
         self.configFiles = configFiles
@@ -65,11 +67,13 @@ public enum ThrallReconciler {
     /// The row title for containers belonging to no compose project.
     public static let looseStackName = "Unmanaged"
 
-    public static func reconcile(engineKey: String,
-                                 containers: [ThrallContainerDTO],
-                                 diskCandidates: [ThrallDiskCandidate] = [],
-                                 probe: ThrallFileProbe = .filesystem,
-                                 now: Date = Date()) -> ThrallWorld {
+    public static func reconcile(
+        engineKey: String,
+        containers: [ThrallContainerDTO],
+        diskCandidates: [ThrallDiskCandidate] = [],
+        probe: ThrallFileProbe = .filesystem,
+        now: Date = Date()
+    ) -> ThrallWorld {
         var grouped: [ThrallStackID: [ThrallContainerDTO]] = [:]
         var order: [ThrallStackID] = []
         for container in containers {
@@ -82,9 +86,10 @@ public enum ThrallReconciler {
         // and declared merges on exact ID equality and never fuzzily.
         var candidates: [ThrallStackID: ThrallDiskCandidate] = [:]
         for candidate in diskCandidates {
-            let id = ThrallStackID(engineKey: engineKey,
-                                   projectName: candidate.projectName,
-                                   workingDirectory: ThrallPathKey(candidate.workingDirectory))
+            let id = ThrallStackID(
+                engineKey: engineKey,
+                projectName: candidate.projectName,
+                workingDirectory: ThrallPathKey(candidate.workingDirectory))
             // First wins: the indexer's own ordering decides, not dictionary
             // iteration order.
             if candidates[id] == nil { candidates[id] = candidate }
@@ -95,10 +100,11 @@ public enum ThrallReconciler {
         }
 
         var stacks = order.map { id in
-            makeStack(id: id,
-                      containers: grouped[id] ?? [],
-                      candidate: candidates[id],
-                      probe: probe)
+            makeStack(
+                id: id,
+                containers: grouped[id] ?? [],
+                candidate: candidates[id],
+                probe: probe)
         }
         // **Sorted by identity, never by state.** With containers flapping,
         // any state-keyed order turns the list into a slot machine — this is
@@ -121,9 +127,10 @@ public enum ThrallReconciler {
         }
         let workingDirectory = labels["com.docker.compose.project.working_dir"]
             .flatMap { $0.isEmpty ? nil : ThrallPathKey($0) }
-        return ThrallStackID(engineKey: engineKey,
-                             projectName: project,
-                             workingDirectory: workingDirectory)
+        return ThrallStackID(
+            engineKey: engineKey,
+            projectName: project,
+            workingDirectory: workingDirectory)
     }
 
     /// Splits `com.docker.compose.project.config_files`.
@@ -142,10 +149,12 @@ public enum ThrallReconciler {
 
     // MARK: - One stack
 
-    private static func makeStack(id: ThrallStackID,
-                                  containers: [ThrallContainerDTO],
-                                  candidate: ThrallDiskCandidate?,
-                                  probe: ThrallFileProbe) -> ThrallStack {
+    private static func makeStack(
+        id: ThrallStackID,
+        containers: [ThrallContainerDTO],
+        candidate: ThrallDiskCandidate?,
+        probe: ThrallFileProbe
+    ) -> ThrallStack {
         // Config files: the engine's labels first (they describe what actually
         // started), then anything the indexer adopted. Order-preserving union,
         // because the first file is the one compose treats as the base.
@@ -163,7 +172,8 @@ public enum ThrallReconciler {
         var byService: [String: [ThrallContainerDTO]] = [:]
         var serviceOrder: [String] = []
         for container in containers {
-            let service = container.labels["com.docker.compose.service"]
+            let service =
+                container.labels["com.docker.compose.service"]
                 ?? container.displayName
             if byService[service] == nil { serviceOrder.append(service) }
             byService[service, default: []].append(container)
@@ -184,8 +194,10 @@ public enum ThrallReconciler {
         // stack that is fully down would render as an empty row with no way to
         // see what it consists of.
         for declared in candidate?.declaredServices ?? [] where byService[declared] == nil {
-            services.append(ThrallService(name: declared, containers: [],
-                                          dependsOn: [], isDeclaredButAbsent: true))
+            services.append(
+                ThrallService(
+                    name: declared, containers: [],
+                    dependsOn: [], isDeclaredButAbsent: true))
         }
         services.sort { $0.name < $1.name }
 
@@ -240,8 +252,10 @@ public enum ThrallReconciler {
         }
     }
 
-    private static func health(breakdown: ThrallStateBreakdown,
-                               hasDeclaredServices: Bool) -> ThrallStackHealth {
+    private static func health(
+        breakdown: ThrallStateBreakdown,
+        hasDeclaredServices: Bool
+    ) -> ThrallStackHealth {
         guard breakdown.total > 0 else { return hasDeclaredServices ? .down : .stopped }
         if breakdown.dead > 0 || breakdown.restarting > 0 { return .unhealthy }
         if breakdown.running == breakdown.total { return .allRunning }

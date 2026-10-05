@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 /// Each of these pins one thing the engine's JSON does that a straightforward
@@ -15,12 +16,14 @@ struct ThrallEngineDTOTests {
     /// Neither `ISO8601DateFormatter` configuration parses both shapes, and the
     /// engine sends both **in the same response**: `/system/df` has fractional
     /// build-cache timestamps beside non-fractional volume ones.
-    @Test("both timestamp shapes the engine sends parse", arguments: [
-        "2026-09-09T11:02:54.532431428Z",
-        "2026-08-24T09:31:56+03:00",
-        "2026-08-23T16:07:15.478929157+03:00",
-        "2026-08-26T07:10:09.225284435Z",
-    ])
+    @Test(
+        "both timestamp shapes the engine sends parse",
+        arguments: [
+            "2026-09-09T11:02:54.532431428Z",
+            "2026-08-24T09:31:56+03:00",
+            "2026-08-23T16:07:15.478929157+03:00",
+            "2026-08-26T07:10:09.225284435Z",
+        ])
     func parsesBothTimestampShapes(raw: String) {
         #expect(ThrallEngineTimestamp.parse(raw) != nil, "failed to parse \(raw)")
     }
@@ -39,7 +42,9 @@ struct ThrallEngineDTOTests {
 
     @Test("inspect decodes the fields crash-loop detection needs")
     func inspectDecodes() throws {
-        let dto = try decode(ThrallContainerInspectDTO.self, """
+        let dto = try decode(
+            ThrallContainerInspectDTO.self,
+            """
             {"Id":"f4b70cccfc26","Name":"/optimus-scheduler-1",
              "Created":"2026-09-09T11:02:43.411262135Z","RestartCount":7,
              "State":{"Status":"running","Running":true,"Paused":false,"Restarting":false,
@@ -61,11 +66,15 @@ struct ThrallEngineDTOTests {
     /// A container the engine will not restart cannot be in a crash loop.
     /// Checking this first is what keeps a one-shot job that exited 1 out of
     /// the triage feed.
-    @Test("a restart policy of `no` cannot crash-loop", arguments: [
-        ("no", false), ("", false), ("always", true), ("unless-stopped", true), ("on-failure", true),
-    ])
+    @Test(
+        "a restart policy of `no` cannot crash-loop",
+        arguments: [
+            ("no", false), ("", false), ("always", true), ("unless-stopped", true), ("on-failure", true),
+        ])
     func restartPolicy(name: String, canRestart: Bool) throws {
-        let dto = try decode(ThrallContainerInspectDTO.self, """
+        let dto = try decode(
+            ThrallContainerInspectDTO.self,
+            """
             {"Id":"a","Name":"/a","State":{"Status":"exited"},
              "HostConfig":{"RestartPolicy":{"Name":"\(name)"}}}
             """)
@@ -74,8 +83,9 @@ struct ThrallEngineDTOTests {
 
     @Test("inspect survives a missing HostConfig or Config")
     func inspectWithMissingSections() throws {
-        let dto = try decode(ThrallContainerInspectDTO.self,
-                             #"{"Id":"a","Name":"/a","State":{"Status":"exited"}}"#)
+        let dto = try decode(
+            ThrallContainerInspectDTO.self,
+            #"{"Id":"a","Name":"/a","State":{"Status":"exited"}}"#)
         #expect(!dto.restartPolicy.canRestart)
         #expect(!dto.hasTTY)
     }
@@ -87,7 +97,9 @@ struct ThrallEngineDTOTests {
     /// total.
     @Test("SharedSize -1 reports as nil rather than as a number")
     func sharedSizeSentinel() throws {
-        let dto = try decode(ThrallImageDTO.self, """
+        let dto = try decode(
+            ThrallImageDTO.self,
+            """
             {"Id":"sha256:ea8c","ParentId":"","RepoTags":[],"RepoDigests":[],
              "Created":1788889573,"Size":446636308,"SharedSize":-1,"Containers":0,"Labels":{}}
             """)
@@ -99,8 +111,9 @@ struct ThrallEngineDTOTests {
 
     @Test("a computed shared size is reported as itself")
     func sharedSizeComputed() throws {
-        let dto = try decode(ThrallImageDTO.self,
-                             #"{"Id":"a","RepoTags":["app:latest"],"SharedSize":10285056}"#)
+        let dto = try decode(
+            ThrallImageDTO.self,
+            #"{"Id":"a","RepoTags":["app:latest"],"SharedSize":10285056}"#)
         #expect(dto.computedSharedSize == 10_285_056)
         #expect(!dto.isDangling)
     }
@@ -112,7 +125,9 @@ struct ThrallEngineDTOTests {
     /// `usage` really is nil.
     @Test("a volume from /volumes has no usage data at all")
     func volumeWithoutUsage() throws {
-        let dto = try decode(ThrallVolumeDTO.self, """
+        let dto = try decode(
+            ThrallVolumeDTO.self,
+            """
             {"CreatedAt":"2026-08-24T09:31:56+03:00","Driver":"local",
              "Labels":{"com.docker.volume.anonymous":""},
              "Mountpoint":"/var/lib/docker/volumes/426964a5/_data",
@@ -127,7 +142,9 @@ struct ThrallEngineDTOTests {
 
     @Test("a volume from /system/df carries the reclaim signal")
     func volumeWithUsage() throws {
-        let dto = try decode(ThrallVolumeDTO.self, """
+        let dto = try decode(
+            ThrallVolumeDTO.self,
+            """
             {"Name":"optimus_db","Driver":"local","Labels":{"com.docker.compose.project":"optimus"},
              "UsageData":{"RefCount":0,"Size":70001785}}
             """)
@@ -137,8 +154,9 @@ struct ThrallEngineDTOTests {
 
     @Test("the volume list is wrapped, unlike every other list endpoint")
     func volumeListIsWrapped() throws {
-        let dto = try decode(ThrallVolumeListDTO.self,
-                             #"{"Volumes":[{"Name":"a"}],"Warnings":null}"#)
+        let dto = try decode(
+            ThrallVolumeListDTO.self,
+            #"{"Volumes":[{"Name":"a"}],"Warnings":null}"#)
         #expect(dto.volumes.count == 1)
         #expect(dto.warnings.isEmpty)
     }
@@ -151,7 +169,9 @@ struct ThrallEngineDTOTests {
     /// field whose only purpose is to build a graph.
     @Test("build cache decodes the leading-space Parents key the engine sends")
     func buildCacheLeadingSpaceKey() throws {
-        let dto = try decode(ThrallDiskUsageDTO.self, """
+        let dto = try decode(
+            ThrallDiskUsageDTO.self,
+            """
             {"LayersSize":24503210805,"Images":[],"Containers":[],"Volumes":[],
              "BuildCache":[{"ID":"norvxdttv6brxaa49mjvwo008"," Parents":["vslb5p0w3ci50vi9f1mcl4llm"],
               "Type":"regular","Description":"pulled from docker.io/library/python:3.12-alpine",
@@ -168,7 +188,9 @@ struct ThrallEngineDTOTests {
 
     @Test("reclaimable totals count only what nothing is using")
     func reclaimableTotals() throws {
-        let dto = try decode(ThrallDiskUsageDTO.self, """
+        let dto = try decode(
+            ThrallDiskUsageDTO.self,
+            """
             {"LayersSize":100,
              "Volumes":[{"Name":"used","UsageData":{"RefCount":2,"Size":900}},
                         {"Name":"free","UsageData":{"RefCount":0,"Size":70}},
@@ -192,7 +214,9 @@ struct ThrallEngineDTOTests {
 
     @Test("a network reports the compose project that owns it")
     func network() throws {
-        let dto = try decode(ThrallNetworkDTO.self, """
+        let dto = try decode(
+            ThrallNetworkDTO.self,
+            """
             {"Name":"compose_default","Id":"91c25cc5","Created":"2026-08-23T16:07:15.478929157+03:00",
              "Scope":"local","Driver":"bridge","Internal":false,
              "Labels":{"com.docker.compose.project":"compose","com.docker.compose.network":"default"}}
