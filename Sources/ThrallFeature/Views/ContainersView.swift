@@ -19,7 +19,7 @@ struct ContainersView: View {
         let name: String
         let stack: String
         let service: String
-        let state: String
+        let state: ThrallContainerState
         let image: String
     }
 
@@ -30,7 +30,7 @@ struct ContainersView: View {
                     Row(
                         id: $0.id, name: $0.name,
                         stack: stack.displayName, service: service.name,
-                        state: $0.state.label, image: $0.image)
+                        state: $0.state, image: $0.image)
                 }
             }
         }
@@ -185,8 +185,7 @@ struct ContainersView: View {
                         subtitle: "\(row.stack) · \(row.service) · \(row.image)",
                         trailing: {
                             AinkradBadge(
-                                text: row.state,
-                                status: row.state == "Running" ? .success : .warning)
+                                text: row.state.label, status: row.state.status)
                         })
                 }
             }
