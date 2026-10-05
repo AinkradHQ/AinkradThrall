@@ -1,5 +1,5 @@
-import SwiftUI
 import AinkradAppKit
+import SwiftUI
 
 /// Thrall's settings surface.
 ///
@@ -16,9 +16,11 @@ struct ThrallSettingsView: View {
 
     @Environment(\.ainkradTheme) private var theme
     @Environment(\.ainkradTypography) private var typo
-    init(presentation: any PluginPresentationControl,
-         modeControl: any PluginModeControl,
-         store: ThrallSettingsStore) {
+    init(
+        presentation: any PluginPresentationControl,
+        modeControl: any PluginModeControl,
+        store: ThrallSettingsStore
+    ) {
         self.presentation = presentation
         self.modeControl = modeControl
         self.store = store
@@ -33,26 +35,33 @@ struct ThrallSettingsView: View {
 
                 // The shared rows, not a local copy: "Open as" and "Open in"
                 // must read the same and sit in the same place in every app.
-                AinkradSurfaceSettings(appName: "Thrall",
-                                       presentation: presentation,
-                                       mode: modeControl)
+                AinkradSurfaceSettings(
+                    appName: "Thrall",
+                    presentation: presentation,
+                    mode: modeControl)
 
-                AinkradFormRow(title: "Unmanaged containers",
-                               help: "Containers with no compose project get their own row. "
-                                   + "Two on this machine have no labels at all, and a running "
-                                   + "container you cannot see is worse than a crowded list.") {
-                    AinkradToggle(isOn: Binding(
-                        get: { store.settings.showUnmanaged },
-                        set: { store.settings.showUnmanaged = $0 }))
+                AinkradFormRow(
+                    title: "Unmanaged containers",
+                    help: "Containers with no compose project get their own row. "
+                        + "Two on this machine have no labels at all, and a running "
+                        + "container you cannot see is worse than a crowded list."
+                ) {
+                    AinkradToggle(
+                        isOn: Binding(
+                            get: { store.settings.showUnmanaged },
+                            set: { store.settings.showUnmanaged = $0 }))
                 }
 
-                AinkradFormRow(title: "Confirm before Down",
-                               help: "Down destroys state. Restart and Up never confirm — "
-                                   + "gating an action that fixes a broken service is what "
-                                   + "makes people stop using the tool.") {
-                    AinkradToggle(isOn: Binding(
-                        get: { store.settings.confirmBeforeDown },
-                        set: { store.settings.confirmBeforeDown = $0 }))
+                AinkradFormRow(
+                    title: "Confirm before Down",
+                    help: "Down destroys state. Restart and Up never confirm — "
+                        + "gating an action that fixes a broken service is what "
+                        + "makes people stop using the tool."
+                ) {
+                    AinkradToggle(
+                        isOn: Binding(
+                            get: { store.settings.confirmBeforeDown },
+                            set: { store.settings.confirmBeforeDown = $0 }))
                 }
             }
         }

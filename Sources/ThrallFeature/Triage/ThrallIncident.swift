@@ -155,8 +155,10 @@ public enum ThrallIncidentGrouper {
         public let firstSeen: Date
         public let lastSeen: Date
 
-        public init(loop: ThrallCrashLoop, logTail: String?, imageDigest: String?,
-                    firstSeen: Date, lastSeen: Date) {
+        public init(
+            loop: ThrallCrashLoop, logTail: String?, imageDigest: String?,
+            firstSeen: Date, lastSeen: Date
+        ) {
             self.loop = loop
             self.logTail = logTail
             self.imageDigest = imageDigest
@@ -170,21 +172,25 @@ public enum ThrallIncidentGrouper {
     /// The image digest is in there because two services running *different*
     /// images that happen to print the same message are not one problem.
     public static func fingerprint(exitCode: Int?, logTail: String?, imageDigest: String?) -> String {
-        let line = logTail.flatMap(ThrallLogFingerprint.lastMeaningfulLine)
+        let line =
+            logTail.flatMap(ThrallLogFingerprint.lastMeaningfulLine)
             .map(ThrallLogFingerprint.normalise) ?? ""
         return [exitCode.map(String.init) ?? "-", line, imageDigest ?? "-"]
             .joined(separator: "|")
     }
 
-    public static func group(_ inputs: [Input],
-                             world: ThrallWorld) -> [ThrallIncident] {
+    public static func group(
+        _ inputs: [Input],
+        world: ThrallWorld
+    ) -> [ThrallIncident] {
         var buckets: [ThrallIncident.Key: [Input]] = [:]
         for input in inputs {
             let key = ThrallIncident.Key(
                 stack: input.loop.stack,
-                fingerprint: fingerprint(exitCode: input.loop.exitCode,
-                                         logTail: input.logTail,
-                                         imageDigest: input.imageDigest))
+                fingerprint: fingerprint(
+                    exitCode: input.loop.exitCode,
+                    logTail: input.logTail,
+                    imageDigest: input.imageDigest))
             buckets[key, default: []].append(input)
         }
 
@@ -228,11 +234,12 @@ public enum ThrallIncidentGrouper {
                 // A dependency that is absent or not running is the verdict; a
                 // running one is not news.
                 if let state, state == .running { continue }
-                found.append(ThrallDependencyVerdict(
-                    dependent: name,
-                    dependency: dependency.service,
-                    condition: dependency.condition,
-                    stateLabel: state?.label.lowercased() ?? "not created"))
+                found.append(
+                    ThrallDependencyVerdict(
+                        dependent: name,
+                        dependency: dependency.service,
+                        condition: dependency.condition,
+                        stateLabel: state?.label.lowercased() ?? "not created"))
             }
         }
         // Deduped on the dependency: twelve workers all blocked on `pgsql` is

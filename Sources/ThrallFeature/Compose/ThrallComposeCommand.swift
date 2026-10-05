@@ -19,8 +19,10 @@ public struct ThrallComposeCommand: Equatable, Sendable {
     /// Empty means the whole stack.
     public let services: [String]
 
-    public init(verb: Verb, projectName: String, projectDirectory: String,
-                configFiles: [String], services: [String] = []) {
+    public init(
+        verb: Verb, projectName: String, projectDirectory: String,
+        configFiles: [String], services: [String] = []
+    ) {
         self.verb = verb
         self.projectName = projectName
         self.projectDirectory = projectDirectory
@@ -42,9 +44,11 @@ public struct ThrallComposeCommand: Equatable, Sendable {
             throw ThrallComposeArgumentGuard.Rejection.identifier(service)
         }
 
-        var arguments = ["compose", "--ansi", "never",
-                         "--project-name", projectName,
-                         "--project-directory", projectDirectory]
+        var arguments = [
+            "compose", "--ansi", "never",
+            "--project-name", projectName,
+            "--project-directory", projectDirectory,
+        ]
         // Order matters to compose: later files override earlier ones, and the
         // label lists them base-first.
         for file in configFiles {

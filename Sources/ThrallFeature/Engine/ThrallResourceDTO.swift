@@ -26,9 +26,15 @@ public struct ThrallImageDTO: Decodable, Equatable, Sendable {
     public var isDangling: Bool { repoTags.isEmpty || repoTags == ["<none>:<none>"] }
 
     enum CodingKeys: String, CodingKey {
-        case id = "Id", parentID = "ParentId", repoTags = "RepoTags"
-        case repoDigests = "RepoDigests", created = "Created", size = "Size"
-        case sharedSize = "SharedSize", containers = "Containers", labels = "Labels"
+        case id = "Id"
+        case parentID = "ParentId"
+        case repoTags = "RepoTags"
+        case repoDigests = "RepoDigests"
+        case created = "Created"
+        case size = "Size"
+        case sharedSize = "SharedSize"
+        case containers = "Containers"
+        case labels = "Labels"
     }
 
     public init(from decoder: any Decoder) throws {
@@ -64,7 +70,10 @@ public struct ThrallVolumeDTO: Decodable, Equatable, Sendable {
         public let refCount: Int
         public let size: Int64
 
-        enum CodingKeys: String, CodingKey { case refCount = "RefCount", size = "Size" }
+        enum CodingKeys: String, CodingKey {
+            case refCount = "RefCount"
+            case size = "Size"
+        }
 
         public init(from decoder: any Decoder) throws {
             let values = try decoder.container(keyedBy: CodingKeys.self)
@@ -79,8 +88,13 @@ public struct ThrallVolumeDTO: Decodable, Equatable, Sendable {
     public var composeProject: String? { labels["com.docker.compose.project"] }
 
     enum CodingKeys: String, CodingKey {
-        case name = "Name", driver = "Driver", mountpoint = "Mountpoint"
-        case scope = "Scope", createdAt = "CreatedAt", labels = "Labels", usage = "UsageData"
+        case name = "Name"
+        case driver = "Driver"
+        case mountpoint = "Mountpoint"
+        case scope = "Scope"
+        case createdAt = "CreatedAt"
+        case labels = "Labels"
+        case usage = "UsageData"
     }
 
     public init(from decoder: any Decoder) throws {
@@ -101,7 +115,10 @@ public struct ThrallVolumeListDTO: Decodable, Equatable, Sendable {
     public let volumes: [ThrallVolumeDTO]
     public let warnings: [String]
 
-    enum CodingKeys: String, CodingKey { case volumes = "Volumes", warnings = "Warnings" }
+    enum CodingKeys: String, CodingKey {
+        case volumes = "Volumes"
+        case warnings = "Warnings"
+    }
 
     public init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
@@ -123,8 +140,13 @@ public struct ThrallNetworkDTO: Decodable, Equatable, Sendable {
     public var composeProject: String? { labels["com.docker.compose.project"] }
 
     enum CodingKeys: String, CodingKey {
-        case id = "Id", name = "Name", driver = "Driver", scope = "Scope"
-        case created = "Created", internalOnly = "Internal", labels = "Labels"
+        case id = "Id"
+        case name = "Name"
+        case driver = "Driver"
+        case scope = "Scope"
+        case created = "Created"
+        case internalOnly = "Internal"
+        case labels = "Labels"
     }
 
     public init(from decoder: any Decoder) throws {
@@ -168,9 +190,14 @@ public struct ThrallDiskUsageDTO: Decodable, Equatable, Sendable {
         /// nil silently, which is the worst possible failure for a field that
         /// exists to build a graph.
         enum CodingKeys: String, CodingKey {
-            case id = "ID", type = "Type", description = "Description"
-            case inUse = "InUse", shared = "Shared", size = "Size"
-            case createdAt = "CreatedAt", lastUsedAt = "LastUsedAt"
+            case id = "ID"
+            case type = "Type"
+            case description = "Description"
+            case inUse = "InUse"
+            case shared = "Shared"
+            case size = "Size"
+            case createdAt = "CreatedAt"
+            case lastUsedAt = "LastUsedAt"
             case usageCount = "UsageCount"
             case parents = " Parents"
         }
@@ -205,8 +232,10 @@ public struct ThrallDiskUsageDTO: Decodable, Equatable, Sendable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case layersSize = "LayersSize", images = "Images"
-        case volumes = "Volumes", buildCache = "BuildCache"
+        case layersSize = "LayersSize"
+        case images = "Images"
+        case volumes = "Volumes"
+        case buildCache = "BuildCache"
     }
 
     public init(from decoder: any Decoder) throws {

@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 /// Guards the captured 48-container response.
@@ -53,13 +54,14 @@ struct ContainerFixtureTests {
         for container in containers {
             counts[project(container) ?? "<unlabelled>", default: 0] += 1
         }
-        #expect(counts == [
-            "aai1058": 24,
-            "althaqeel": 12,
-            "optimus": 8,
-            "compose": 2,
-            "<unlabelled>": 2,
-        ])
+        #expect(
+            counts == [
+                "aai1058": 24,
+                "althaqeel": 12,
+                "optimus": 8,
+                "compose": 2,
+                "<unlabelled>": 2,
+            ])
     }
 
     /// **Task D's first spine test lives here.** Two unrelated trees both
@@ -68,9 +70,10 @@ struct ContainerFixtureTests {
     /// working directory.
     @Test("the project name `compose` is claimed by two different working directories")
     func projectNameIsNotAnIdentity() throws {
-        let directories = Set(try load()
-            .filter { project($0) == "compose" }
-            .compactMap(workingDirectory))
+        let directories = Set(
+            try load()
+                .filter { project($0) == "compose" }
+                .compactMap(workingDirectory))
         #expect(directories.count == 2)
         #expect(directories.contains { $0.contains("UlynkHomeCloud") })
         #expect(directories.contains { $0.contains("UlynkControlPlane") })
@@ -82,12 +85,14 @@ struct ContainerFixtureTests {
     /// one stack in two.
     @Test("althaqeel reports two working directories differing only in case")
     func caseOnlyDifference() throws {
-        let directories = Set(try load()
-            .filter { project($0) == "althaqeel" }
-            .compactMap(workingDirectory))
+        let directories = Set(
+            try load()
+                .filter { project($0) == "althaqeel" }
+                .compactMap(workingDirectory))
         #expect(directories.count == 2)
-        #expect(Set(directories.map { $0.lowercased() }).count == 1,
-                "they are the same path once case is folded")
+        #expect(
+            Set(directories.map { $0.lowercased() }).count == 1,
+            "they are the same path once case is folded")
         #expect(directories.contains { $0.hasSuffix("/Run") })
         #expect(directories.contains { $0.hasSuffix("/run") })
     }
@@ -116,8 +121,9 @@ struct ContainerFixtureTests {
     func workingDirectoryOutlivesTheConfig() throws {
         let containers = try load().filter { project($0) == "aai1058" }
         let directory = try #require(containers.compactMap(workingDirectory).first)
-        #expect(configFiles(try #require(containers.first))
-            .allSatisfy { !FileManager.default.fileExists(atPath: $0) })
+        #expect(
+            configFiles(try #require(containers.first))
+                .allSatisfy { !FileManager.default.fileExists(atPath: $0) })
         // Recorded as an observation, not a requirement: it was true at capture
         // time and is what makes the directory a useless proxy for the config.
         #expect(directory.contains("scratchpad"))
@@ -172,9 +178,10 @@ struct ContainerFixtureTests {
             !($0.labels["com.docker.compose.depends_on"] ?? "").isEmpty
         }
         #expect(!withDependencies.isEmpty)
-        let sample = try #require(withDependencies.first {
-            ($0.labels["com.docker.compose.depends_on"] ?? "").contains(":")
-        })
+        let sample = try #require(
+            withDependencies.first {
+                ($0.labels["com.docker.compose.depends_on"] ?? "").contains(":")
+            })
         // Shape: `redis:service_started:false,mysql:service_healthy:false`
         let clauses = (sample.labels["com.docker.compose.depends_on"] ?? "")
             .split(separator: ",")

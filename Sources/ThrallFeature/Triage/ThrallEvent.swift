@@ -48,8 +48,10 @@ public struct ThrallEvent: Equatable, Sendable {
     /// Present on a `die`. The reason a crash loop can be fingerprinted at all.
     public var exitCode: Int? { attributes["exitCode"].flatMap(Int.init) }
 
-    public init(type: String, action: Action, containerID: String, time: Date,
-                attributes: [String: String]) {
+    public init(
+        type: String, action: Action, containerID: String, time: Date,
+        attributes: [String: String]
+    ) {
         self.type = type
         self.action = action
         self.containerID = containerID
@@ -62,7 +64,8 @@ public struct ThrallEvent: Equatable, Sendable {
     public static func parseAction(_ raw: String) -> Action {
         let parts = raw.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
         let verb = parts[0].trimmingCharacters(in: .whitespaces)
-        let argument = parts.count > 1
+        let argument =
+            parts.count > 1
             ? parts[1].trimmingCharacters(in: .whitespaces)
             : ""
         if verb.hasPrefix("exec_") { return .exec(verb) }
@@ -85,7 +88,10 @@ struct ThrallEventDTO: Decodable {
     struct Actor: Decodable {
         let id: String?
         let attributes: [String: String]?
-        enum CodingKeys: String, CodingKey { case id = "ID", attributes = "Attributes" }
+        enum CodingKeys: String, CodingKey {
+            case id = "ID"
+            case attributes = "Attributes"
+        }
     }
 
     let type: String?
@@ -97,7 +103,11 @@ struct ThrallEventDTO: Decodable {
     let time: Int?
 
     enum CodingKeys: String, CodingKey {
-        case type = "Type", action = "Action", id = "id", actor = "Actor", time = "time"
+        case type = "Type"
+        case action = "Action"
+        case id = "id"
+        case actor = "Actor"
+        case time = "time"
     }
 
     func event() -> ThrallEvent? {

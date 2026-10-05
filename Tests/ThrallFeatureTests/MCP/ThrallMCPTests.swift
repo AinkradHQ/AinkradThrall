@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 /// The structural invariants. These match on the **shape** of the guard table,
@@ -25,10 +26,12 @@ struct ThrallMCPGuardTableTests {
     func everyRejectedArgumentHasAnInjectingTwin() {
         for tool in table where !tool.rejects.isEmpty {
             let twins = table.filter { $0.operation == tool.operation && $0.name != tool.name }
-            #expect(!twins.isEmpty,
-                    Comment(rawValue: "\(tool.name) rejects arguments with no twin operation"))
-            #expect(twins.contains { !$0.injects.isEmpty },
-                    Comment(rawValue: "\(tool.name)'s rejected keys are gated by nothing"))
+            #expect(
+                !twins.isEmpty,
+                Comment(rawValue: "\(tool.name) rejects arguments with no twin operation"))
+            #expect(
+                twins.contains { !$0.injects.isEmpty },
+                Comment(rawValue: "\(tool.name)'s rejected keys are gated by nothing"))
         }
     }
 
@@ -41,8 +44,9 @@ struct ThrallMCPGuardTableTests {
         for tool in table {
             // Nothing injects a volume-ish flag.
             for rule in tool.injects {
-                #expect(!rule.key.lowercased().contains("volume"),
-                        Comment(rawValue: "\(tool.name) injects \(rule.key)"))
+                #expect(
+                    !rule.key.lowercased().contains("volume"),
+                    Comment(rawValue: "\(tool.name) injects \(rule.key)"))
             }
             // And no schema advertises a prune.
             let schema = tool.schemaJSON.lowercased()
@@ -60,9 +64,12 @@ struct ThrallMCPGuardTableTests {
     /// a Swift `Int` literal, which does *not* bridge — so the test passed a
     /// value the model can never actually send and failed for the wrong
     /// reason.
-    @Test("removeVolumes is refused as JSON true and as JSON 1",
-          arguments: [#"{"stack":"x","removeVolumes":true}"#,
-                      #"{"stack":"x","removeVolumes":1}"#])
+    @Test(
+        "removeVolumes is refused as JSON true and as JSON 1",
+        arguments: [
+            #"{"stack":"x","removeVolumes":true}"#,
+            #"{"stack":"x","removeVolumes":1}"#,
+        ])
     func removeVolumesRefused(json: String) {
         let tool = table.first { $0.name == "thrall_stack_down" }!
         let parsed = ThrallMCPServer.object(from: json)
@@ -81,14 +88,18 @@ struct ThrallMCPGuardTableTests {
             tool: tool,
             arguments: ThrallMCPServer.object(from: #"{"stack":"x","removeVolumes":"true"}"#))
         #expect(rejection == nil)
-        #expect(arguments["removeVolumes"] as? Bool == nil,
-                "the sink reads this with `as? Bool`, which must fail for a string")
+        #expect(
+            arguments["removeVolumes"] as? Bool == nil,
+            "the sink reads this with `as? Bool`, which must fail for a string")
     }
 
-    @Test("removeVolumes false or absent is not treated as a rejection",
-          arguments: [#"{"stack":"x","removeVolumes":false}"#,
-                      #"{"stack":"x","removeVolumes":0}"#,
-                      #"{"stack":"x"}"#])
+    @Test(
+        "removeVolumes false or absent is not treated as a rejection",
+        arguments: [
+            #"{"stack":"x","removeVolumes":false}"#,
+            #"{"stack":"x","removeVolumes":0}"#,
+            #"{"stack":"x"}"#,
+        ])
     func removeVolumesFalseIsFine(json: String) {
         let tool = table.first { $0.name == "thrall_stack_down" }!
         let (rejection, _) = ThrallMCPWriteTools.vet(
@@ -127,8 +138,9 @@ struct ThrallMCPGuardTableTests {
                 Comment(rawValue: "\(tool.name) has an invalid schema"))
             #expect(parsed["type"] as? String == "object")
             // Open schemas let a model pass an argument nothing vets.
-            #expect(parsed["additionalProperties"] as? Bool == false,
-                    Comment(rawValue: "\(tool.name) accepts unvetted arguments"))
+            #expect(
+                parsed["additionalProperties"] as? Bool == false,
+                Comment(rawValue: "\(tool.name) accepts unvetted arguments"))
         }
     }
 
@@ -179,8 +191,9 @@ struct ThrallMCPReadTests {
         #expect(labels.allSatisfy { !$0.isEmpty })
     }
 
-    @Test("argument parsing survives garbage rather than trapping",
-          arguments: ["", "{", "null", "[]", "not json"])
+    @Test(
+        "argument parsing survives garbage rather than trapping",
+        arguments: ["", "{", "null", "[]", "not json"])
     func argumentParsingIsLenient(json: String) {
         #expect(ThrallMCPServer.object(from: json).isEmpty)
     }

@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 /// The flattening rule, tested without a view — because the ordering property
@@ -15,12 +16,15 @@ struct ThrallRowBuilderTests {
         return ThrallReconciler.reconcile(engineKey: Self.engineKey, containers: containers)
     }
 
-    private func rows(_ world: ThrallWorld,
-                      stacks: Set<ThrallStackID> = [],
-                      services: Set<String> = [],
-                      showUnmanaged: Bool = true) -> [ThrallRow] {
-        ThrallRowBuilder.rows(for: world, expandedStacks: stacks,
-                              expandedServices: services, showUnmanaged: showUnmanaged)
+    private func rows(
+        _ world: ThrallWorld,
+        stacks: Set<ThrallStackID> = [],
+        services: Set<String> = [],
+        showUnmanaged: Bool = true
+    ) -> [ThrallRow] {
+        ThrallRowBuilder.rows(
+            for: world, expandedStacks: stacks,
+            expandedServices: services, showUnmanaged: showUnmanaged)
     }
 
     @Test("collapsed, there is exactly one row per stack")
@@ -78,8 +82,9 @@ struct ThrallRowBuilderTests {
         // state-keyed sort.
         let flipped: [ThrallContainerDTO] = try containers.map { dto in
             guard dto.state == "running" else { return dto }
-            let labels = try JSONSerialization.data(withJSONObject: dto.labels,
-                                                    options: [.sortedKeys])
+            let labels = try JSONSerialization.data(
+                withJSONObject: dto.labels,
+                options: [.sortedKeys])
             let json = """
                 {"Id":"\(dto.id)","Names":\(try JSONSerialization
                     .data(withJSONObject: dto.names).jsonText),
@@ -91,11 +96,13 @@ struct ThrallRowBuilderTests {
         let after = ThrallReconciler.reconcile(engineKey: Self.engineKey, containers: flipped)
 
         let expanded = Set(before.stacks.map(\.id))
-        let services = Set(before.stacks.flatMap { stack in
-            stack.services.map { ThrallRowBuilder.serviceKey(stack: stack.id, service: $0.name) }
-        })
-        #expect(rows(before, stacks: expanded, services: services).map(\.id)
-            == rows(after, stacks: expanded, services: services).map(\.id))
+        let services = Set(
+            before.stacks.flatMap { stack in
+                stack.services.map { ThrallRowBuilder.serviceKey(stack: stack.id, service: $0.name) }
+            })
+        #expect(
+            rows(before, stacks: expanded, services: services).map(\.id)
+                == rows(after, stacks: expanded, services: services).map(\.id))
     }
 
     @Test("hiding unmanaged containers drops only the loose pseudo-stack")
@@ -111,23 +118,25 @@ struct ThrallRowBuilderTests {
     func expandingHiddenStackIsInert() throws {
         let world = try world()
         let loose = try #require(world.stacks.first { $0.id.isLoose })
-        #expect(rows(world, stacks: [loose.id], showUnmanaged: false)
-            == rows(world, showUnmanaged: false))
+        #expect(
+            rows(world, stacks: [loose.id], showUnmanaged: false)
+                == rows(world, showUnmanaged: false))
     }
 
     @Test("row ids are unique, or SwiftUI would drop rows silently")
     func idsAreUnique() throws {
         let world = try world()
         let expanded = Set(world.stacks.map(\.id))
-        let services = Set(world.stacks.flatMap { stack in
-            stack.services.map { ThrallRowBuilder.serviceKey(stack: stack.id, service: $0.name) }
-        })
+        let services = Set(
+            world.stacks.flatMap { stack in
+                stack.services.map { ThrallRowBuilder.serviceKey(stack: stack.id, service: $0.name) }
+            })
         let all = rows(world, stacks: expanded, services: services)
         #expect(Set(all.map(\.id)).count == all.count)
         #expect(all.count > 48, "every container plus every service plus every stack")
     }
 }
 
-private extension Data {
-    var jsonText: String { String(decoding: self, as: UTF8.self) }
+extension Data {
+    fileprivate var jsonText: String { String(decoding: self, as: UTF8.self) }
 }

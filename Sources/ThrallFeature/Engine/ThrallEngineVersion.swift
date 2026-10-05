@@ -32,20 +32,24 @@ public enum ThrallEngineNegotiation {
     /// 1.41, and half-working is worse here than not starting.
     public static let floor = ThrallAPIVersion(major: 1, minor: 41)
 
-    public static func negotiate(reported: ThrallAPIVersion,
-                                 serverMinimum: ThrallAPIVersion?) throws -> ThrallAPIVersion {
+    public static func negotiate(
+        reported: ThrallAPIVersion,
+        serverMinimum: ThrallAPIVersion?
+    ) throws -> ThrallAPIVersion {
         let chosen = min(target, reported)
         guard chosen >= floor else {
-            throw ThrallEngineError.apiTooOld(reported: reported.description,
-                                              minimumSupported: floor.description)
+            throw ThrallEngineError.apiTooOld(
+                reported: reported.description,
+                minimumSupported: floor.description)
         }
         if let serverMinimum, chosen < serverMinimum {
             // Unreachable while `floor` is above every shipping engine's
             // minimum — this daemon reports 1.40 — but it is the check that
             // keeps raising `floor` from silently pinning a path the server
             // refuses.
-            throw ThrallEngineError.apiNotServable(chosen: chosen.description,
-                                                   serverMinimum: serverMinimum.description)
+            throw ThrallEngineError.apiNotServable(
+                chosen: chosen.description,
+                serverMinimum: serverMinimum.description)
         }
         return chosen
     }

@@ -1,6 +1,7 @@
-import Testing
-import Foundation
 import AinkradAppKit
+import Foundation
+import Testing
+
 @testable import ThrallFeature
 
 private final class MemoryDocs: PluginDocumentStore {
@@ -20,7 +21,10 @@ struct ThrallSettingsCatalogTests {
         let fields = try #require(page.groups.first?.fields)
         #expect(fields.map(\.label) == ["Unmanaged containers", "Confirm before Down"])
 
-        guard case .toggle(let binding) = fields[1].kind else { Issue.record("not a toggle"); return }
+        guard case .toggle(let binding) = fields[1].kind else {
+            Issue.record("not a toggle")
+            return
+        }
         binding.wrappedValue = false
         #expect(store.settings.confirmBeforeDown == false)
         #expect(fields[1].isModified() == true)

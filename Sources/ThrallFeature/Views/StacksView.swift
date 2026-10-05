@@ -1,5 +1,5 @@
-import SwiftUI
 import AinkradAppKit
+import SwiftUI
 
 /// The stacks list: one flat, lazy column of rows.
 struct StacksView: View {
@@ -11,18 +11,21 @@ struct StacksView: View {
     var body: some View {
         Group {
             switch model.state {
-            case .idle, .loading where model.world.stacks.isEmpty:
+            case .idle,
+                .loading where model.world.stacks.isEmpty:
                 AinkradLoadingState(label: "Reading the engine…")
             case .failed(let message) where model.world.stacks.isEmpty:
-                AinkradEmptyState(icon: "bolt.horizontal.circle",
-                                  title: "No engine",
-                                  message: message)
+                AinkradEmptyState(
+                    icon: "bolt.horizontal.circle",
+                    title: "No engine",
+                    message: message)
             default:
                 if model.world.stacks.isEmpty {
-                    AinkradEmptyState(icon: "square.stack.3d.up.slash",
-                                      title: "Nothing running",
-                                      message: "No compose project or container was found on "
-                                          + "\(model.engineLabel).")
+                    AinkradEmptyState(
+                        icon: "square.stack.3d.up.slash",
+                        title: "Nothing running",
+                        message: "No compose project or container was found on "
+                            + "\(model.engineLabel).")
                 } else {
                     list
                 }
@@ -47,20 +50,22 @@ struct StacksView: View {
     private func rowView(_ row: ThrallRow) -> some View {
         switch row {
         case .stack(let stack):
-            StackRow(stack: stack,
-                     isExpanded: model.expandedStacks.contains(stack.id),
-                     isSelected: model.selectedStack == stack.id,
-                     isBusy: model.busyStacks.contains(stack.id),
-                     actions: model.actions(for: stack),
-                     onAction: { model.perform($0, on: stack) },
-                     onTap: {
-                         model.selectedStack = stack.id
-                         model.toggle(stack: stack.id)
-                     })
+            StackRow(
+                stack: stack,
+                isExpanded: model.expandedStacks.contains(stack.id),
+                isSelected: model.selectedStack == stack.id,
+                isBusy: model.busyStacks.contains(stack.id),
+                actions: model.actions(for: stack),
+                onAction: { model.perform($0, on: stack) },
+                onTap: {
+                    model.selectedStack = stack.id
+                    model.toggle(stack: stack.id)
+                })
         case .service(let stackID, let service):
-            ServiceRow(service: service,
-                       isExpanded: model.isExpanded(service: service.name, in: stackID),
-                       onTap: { model.toggle(service: service.name, in: stackID) })
+            ServiceRow(
+                service: service,
+                isExpanded: model.isExpanded(service: service.name, in: stackID),
+                onTap: { model.toggle(service: service.name, in: stackID) })
         case .container(_, _, let container):
             ContainerRow(container: container)
         }
@@ -98,9 +103,10 @@ private struct StackRow: View {
                         .animation(reduceMotion ? nil : AinkradMotion.hover, value: isExpanded)
                         .frame(width: 10)
                         .foregroundStyle(theme.foreground.opacity(0.55))
-                    AinkradIconGlyph(systemName: stack.isConfigMissing
-                        ? "square.stack.3d.up.trianglebadge.exclamationmark"
-                        : "square.stack.3d.up")
+                    AinkradIconGlyph(
+                        systemName: stack.isConfigMissing
+                            ? "square.stack.3d.up.trianglebadge.exclamationmark"
+                            : "square.stack.3d.up")
                 }
             },
             title: stack.displayName,
@@ -133,7 +139,8 @@ private struct StackRow: View {
                     actionCluster
                 }
                 .layoutPriority(1)
-            })
+            }
+        )
         .onHover { hovering = $0 }
     }
 
@@ -147,13 +154,16 @@ private struct StackRow: View {
         HStack(spacing: AinkradSpacing.xs) {
             if isBusy {
                 AinkradSpinner(size: 14)
-                    .frame(width: 22 * CGFloat(actions.count)
-                           + AinkradSpacing.xs * CGFloat(max(0, actions.count - 1)),
-                           height: 22)
+                    .frame(
+                        width: 22 * CGFloat(actions.count)
+                            + AinkradSpacing.xs * CGFloat(max(0, actions.count - 1)),
+                        height: 22)
             } else {
                 ForEach(actions) { action in
-                    AinkradIconButton(systemName: action.icon, size: 22,
-                                      tooltip: action.title) {
+                    AinkradIconButton(
+                        systemName: action.icon, size: 22,
+                        tooltip: action.title
+                    ) {
                         onAction(action)
                     }
                 }
@@ -202,8 +212,9 @@ private struct ServiceRow: View {
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                         .animation(reduceMotion ? nil : AinkradMotion.hover, value: isExpanded)
                         .frame(width: 9)
-                        .foregroundStyle(theme.foreground
-                            .opacity(service.containers.isEmpty ? 0 : 0.45))
+                        .foregroundStyle(
+                            theme.foreground
+                                .opacity(service.containers.isEmpty ? 0 : 0.45))
                     AinkradIconGlyph(systemName: "shippingbox", size: 13)
                 }
                 .padding(.leading, AinkradSpacing.lg)

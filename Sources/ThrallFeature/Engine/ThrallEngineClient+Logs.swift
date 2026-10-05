@@ -13,18 +13,23 @@ extension ThrallEngineClient {
     /// Bounded on both axes. `tail` bounds what the engine sends; `maximumBytes`
     /// bounds what we keep, because a container that logs a megabyte per second
     /// exists and 24 of them are normal here.
-    public func logs(containerID: String,
-                     tail: Int = 200,
-                     includeStdout: Bool = true,
-                     includeStderr: Bool = true,
-                     maximumBytes: Int = 256 * 1024) async throws -> [ThrallLogFrame] {
+    public func logs(
+        containerID: String,
+        tail: Int = 200,
+        includeStdout: Bool = true,
+        includeStderr: Bool = true,
+        maximumBytes: Int = 256 * 1024
+    ) async throws -> [ThrallLogFrame] {
         let prefix = try await version().pathPrefix
         let identifier = try Self.identifier(containerID)
-        let target = Self.target(prefix + "/containers/\(identifier)/logs",
-                                 query: [("stdout", includeStdout ? "1" : "0"),
-                                         ("stderr", includeStderr ? "1" : "0"),
-                                         ("tail", String(max(1, min(tail, 10_000)))),
-                                         ("timestamps", "0")])
+        let target = Self.target(
+            prefix + "/containers/\(identifier)/logs",
+            query: [
+                ("stdout", includeStdout ? "1" : "0"),
+                ("stderr", includeStderr ? "1" : "0"),
+                ("tail", String(max(1, min(tail, 10_000)))),
+                ("timestamps", "0"),
+            ])
         let stream = makeStream()
         let reader = ThrallHTTPResponseReader(stream: stream)
         try await stream.connect()
@@ -38,11 +43,15 @@ extension ThrallEngineClient {
             switch event {
             case .head(let head):
                 guard head.isSuccess else {
-                    throw ThrallEngineError.http(status: head.statusCode,
-                                                 message: head.reasonPhrase)
+                    throw ThrallEngineError.http(
+                        status: head.statusCode,
+                        message: head.reasonPhrase)
                 }
-                guard let framing = ThrallLogFrameDecoder
-                    .framing(forContentType: head.contentType) else {
+                guard
+                    let framing =
+                        ThrallLogFrameDecoder
+                        .framing(forContentType: head.contentType)
+                else {
                     throw ThrallTransportError.unsupportedFraming(
                         "log Content-Type \(head.contentType ?? "absent") is not one Thrall reads")
                 }
@@ -73,12 +82,16 @@ extension ThrallEngineClient {
     /// stderr, and interleaving a service's ordinary stdout chatter into the
     /// fingerprint is what makes two containers with the same cause look
     /// different.
-    public func logTail(containerID: String,
-                        lines: Int = 40,
-                        stderrOnly: Bool = true) async throws -> String {
-        let frames = try await logs(containerID: containerID, tail: lines,
-                                    includeStdout: !stderrOnly, includeStderr: true)
-        let wanted = stderrOnly
+    public func logTail(
+        containerID: String,
+        lines: Int = 40,
+        stderrOnly: Bool = true
+    ) async throws -> String {
+        let frames = try await logs(
+            containerID: containerID, tail: lines,
+            includeStdout: !stderrOnly, includeStderr: true)
+        let wanted =
+            stderrOnly
             ? frames.filter { $0.stream == .stderr }
             : frames
         // Falls back to everything when stderr was empty: a process that logs

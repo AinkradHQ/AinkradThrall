@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 /// Resolution has to agree with the user's own `docker ps`, or neither Thrall
@@ -49,14 +50,18 @@ struct ThrallContextResolverTests {
     }
 
     private func orbstackStore() throws -> URL {
-        try makeStore(currentContext: "orbstack", contexts: [
-            StoredContext(name: "orbstack",
-                          host: "unix:///Users/me/.orbstack/run/docker.sock",
-                          description: "OrbStack"),
-            StoredContext(name: "desktop-linux",
-                          host: "unix:///Users/me/.docker/run/docker.sock",
-                          description: "Docker Desktop"),
-        ])
+        try makeStore(
+            currentContext: "orbstack",
+            contexts: [
+                StoredContext(
+                    name: "orbstack",
+                    host: "unix:///Users/me/.orbstack/run/docker.sock",
+                    description: "OrbStack"),
+                StoredContext(
+                    name: "desktop-linux",
+                    host: "unix:///Users/me/.docker/run/docker.sock",
+                    description: "Docker Desktop"),
+            ])
     }
 
     @Test("currentContext selects the engine, and default is always listed")
@@ -66,8 +71,9 @@ struct ThrallContextResolverTests {
         let resolution = ThrallContextResolver(configDirectory: root, environment: [:]).resolve()
 
         #expect(resolution.activeName == "orbstack")
-        #expect(resolution.active?.endpoint
-            == .unixSocket(path: "/Users/me/.orbstack/run/docker.sock"))
+        #expect(
+            resolution.active?.endpoint
+                == .unixSocket(path: "/Users/me/.orbstack/run/docker.sock"))
         #expect(resolution.active?.source == .contextStore)
         #expect(resolution.active?.description == "OrbStack")
         // The three contexts this machine has: the two stored plus the
@@ -85,7 +91,8 @@ struct ThrallContextResolverTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let resolution = ThrallContextResolver(
             configDirectory: root,
-            environment: ["DOCKER_HOST": "unix:///tmp/other.sock"]).resolve()
+            environment: ["DOCKER_HOST": "unix:///tmp/other.sock"]
+        ).resolve()
 
         #expect(resolution.activeName == "default")
         #expect(resolution.active?.endpoint == .unixSocket(path: "/tmp/other.sock"))
@@ -99,14 +106,17 @@ struct ThrallContextResolverTests {
     func dockerContextOverrides() throws {
         let root = try orbstackStore()
         defer { try? FileManager.default.removeItem(at: root) }
-        let resolver = ThrallContextResolver(configDirectory: root,
-                                             environment: ["DOCKER_CONTEXT": "desktop-linux"])
+        let resolver = ThrallContextResolver(
+            configDirectory: root,
+            environment: ["DOCKER_CONTEXT": "desktop-linux"])
         #expect(resolver.resolve().activeName == "desktop-linux")
 
         let both = ThrallContextResolver(
             configDirectory: root,
-            environment: ["DOCKER_CONTEXT": "desktop-linux",
-                          "DOCKER_HOST": "unix:///tmp/other.sock"])
+            environment: [
+                "DOCKER_CONTEXT": "desktop-linux",
+                "DOCKER_HOST": "unix:///tmp/other.sock",
+            ])
         #expect(both.resolve().activeName == "default")
     }
 
@@ -115,9 +125,11 @@ struct ThrallContextResolverTests {
     /// configured is a real way to stop the wrong database.
     @Test("a current context that is missing resolves to nothing, never to default")
     func missingContextDoesNotFallBack() throws {
-        let root = try makeStore(currentContext: "colima", contexts: [
-            StoredContext(name: "orbstack", host: "unix:///tmp/orb.sock"),
-        ])
+        let root = try makeStore(
+            currentContext: "colima",
+            contexts: [
+                StoredContext(name: "orbstack", host: "unix:///tmp/orb.sock")
+            ])
         defer { try? FileManager.default.removeItem(at: root) }
         let resolution = ThrallContextResolver(configDirectory: root, environment: [:]).resolve()
 
@@ -130,20 +142,25 @@ struct ThrallContextResolverTests {
     func noCurrentContext() throws {
         let root = try makeStore(currentContext: nil, contexts: [])
         defer { try? FileManager.default.removeItem(at: root) }
-        let resolution = ThrallContextResolver(configDirectory: root,
-                                               environment: [:],
-                                               platformSocketPath: "/var/run/docker.sock").resolve()
+        let resolution = ThrallContextResolver(
+            configDirectory: root,
+            environment: [:],
+            platformSocketPath: "/var/run/docker.sock"
+        ).resolve()
         #expect(resolution.activeName == "default")
         #expect(resolution.active?.endpoint == .unixSocket(path: "/var/run/docker.sock"))
     }
 
     @Test("a context with no docker endpoint is skipped with a reason")
     func contextWithoutDockerEndpoint() throws {
-        let root = try makeStore(currentContext: "orbstack", contexts: [
-            StoredContext(name: "orbstack", host: "unix:///tmp/orb.sock"),
-            StoredContext(name: "kube-only", host: "https://k8s.test",
-                          includeDockerEndpoint: false),
-        ])
+        let root = try makeStore(
+            currentContext: "orbstack",
+            contexts: [
+                StoredContext(name: "orbstack", host: "unix:///tmp/orb.sock"),
+                StoredContext(
+                    name: "kube-only", host: "https://k8s.test",
+                    includeDockerEndpoint: false),
+            ])
         defer { try? FileManager.default.removeItem(at: root) }
         let resolution = ThrallContextResolver(configDirectory: root, environment: [:]).resolve()
         #expect(!resolution.contexts.contains { $0.name == "kube-only" })
@@ -152,9 +169,11 @@ struct ThrallContextResolverTests {
 
     @Test("a remote context is listed, refused, and explained")
     func remoteContextIsListedNotDropped() throws {
-        let root = try makeStore(currentContext: "remote", contexts: [
-            StoredContext(name: "remote", host: "tcp://10.0.0.4:2376"),
-        ])
+        let root = try makeStore(
+            currentContext: "remote",
+            contexts: [
+                StoredContext(name: "remote", host: "tcp://10.0.0.4:2376")
+            ])
         defer { try? FileManager.default.removeItem(at: root) }
         let resolution = ThrallContextResolver(configDirectory: root, environment: [:]).resolve()
         #expect(resolution.active?.isSupported == false)
@@ -163,13 +182,17 @@ struct ThrallContextResolverTests {
 
     @Test("a store entry cannot shadow the synthetic default")
     func storeCannotShadowDefault() throws {
-        let root = try makeStore(currentContext: "default", contexts: [
-            StoredContext(name: "default", host: "unix:///tmp/impostor.sock"),
-        ])
+        let root = try makeStore(
+            currentContext: "default",
+            contexts: [
+                StoredContext(name: "default", host: "unix:///tmp/impostor.sock")
+            ])
         defer { try? FileManager.default.removeItem(at: root) }
-        let resolution = ThrallContextResolver(configDirectory: root,
-                                               environment: [:],
-                                               platformSocketPath: "/var/run/docker.sock").resolve()
+        let resolution = ThrallContextResolver(
+            configDirectory: root,
+            environment: [:],
+            platformSocketPath: "/var/run/docker.sock"
+        ).resolve()
         #expect(resolution.contexts.filter { $0.name == "default" }.count == 1)
         #expect(resolution.active?.endpoint == .unixSocket(path: "/var/run/docker.sock"))
     }
@@ -178,8 +201,10 @@ struct ThrallContextResolverTests {
     func unparseableEnvironmentHost() throws {
         let root = try orbstackStore()
         defer { try? FileManager.default.removeItem(at: root) }
-        let resolution = ThrallContextResolver(configDirectory: root,
-                                               environment: ["DOCKER_HOST": "not-a-host"]).resolve()
+        let resolution = ThrallContextResolver(
+            configDirectory: root,
+            environment: ["DOCKER_HOST": "not-a-host"]
+        ).resolve()
         #expect(resolution.activeName == "orbstack")
         #expect(resolution.notes.contains { $0.contains("not-a-host") })
     }
@@ -188,7 +213,8 @@ struct ThrallContextResolverTests {
     func missingConfigDirectory() {
         let resolution = ThrallContextResolver(
             configDirectory: URL(fileURLWithPath: "/nonexistent/thrall-docker"),
-            environment: [:]).resolve()
+            environment: [:]
+        ).resolve()
         #expect(resolution.activeName == "default")
         #expect(resolution.contexts.map(\.name) == ["default"])
     }
@@ -197,10 +223,12 @@ struct ThrallContextResolverTests {
 
     /// Reads `~/.docker` as it actually is. Gated on the directory existing so
     /// the suite still passes on a machine with no Docker CLI installed.
-    @Test("the real context store on this machine resolves",
-          .enabled(if: FileManager.default.fileExists(
-            atPath: FileManager.default.homeDirectoryForCurrentUser
-                .appendingPathComponent(".docker/contexts/meta").path)))
+    @Test(
+        "the real context store on this machine resolves",
+        .enabled(
+            if: FileManager.default.fileExists(
+                atPath: FileManager.default.homeDirectoryForCurrentUser
+                    .appendingPathComponent(".docker/contexts/meta").path)))
     func realStore() throws {
         // The environment is passed empty on purpose: this asserts what the
         // store says, not what this test process happens to inherit.

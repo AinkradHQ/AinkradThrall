@@ -1,5 +1,5 @@
-import SwiftUI
 import AinkradAppKit
+import SwiftUI
 
 /// Thrall — a container manager framed around the **stack** (a compose project)
 /// rather than the container.
@@ -23,10 +23,12 @@ public struct ThrallApp: AinkradApp, AinkradAppTeardown, AinkradAppMCP {
 
     public static func makeSettingsView(host: HostServices) -> AnyView {
         AnyView(
-            ThrallSettingsView(presentation: host.presentation,
-                               modeControl: host.mode,
-                               store: ThrallRuntime.settingsStore(for: host))
-                .ainkradHostTheme(host.theme)
+            ThrallSettingsView(
+                presentation: host.presentation,
+                modeControl: host.mode,
+                store: ThrallRuntime.settingsStore(for: host)
+            )
+            .ainkradHostTheme(host.theme)
         )
     }
 
@@ -61,7 +63,7 @@ public struct ThrallApp: AinkradApp, AinkradAppTeardown, AinkradAppMCP {
 extension ThrallApp: AinkradAppModes {
     public static func makeRootView(host: HostServices, mode: PluginMode) -> AnyView {
         switch mode {
-        case .basic:    return AnyView(ThrallBasicView(host: host))
+        case .basic: return AnyView(ThrallBasicView(host: host))
         case .advanced: return AnyView(ThrallShell(host: host))
         // Resilient enum: fall back to advanced, never to a stripped view for a
         // mode this build does not understand.

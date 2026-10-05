@@ -1,5 +1,5 @@
-import Foundation
 import AinkradAppKit
+import Foundation
 
 /// Thrall's own settings. Presentation (overlay vs pane) is **not** here — it
 /// lives in the host, through `HostServices.presentation`, so the host can act
@@ -18,9 +18,11 @@ public struct ThrallSettings: Codable, Equatable, Sendable {
     /// freezes on stale state.
     public var pollSeconds: Int
 
-    public init(showUnmanaged: Bool = true,
-                confirmBeforeDown: Bool = true,
-                pollSeconds: Int = 10) {
+    public init(
+        showUnmanaged: Bool = true,
+        confirmBeforeDown: Bool = true,
+        pollSeconds: Int = 10
+    ) {
         self.showUnmanaged = showUnmanaged
         self.confirmBeforeDown = confirmBeforeDown
         self.pollSeconds = pollSeconds

@@ -22,9 +22,11 @@ public actor ThrallComposeClient {
 
     /// Runs `command` against `stack`, serialised with anything else on that
     /// stack's lane.
-    public func run(_ command: ThrallComposeCommand,
-                    stack: ThrallStackID,
-                    dockerHost: String?) async throws -> ThrallProcessResult {
+    public func run(
+        _ command: ThrallComposeCommand,
+        stack: ThrallStackID,
+        dockerHost: String?
+    ) async throws -> ThrallProcessResult {
         let arguments = try command.arguments()
         let lane = stack.description
         await acquire(lane)

@@ -33,10 +33,12 @@ public final class ThrallTriageModel: ObservableObject {
     /// `readLog` and `inspect` are injected so this whole assembly is testable
     /// without a daemon — and so the caller decides how much log reading it
     /// can afford.
-    public func scan(world: ThrallWorld,
-                     now: Date = Date(),
-                     inspect: (String) async throws -> ThrallContainerInspectDTO,
-                     readLog: (String) async throws -> String) async {
+    public func scan(
+        world: ThrallWorld,
+        now: Date = Date(),
+        inspect: (String) async throws -> ThrallContainerInspectDTO,
+        readLog: (String) async throws -> String
+    ) async {
         isScanning = true
         defer {
             isScanning = false
@@ -68,31 +70,35 @@ public final class ThrallTriageModel: ObservableObject {
                     policies[container.id] = detail.restartPolicy.canRestart
                     if let at = detail.state.finishedAt { finished[container.id] = at }
                 }
-                candidates.append(ThrallCrashLoopDetector.Candidate(
-                    stack: stack.id, service: service.name, containers: suspect,
-                    restartCounts: counts, restartPolicies: policies, finishedAt: finished))
+                candidates.append(
+                    ThrallCrashLoopDetector.Candidate(
+                        stack: stack.id, service: service.name, containers: suspect,
+                        restartCounts: counts, restartPolicies: policies, finishedAt: finished))
             }
         }
 
-        let loops = ThrallCrashLoopDetector.detectAll(candidates: candidates,
-                                                       history: history, now: now)
+        let loops = ThrallCrashLoopDetector.detectAll(
+            candidates: candidates,
+            history: history, now: now)
         var inputs: [ThrallIncidentGrouper.Input] = []
         for loop in loops {
-            let container = loop.containerIDs.first
+            let container =
+                loop.containerIDs.first
                 ?? world.stack(loop.stack)?.services
-                    .first { $0.name == loop.service }?.containers.first?.id
+                .first { $0.name == loop.service }?.containers.first?.id
             var tail: String?
             if let container { tail = await logTail(container, using: readLog) }
             let image = world.stack(loop.stack)?.services
                 .first { $0.name == loop.service }?.containers.first?.image
-            inputs.append(ThrallIncidentGrouper.Input(
-                loop: loop,
-                logTail: tail,
-                imageDigest: image,
-                firstSeen: history.deaths(for: .init(stack: loop.stack, service: loop.service))
-                    .first?.at ?? now,
-                lastSeen: history.deaths(for: .init(stack: loop.stack, service: loop.service))
-                    .last?.at ?? now))
+            inputs.append(
+                ThrallIncidentGrouper.Input(
+                    loop: loop,
+                    logTail: tail,
+                    imageDigest: image,
+                    firstSeen: history.deaths(for: .init(stack: loop.stack, service: loop.service))
+                        .first?.at ?? now,
+                    lastSeen: history.deaths(for: .init(stack: loop.stack, service: loop.service))
+                        .last?.at ?? now))
         }
         incidents = ThrallIncidentGrouper.group(inputs, world: world)
     }
@@ -104,23 +110,33 @@ public final class ThrallTriageModel: ObservableObject {
         let live = Set(world.stacks.flatMap { $0.services.flatMap { $0.containers.map(\.id) } })
         logCache = logCache.filter { live.contains($0.key) }
         inspectCache = inspectCache.filter { live.contains($0.key) }
-        history.prune(keeping: Set(world.stacks.flatMap { stack in
-            stack.services.map { ThrallEventHistory.ServiceKey(stack: stack.id,
-                                                                service: $0.name) }
-        }))
+        history.prune(
+            keeping: Set(
+                world.stacks.flatMap { stack in
+                    stack.services.map {
+                        ThrallEventHistory.ServiceKey(
+                            stack: stack.id,
+                            service: $0.name)
+                    }
+                }))
     }
 
-    private func inspected(_ id: String,
-                           using inspect: (String) async throws -> ThrallContainerInspectDTO)
-        async -> ThrallContainerInspectDTO? {
+    private func inspected(
+        _ id: String,
+        using inspect: (String) async throws -> ThrallContainerInspectDTO
+    )
+        async -> ThrallContainerInspectDTO?
+    {
         if let cached = inspectCache[id] { return cached }
         guard let detail = try? await inspect(id) else { return nil }
         inspectCache[id] = detail
         return detail
     }
 
-    private func logTail(_ id: String,
-                         using readLog: (String) async throws -> String) async -> String? {
+    private func logTail(
+        _ id: String,
+        using readLog: (String) async throws -> String
+    ) async -> String? {
         if let cached = logCache[id] { return cached }
         guard let tail = try? await readLog(id) else { return nil }
         logCache[id] = tail

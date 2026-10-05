@@ -1,5 +1,5 @@
-import Foundation
 import AinkradAppKit
+import Foundation
 
 /// Backs the Images, Storage and Networks areas.
 ///
@@ -39,10 +39,11 @@ public final class ThrallStorageModel: ObservableObject {
 
     public var plan: ThrallReclaimPlan {
         guard let usage else { return ThrallReclaimPlan(targets: []) }
-        let full = ThrallReclaimPlan.make(from: usage,
-                                          includeVolumes: includeVolumes,
-                                          includeImages: includeImages,
-                                          includeBuildCache: includeBuildCache)
+        let full = ThrallReclaimPlan.make(
+            from: usage,
+            includeVolumes: includeVolumes,
+            includeImages: includeImages,
+            includeBuildCache: includeBuildCache)
         return ThrallReclaimPlan(targets: full.targets.filter { !excluded.contains($0.id) })
     }
 
@@ -59,10 +60,15 @@ public final class ThrallStorageModel: ObservableObject {
         for volume in usage.volumes {
             buckets[volume.composeProject ?? Self.unownedGroup, default: []].append(volume)
         }
-        return buckets
-            .map { (owner: $0.key,
+        return
+            buckets
+            .map {
+                (
+                    owner: $0.key,
                     volumes: $0.value.sorted { ($0.usage?.size ?? 0) > ($1.usage?.size ?? 0) },
-                    bytes: $0.value.reduce(0) { $0 + max(0, $1.usage?.size ?? 0) }) }
+                    bytes: $0.value.reduce(0) { $0 + max(0, $1.usage?.size ?? 0) }
+                )
+            }
             // Unowned last: it is the biggest and the least identifiable, so
             // leading with it buries the groups a user can actually recognise.
             .sorted { left, right in
@@ -135,7 +141,8 @@ public final class ThrallStorageModel: ObservableObject {
             }
         }
 
-        lastReclaim = failures.isEmpty
+        lastReclaim =
+            failures.isEmpty
             ? "Removed \(removed) items, freed \(ThrallReclaimPlan.humanBytes(freed))."
             : "Removed \(removed), freed \(ThrallReclaimPlan.humanBytes(freed)); "
                 + "\(failures.count) failed. \(failures.prefix(2).joined(separator: "; "))"

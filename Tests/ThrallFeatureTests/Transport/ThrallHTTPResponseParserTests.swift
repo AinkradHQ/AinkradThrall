@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 /// The parser is the load-bearing piece of the transport: every other layer
@@ -9,10 +10,13 @@ import Testing
 struct ThrallHTTPResponseParserTests {
     /// Feeds a whole response and returns every event, treating exhaustion as
     /// the peer closing — which is what `Connection: close` means.
-    private func parseAll(_ data: Data,
-                          splitEvery: Int? = nil,
-                          limits: ThrallHTTPResponseParser.Limits = .default) throws
-        -> [ThrallHTTPResponseParser.Output] {
+    private func parseAll(
+        _ data: Data,
+        splitEvery: Int? = nil,
+        limits: ThrallHTTPResponseParser.Limits = .default
+    ) throws
+        -> [ThrallHTTPResponseParser.Output]
+    {
         var parser = ThrallHTTPResponseParser(limits: limits)
         var events: [ThrallHTTPResponseParser.Output] = []
         if let splitEvery {
@@ -97,12 +101,15 @@ struct ThrallHTTPResponseParserTests {
 
     /// The boundary fuzzer. Every framing bug in this layer is a bug about
     /// where a read boundary fell, and it reproduces at exactly one offset.
-    @Test("splitting the response at every boundary yields identical output",
-          arguments: [1, 2, 3, 7, 13, 64, 200, 4096])
+    @Test(
+        "splitting the response at every boundary yields identical output",
+        arguments: [1, 2, 3, 7, 13, 64, 200, 4096])
     func byteBoundariesDoNotMatter(splitEvery: Int) throws {
-        for fixture in [RawResponses.containersChunked,
-                        RawResponses.versionContentLength,
-                        RawResponses.redirectEmptyBody] {
+        for fixture in [
+            RawResponses.containersChunked,
+            RawResponses.versionContentLength,
+            RawResponses.redirectEmptyBody,
+        ] {
             let whole = try parseAll(fixture)
             let split = try parseAll(fixture, splitEvery: splitEvery)
             #expect(head(of: split) == head(of: whole))
@@ -208,8 +215,9 @@ struct ThrallHTTPResponseParserTests {
         #expect(body(of: try parseAll(data)) == Data("hello".utf8))
     }
 
-    @Test("a non-identity transfer coding is refused rather than handed on compressed",
-          arguments: ["gzip, chunked", "gzip"])
+    @Test(
+        "a non-identity transfer coding is refused rather than handed on compressed",
+        arguments: ["gzip, chunked", "gzip"])
     func compressedTransferEncoding(encoding: String) throws {
         let data = RawResponses.bytes("HTTP/1.1 200 OK\r\nTransfer-Encoding: \(encoding)\r\n\r\n")
         #expect(throws: ThrallTransportError.unsupportedFraming("Transfer-Encoding: \(encoding)")) {
@@ -217,25 +225,27 @@ struct ThrallHTTPResponseParserTests {
         }
     }
 
-    @Test("malformed framing is rejected", arguments: [
-        // Not HTTP at all — what a pooled connection reused after a hijack
-        // would deliver.
-        "root@abc:/# echo hi\r\n\r\n",
-        // Status code that is not three digits.
-        "HTTP/1.1 20 OK\r\n\r\n",
-        // obs-folded header: where a value ends becomes ambiguous.
-        "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\tcharset=utf-8\r\nContent-Length: 0\r\n\r\n",
-        // Whitespace before the colon.
-        "HTTP/1.1 200 OK\r\nContent-Length : 0\r\n\r\n",
-        // A header line with no colon.
-        "HTTP/1.1 200 OK\r\nContent-Length\r\n\r\n",
-        // A signed length.
-        "HTTP/1.1 200 OK\r\nContent-Length: +5\r\n\r\nhello",
-        // A chunk size that is not hex.
-        "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\nzz\r\nhello\r\n0\r\n\r\n",
-        // An unexpected informational response: we send no `Expect`.
-        "HTTP/1.1 100 Continue\r\n\r\n",
-    ])
+    @Test(
+        "malformed framing is rejected",
+        arguments: [
+            // Not HTTP at all — what a pooled connection reused after a hijack
+            // would deliver.
+            "root@abc:/# echo hi\r\n\r\n",
+            // Status code that is not three digits.
+            "HTTP/1.1 20 OK\r\n\r\n",
+            // obs-folded header: where a value ends becomes ambiguous.
+            "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\tcharset=utf-8\r\nContent-Length: 0\r\n\r\n",
+            // Whitespace before the colon.
+            "HTTP/1.1 200 OK\r\nContent-Length : 0\r\n\r\n",
+            // A header line with no colon.
+            "HTTP/1.1 200 OK\r\nContent-Length\r\n\r\n",
+            // A signed length.
+            "HTTP/1.1 200 OK\r\nContent-Length: +5\r\n\r\nhello",
+            // A chunk size that is not hex.
+            "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\nzz\r\nhello\r\n0\r\n\r\n",
+            // An unexpected informational response: we send no `Expect`.
+            "HTTP/1.1 100 Continue\r\n\r\n",
+        ])
     func malformedResponses(text: String) throws {
         #expect(throws: ThrallTransportError.self) { try parseAll(RawResponses.bytes(text)) }
     }

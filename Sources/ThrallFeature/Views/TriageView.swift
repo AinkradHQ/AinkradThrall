@@ -1,5 +1,5 @@
-import SwiftUI
 import AinkradAppKit
+import SwiftUI
 
 /// The triage surface: what is wrong, why, and what to do about it.
 struct TriageView: View {
@@ -17,10 +17,11 @@ struct TriageView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: AinkradSpacing.md) {
                         ForEach(triage.incidents) { incident in
-                            IncidentCard(incident: incident,
-                                         stack: model.world.stack(incident.key.stack),
-                                         isBusy: model.busyStacks.contains(incident.key.stack),
-                                         onRemedy: { model.apply($0, to: incident) })
+                            IncidentCard(
+                                incident: incident,
+                                stack: model.world.stack(incident.key.stack),
+                                isBusy: model.busyStacks.contains(incident.key.stack),
+                                onRemedy: { model.apply($0, to: incident) })
                         }
                     }
                     .padding(AinkradSpacing.lg)
@@ -113,17 +114,20 @@ private struct IncidentCard: View {
         HStack(spacing: AinkradSpacing.sm) {
             Image(systemName: "arrow.triangle.branch")
                 .font(.system(size: 11))
-            Text("\(verdict.dependent) depends_on \(verdict.dependency) "
-                 + "(\(verdict.condition)) — \(verdict.dependency) is \(verdict.stateLabel)")
-                .font(.system(size: 11))
+            Text(
+                "\(verdict.dependent) depends_on \(verdict.dependency) "
+                    + "(\(verdict.condition)) — \(verdict.dependency) is \(verdict.stateLabel)"
+            )
+            .font(.system(size: 11))
         }
         .foregroundStyle(AinkradStatus.warning.color(in: theme, statusColors: statusColors))
         .padding(.horizontal, AinkradSpacing.sm)
         .padding(.vertical, AinkradSpacing.xs)
         .background(
             RoundedRectangle(cornerRadius: AinkradRadius.sm, style: .continuous)
-                .fill(AinkradStatus.warning.color(in: theme, statusColors: statusColors)
-                    .opacity(0.10)))
+                .fill(
+                    AinkradStatus.warning.color(in: theme, statusColors: statusColors)
+                        .opacity(0.10)))
     }
 
     /// **The actual error text, never a paraphrase.** A summary the user
@@ -148,13 +152,16 @@ private struct IncidentCard: View {
         let shown = showsAllRemedies ? all : Array(all.prefix(1))
         return VStack(alignment: .leading, spacing: AinkradSpacing.sm) {
             ForEach(shown) { remedy in
-                RemedyRow(remedy: remedy, isPrimary: remedy == all.first,
-                          onRun: { onRemedy(remedy) })
+                RemedyRow(
+                    remedy: remedy, isPrimary: remedy == all.first,
+                    onRun: { onRemedy(remedy) })
             }
             if all.count > 1 {
-                Button(showsAllRemedies
-                       ? "Fewer options"
-                       : "\(all.count - 1) other option\(all.count == 2 ? "" : "s")") {
+                Button(
+                    showsAllRemedies
+                        ? "Fewer options"
+                        : "\(all.count - 1) other option\(all.count == 2 ? "" : "s")"
+                ) {
                     withAnimation(reduceMotion ? nil : AinkradMotion.present) {
                         showsAllRemedies.toggle()
                     }
@@ -178,9 +185,10 @@ private struct RemedyRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AinkradSpacing.xs) {
             HStack(spacing: AinkradSpacing.sm) {
-                AinkradButton(title: remedy.title,
-                              style: isPrimary ? .primary : .secondary,
-                              action: onRun)
+                AinkradButton(
+                    title: remedy.title,
+                    style: isPrimary ? .primary : .secondary,
+                    action: onRun)
                 Button(showsCommand ? "Hide command" : "Show command") {
                     showsCommand.toggle()
                 }

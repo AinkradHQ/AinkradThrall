@@ -99,8 +99,9 @@ public enum ThrallComposeArgumentGuard {
             return false
         }
         return value.allSatisfy { character in
-            character.isASCII && (character.isLetter || character.isNumber
-                || character == "_" || character == "." || character == "-")
+            character.isASCII
+                && (character.isLetter || character.isNumber
+                    || character == "_" || character == "." || character == "-")
         }
     }
 

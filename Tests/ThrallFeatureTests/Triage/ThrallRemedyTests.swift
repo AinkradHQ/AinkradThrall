@@ -1,14 +1,18 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 @Suite("ThrallRemedy")
 struct ThrallRemedyTests {
-    private static let stackID = ThrallStackID(engineKey: "e", projectName: "aai1058",
-                                                workingDirectory: ThrallPathKey("/tmp/wt"))
+    private static let stackID = ThrallStackID(
+        engineKey: "e", projectName: "aai1058",
+        workingDirectory: ThrallPathKey("/tmp/wt"))
 
-    private func incident(dependency: String? = "pgsql",
-                          services: [String] = ["queue-1", "queue-2", "queue-3"]) -> ThrallIncident {
+    private func incident(
+        dependency: String? = "pgsql",
+        services: [String] = ["queue-1", "queue-2", "queue-3"]
+    ) -> ThrallIncident {
         ThrallIncident(
             key: .init(stack: Self.stackID, fingerprint: "1|connection refused|sha256:aec"),
             stackName: "aai1058",
@@ -21,18 +25,22 @@ struct ThrallRemedyTests {
             lastSeen: Date(timeIntervalSince1970: 2_000),
             restartTotal: 21,
             brokenDependencies: dependency.map {
-                [ThrallDependencyVerdict(dependent: services[0], dependency: $0,
-                                         condition: "service_healthy", stateLabel: "exited")]
+                [
+                    ThrallDependencyVerdict(
+                        dependent: services[0], dependency: $0,
+                        condition: "service_healthy", stateLabel: "exited")
+                ]
             } ?? [])
     }
 
     private func stack(configMissing: Bool) -> ThrallStack {
-        ThrallStack(id: Self.stackID, displayName: "aai1058",
-                    workingDirectoryDisplay: "/tmp/wt",
-                    configFiles: ["/tmp/wt/docker-compose.yml"],
-                    absentConfigFiles: configMissing ? ["/tmp/wt/docker-compose.yml"] : [],
-                    services: [], breakdown: ThrallStateBreakdown(),
-                    health: .unhealthy, isStaleRelativeToConfig: false)
+        ThrallStack(
+            id: Self.stackID, displayName: "aai1058",
+            workingDirectoryDisplay: "/tmp/wt",
+            configFiles: ["/tmp/wt/docker-compose.yml"],
+            absentConfigFiles: configMissing ? ["/tmp/wt/docker-compose.yml"] : [],
+            services: [], breakdown: ThrallStateBreakdown(),
+            health: .unhealthy, isStaleRelativeToConfig: false)
     }
 
     /// **Ordered by decreasing confidence, and the ordering is the advice.**
@@ -89,8 +97,10 @@ struct ThrallRemedyTests {
     @Test("every remedy carries a non-empty command preview")
     func everyRemedyShowsItsCommand() {
         for missing in [true, false] {
-            for remedy in ThrallRemedy.remedies(for: incident(),
-                                                stack: stack(configMissing: missing)) {
+            for remedy in ThrallRemedy.remedies(
+                for: incident(),
+                stack: stack(configMissing: missing))
+            {
                 #expect(!remedy.commandPreview.isEmpty, Comment(rawValue: remedy.title))
                 #expect(!remedy.title.isEmpty)
             }
@@ -102,10 +112,17 @@ struct ThrallRemedyTests {
     /// be invented.
     @Test("with no dependency verdict, pull is offered and no dependency remedy is invented")
     func noVerdictOffersPull() {
-        let remedies = ThrallRemedy.remedies(for: incident(dependency: nil),
-                                             stack: stack(configMissing: false))
-        #expect(!remedies.contains { if case .restartDependencyThenDependents = $0.kind {
-            return true } else { return false } })
+        let remedies = ThrallRemedy.remedies(
+            for: incident(dependency: nil),
+            stack: stack(configMissing: false))
+        #expect(
+            !remedies.contains {
+                if case .restartDependencyThenDependents = $0.kind {
+                    return true
+                } else {
+                    return false
+                }
+            })
         #expect(remedies.contains { $0.kind == .pullStack })
     }
 

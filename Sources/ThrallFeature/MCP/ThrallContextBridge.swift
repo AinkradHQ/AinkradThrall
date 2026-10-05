@@ -1,6 +1,6 @@
-import Foundation
-import AppKit
 import AinkradAppKit
+import AppKit
+import Foundation
 
 /// Publishes a read-only brief about what is broken, so that **with Thrall
 /// open, Sage answers "why is api crash looping" with no handoff at all.**
@@ -50,9 +50,10 @@ public final class ThrallContextBridge {
         guard let model, model.activeContext != nil else { return nil }
         let world = model.world
         guard !world.stacks.isEmpty else { return nil }
-        return AgentContextSnapshot(kind: Self.kind,
-                                    title: "Thrall — \(model.engineLabel)",
-                                    text: brief(model: model))
+        return AgentContextSnapshot(
+            kind: Self.kind,
+            title: "Thrall — \(model.engineLabel)",
+            text: brief(model: model))
     }
 
     /// The brief. Deliberately prose plus compact facts rather than JSON: this
@@ -65,8 +66,9 @@ public final class ThrallContextBridge {
 
         let running = world.stacks.reduce(0) { $0 + $1.breakdown.running }
         let total = world.stacks.reduce(0) { $0 + $1.containerCount }
-        lines.append("Container engine: \(model.engineLabel)"
-            + (model.engineVersion.map { " (API \($0.negotiated))" } ?? ""))
+        lines.append(
+            "Container engine: \(model.engineLabel)"
+                + (model.engineVersion.map { " (API \($0.negotiated))" } ?? ""))
         lines.append("\(world.stacks.count) stacks, \(running)/\(total) containers running.")
 
         let orphaned = world.stacks.filter(\.isConfigMissing)
@@ -74,11 +76,12 @@ public final class ThrallContextBridge {
             // Named explicitly because no other tool has a word for this, so
             // the assistant cannot be expected to infer it.
             lines.append("")
-            lines.append("\(orphaned.count) stack\(orphaned.count == 1 ? "" : "s") "
-                + "\(orphaned.count == 1 ? "is" : "are") running with no compose file on disk "
-                + "(\(orphaned.map(\.displayName).joined(separator: ", "))). "
-                + "docker compose cannot touch those — only engine-level container verbs, or "
-                + "teardown by label.")
+            lines.append(
+                "\(orphaned.count) stack\(orphaned.count == 1 ? "" : "s") "
+                    + "\(orphaned.count == 1 ? "is" : "are") running with no compose file on disk "
+                    + "(\(orphaned.map(\.displayName).joined(separator: ", "))). "
+                    + "docker compose cannot touch those — only engine-level container verbs, or "
+                    + "teardown by label.")
         }
 
         if incidents.isEmpty {
@@ -90,14 +93,16 @@ public final class ThrallContextBridge {
             for incident in incidents.prefix(Self.detailedIncidentLimit) {
                 lines.append("")
                 lines.append("- \(incident.headline)")
-                lines.append("  stack: \(incident.stackName); services: "
-                    + incident.services.joined(separator: ", "))
+                lines.append(
+                    "  stack: \(incident.stackName); services: "
+                        + incident.services.joined(separator: ", "))
                 if let exitCode = incident.exitCode {
                     lines.append("  exit code \(exitCode), \(incident.restartTotal) restarts")
                 }
                 if let verdict = incident.brokenDependencies.first {
-                    lines.append("  \(verdict.dependent) depends_on \(verdict.dependency) "
-                        + "(\(verdict.condition)); \(verdict.dependency) is \(verdict.stateLabel)")
+                    lines.append(
+                        "  \(verdict.dependent) depends_on \(verdict.dependency) "
+                            + "(\(verdict.condition)); \(verdict.dependency) is \(verdict.stateLabel)")
                 }
                 if let evidence = incident.evidence {
                     // The **actual** error text. A paraphrase here is how an
@@ -105,23 +110,27 @@ public final class ThrallContextBridge {
                     // did not happen.
                     lines.append("  error: \(evidence.prefix(300))")
                 }
-                if let remedy = ThrallRemedy.remedies(for: incident,
-                                                       stack: world.stack(incident.key.stack))
-                    .first {
+                if let remedy = ThrallRemedy.remedies(
+                    for: incident,
+                    stack: world.stack(incident.key.stack)
+                )
+                .first {
                     lines.append("  best remedy: \(remedy.title)")
                 }
             }
             if incidents.count > Self.detailedIncidentLimit {
                 lines.append("")
-                lines.append("\(incidents.count - Self.detailedIncidentLimit) further incidents "
-                    + "are omitted here; call thrall_diagnose for all of them.")
+                lines.append(
+                    "\(incidents.count - Self.detailedIncidentLimit) further incidents "
+                        + "are omitted here; call thrall_diagnose for all of them.")
             }
         }
 
         lines.append("")
-        lines.append("Tools: thrall_diagnose, thrall_stacks, thrall_stack, thrall_logs, "
-            + "thrall_restart_service, thrall_stack_up, thrall_stack_down, "
-            + "thrall_stack_teardown.")
+        lines.append(
+            "Tools: thrall_diagnose, thrall_stacks, thrall_stack, thrall_logs, "
+                + "thrall_restart_service, thrall_stack_up, thrall_stack_down, "
+                + "thrall_stack_teardown.")
 
         return Self.clamp(lines.joined(separator: "\n"))
     }

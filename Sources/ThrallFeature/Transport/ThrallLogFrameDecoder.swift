@@ -116,8 +116,10 @@ public struct ThrallLogFrameDecoder {
             let payloadStart = offset + Self.headerLength
             guard carry.endIndex - payloadStart >= length else { break }
             if length > 0 {
-                frames.append(ThrallLogFrame(stream: stream,
-                                             payload: Data(carry[payloadStart..<(payloadStart + length)])))
+                frames.append(
+                    ThrallLogFrame(
+                        stream: stream,
+                        payload: Data(carry[payloadStart..<(payloadStart + length)])))
             }
             offset = payloadStart + length
         }

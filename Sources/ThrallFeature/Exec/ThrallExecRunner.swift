@@ -93,7 +93,10 @@ public struct ThrallExecRunner: Sendable {
                 throw ThrallExecError.invalidArgument(rejection)
             }
             if character.isWhitespace {
-                if !current.isEmpty { arguments.append(current); current = "" }
+                if !current.isEmpty {
+                    arguments.append(current)
+                    current = ""
+                }
                 index += 1
                 continue
             }
@@ -109,7 +112,8 @@ public struct ThrallExecRunner: Sendable {
         guard arguments.count <= maximumArguments else {
             throw ThrallExecError.tooManyArguments(arguments.count)
         }
-        for argument in arguments where argument.unicodeScalars.contains(where: {
+        for argument in arguments
+        where argument.unicodeScalars.contains(where: {
             $0.value < 0x20 || $0.value == 0x7F
         }) {
             throw ThrallExecError.invalidArgument("an argument contains a control character")
@@ -145,17 +149,20 @@ public struct ThrallExecRunner: Sendable {
         guard command.count <= Self.maximumArguments else {
             throw ThrallExecError.tooManyArguments(command.count)
         }
-        return try await client.exec(containerID: containerID,
-                                     command: command,
-                                     maximumBytes: Self.maximumOutputBytes)
+        return try await client.exec(
+            containerID: containerID,
+            command: command,
+            maximumBytes: Self.maximumOutputBytes)
     }
 }
 
 extension ThrallEngineClient {
     /// Creates and runs one exec, returning its output and exit code.
-    func exec(containerID: String,
-              command: [String],
-              maximumBytes: Int) async throws -> ThrallExecResult {
+    func exec(
+        containerID: String,
+        command: [String],
+        maximumBytes: Int
+    ) async throws -> ThrallExecResult {
         let prefix = try await version().pathPrefix
         let identifier = try Self.identifier(containerID)
 
@@ -164,10 +171,13 @@ extension ThrallEngineClient {
             "AttachStdout": true, "AttachStderr": true, "AttachStdin": false,
             "Tty": false, "Cmd": command,
         ]
-        let created = try await postJSON(target: Self.target(
-            prefix + "/containers/\(identifier)/exec", query: []), body: createBody)
-        guard let execID = (try? JSONSerialization.jsonObject(with: created) as? [String: Any])?["Id"]
-            as? String else {
+        let created = try await postJSON(
+            target: Self.target(
+                prefix + "/containers/\(identifier)/exec", query: []), body: createBody)
+        guard
+            let execID = (try? JSONSerialization.jsonObject(with: created) as? [String: Any])?["Id"]
+                as? String
+        else {
             throw ThrallExecError.engine("the engine did not return an exec id")
         }
 
@@ -175,11 +185,13 @@ extension ThrallEngineClient {
         let stream = makeStream()
         try await stream.connect()
         let startBody = Data(#"{"Detach":false,"Tty":false}"#.utf8)
-        try await stream.send(ThrallHTTPRequest(
-            method: "POST",
-            target: Self.target(prefix + "/exec/\(try Self.identifier(execID))/start", query: []),
-            headers: [(name: "Content-Type", value: "application/json")],
-            body: startBody).encoded())
+        try await stream.send(
+            ThrallHTTPRequest(
+                method: "POST",
+                target: Self.target(prefix + "/exec/\(try Self.identifier(execID))/start", query: []),
+                headers: [(name: "Content-Type", value: "application/json")],
+                body: startBody
+            ).encoded())
 
         // Always multiplexed, because we sent `Tty: false` — see
         // `ThrallExecRunner`'s note on the raw-stream header.
@@ -201,8 +213,7 @@ extension ThrallEngineClient {
                         truncated = true
                         break loop
                     }
-                    if frame.stream == .stderr { err.append(frame.payload) }
-                    else { out.append(frame.payload) }
+                    if frame.stream == .stderr { err.append(frame.payload) } else { out.append(frame.payload) }
                 }
             case .upgraded(let residual):
                 // The other spelling of a hijack. The residual is already
@@ -216,8 +227,7 @@ extension ThrallEngineClient {
                             truncated = true
                             break
                         }
-                        if frame.stream == .stderr { err.append(frame.payload) }
-                        else { out.append(frame.payload) }
+                        if frame.stream == .stderr { err.append(frame.payload) } else { out.append(frame.payload) }
                     }
                     if truncated { break }
                 }
@@ -243,14 +253,17 @@ extension ThrallEngineClient {
             throw ThrallExecError.engine("could not encode the exec request")
         }
         let response = try await ThrallHTTPExchange.perform(
-            ThrallHTTPRequest(method: "POST", target: target,
-                              headers: [(name: "Content-Type", value: "application/json")],
-                              body: encoded),
+            ThrallHTTPRequest(
+                method: "POST", target: target,
+                headers: [(name: "Content-Type", value: "application/json")],
+                body: encoded),
             over: makeStream(),
             timeout: requestTimeout)
         guard response.head.isSuccess else {
-            let message = (try? JSONDecoder().decode(ThrallEngineMessageDTO.self,
-                                                     from: response.body))?.message
+            let message =
+                (try? JSONDecoder().decode(
+                    ThrallEngineMessageDTO.self,
+                    from: response.body))?.message
             throw ThrallExecError.engine(message ?? response.head.reasonPhrase)
         }
         return response.body

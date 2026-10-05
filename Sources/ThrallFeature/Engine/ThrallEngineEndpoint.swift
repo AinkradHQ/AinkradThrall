@@ -72,20 +72,25 @@ public enum ThrallEngineEndpoint: Equatable, Hashable, Sendable {
                 // half-done alternative — honouring `SkipTLSVerify` — accepts
                 // an unverified chain on a socket that is root-equivalent to
                 // whatever is on the far end.
-                return .unsupported(scheme: scheme, detail: detail,
-                                    reason: "remote engines over TLS are not supported yet")
+                return .unsupported(
+                    scheme: scheme, detail: detail,
+                    reason: "remote engines over TLS are not supported yet")
             case "ssh":
-                return .unsupported(scheme: scheme, detail: detail,
-                                    reason: "SSH-tunnelled engines are not supported yet")
+                return .unsupported(
+                    scheme: scheme, detail: detail,
+                    reason: "SSH-tunnelled engines are not supported yet")
             case "npipe":
-                return .unsupported(scheme: scheme, detail: detail,
-                                    reason: "named pipes are Windows-only")
+                return .unsupported(
+                    scheme: scheme, detail: detail,
+                    reason: "named pipes are Windows-only")
             case "fd":
-                return .unsupported(scheme: scheme, detail: detail,
-                                    reason: "socket activation is not supported")
+                return .unsupported(
+                    scheme: scheme, detail: detail,
+                    reason: "socket activation is not supported")
             default:
-                return .unsupported(scheme: scheme, detail: detail,
-                                    reason: "unrecognised transport")
+                return .unsupported(
+                    scheme: scheme, detail: detail,
+                    reason: "unrecognised transport")
             }
         }
         // A bare absolute path is unambiguous, and worth accepting because it

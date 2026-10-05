@@ -2,8 +2,10 @@ import Foundation
 
 /// `GET /version`, which is answered unversioned.
 struct ThrallVersionDTO: Decodable {
-    struct Platform: Decodable { let name: String?
-        enum CodingKeys: String, CodingKey { case name = "Name" } }
+    struct Platform: Decodable {
+        let name: String?
+        enum CodingKeys: String, CodingKey { case name = "Name" }
+    }
 
     let version: String?
     let apiVersion: String?
@@ -13,8 +15,12 @@ struct ThrallVersionDTO: Decodable {
     let platform: Platform?
 
     enum CodingKeys: String, CodingKey {
-        case version = "Version", apiVersion = "ApiVersion", minAPIVersion = "MinAPIVersion"
-        case os = "Os", arch = "Arch", platform = "Platform"
+        case version = "Version"
+        case apiVersion = "ApiVersion"
+        case minAPIVersion = "MinAPIVersion"
+        case os = "Os"
+        case arch = "Arch"
+        case platform = "Platform"
     }
 }
 
@@ -43,9 +49,11 @@ public actor ThrallEngineClient {
     let requestTimeout: Duration
     private var cachedVersion: ThrallEngineVersion?
 
-    public init(endpoint: ThrallEngineEndpoint,
-                requestTimeout: Duration = .seconds(30),
-                streamFactory: StreamFactory? = nil) throws {
+    public init(
+        endpoint: ThrallEngineEndpoint,
+        requestTimeout: Duration = .seconds(30),
+        streamFactory: StreamFactory? = nil
+    ) throws {
         guard case .unixSocket(let path) = endpoint else {
             if case .unsupported(_, _, let reason) = endpoint {
                 throw ThrallEngineError.unsupportedEndpoint(reason: reason)
@@ -71,15 +79,17 @@ public actor ThrallEngineClient {
                 detail: "ApiVersion was \(dto.apiVersion ?? "absent")")
         }
         let serverMinimum = dto.minAPIVersion.flatMap(ThrallAPIVersion.init)
-        let negotiated = try ThrallEngineNegotiation.negotiate(reported: reported,
-                                                              serverMinimum: serverMinimum)
-        let resolved = ThrallEngineVersion(engineVersion: dto.version ?? "unknown",
-                                           apiVersion: reported,
-                                           minimumAPIVersion: serverMinimum,
-                                           platformName: dto.platform?.name,
-                                           os: dto.os ?? "",
-                                           arch: dto.arch ?? "",
-                                           negotiated: negotiated)
+        let negotiated = try ThrallEngineNegotiation.negotiate(
+            reported: reported,
+            serverMinimum: serverMinimum)
+        let resolved = ThrallEngineVersion(
+            engineVersion: dto.version ?? "unknown",
+            apiVersion: reported,
+            minimumAPIVersion: serverMinimum,
+            platformName: dto.platform?.name,
+            os: dto.os ?? "",
+            arch: dto.arch ?? "",
+            negotiated: negotiated)
         cachedVersion = resolved
         return resolved
     }
@@ -138,45 +148,56 @@ public actor ThrallEngineClient {
     /// Deliberately absent: any form of *remove*. Container removal is on its
     /// own explicit path, never a side effect of a lifecycle verb.
     public func start(containerID: String) async throws {
-        try await post(path: "/containers/\(try Self.identifier(containerID))/start",
-                       // 304 means "already started", which is success from the
-                       // caller's point of view and must not read as an error.
-                       accepting: [204, 304])
+        try await post(
+            path: "/containers/\(try Self.identifier(containerID))/start",
+            // 304 means "already started", which is success from the
+            // caller's point of view and must not read as an error.
+            accepting: [204, 304])
     }
 
     public func stop(containerID: String, timeoutSeconds: Int = 10) async throws {
-        try await post(path: "/containers/\(try Self.identifier(containerID))/stop",
-                       query: [("t", String(timeoutSeconds))],
-                       accepting: [204, 304])
+        try await post(
+            path: "/containers/\(try Self.identifier(containerID))/stop",
+            query: [("t", String(timeoutSeconds))],
+            accepting: [204, 304])
     }
 
     public func restart(containerID: String, timeoutSeconds: Int = 10) async throws {
-        try await post(path: "/containers/\(try Self.identifier(containerID))/restart",
-                       query: [("t", String(timeoutSeconds))],
-                       accepting: [204])
+        try await post(
+            path: "/containers/\(try Self.identifier(containerID))/restart",
+            query: [("t", String(timeoutSeconds))],
+            accepting: [204])
     }
 
-    private func post(path: String,
-                      query: [(String, String)] = [],
-                      accepting: Set<Int>) async throws {
+    private func post(
+        path: String,
+        query: [(String, String)] = [],
+        accepting: Set<Int>
+    ) async throws {
         let prefix = try await version().pathPrefix
         let response = try await ThrallHTTPExchange.perform(
-            ThrallHTTPRequest(method: "POST",
-                              target: Self.target(prefix + path, query: query)),
+            ThrallHTTPRequest(
+                method: "POST",
+                target: Self.target(prefix + path, query: query)),
             over: makeStream(),
             timeout: requestTimeout)
         guard accepting.contains(response.head.statusCode) else {
-            let message = (try? JSONDecoder().decode(ThrallEngineMessageDTO.self,
-                                                     from: response.body))?.message
-            throw ThrallEngineError.http(status: response.head.statusCode,
-                                         message: message ?? response.head.reasonPhrase)
+            let message =
+                (try? JSONDecoder().decode(
+                    ThrallEngineMessageDTO.self,
+                    from: response.body))?.message
+            throw ThrallEngineError.http(
+                status: response.head.statusCode,
+                message: message ?? response.head.reasonPhrase)
         }
     }
 
     // MARK: - Plumbing
 
-    private func versioned<Value: Decodable>(path: String,
-                                             query: [(String, String)] = []) async throws -> Value {
+    private func versioned<Value: Decodable>(
+        path: String,
+        query: [(String, String)] = []
+    ) async throws -> Value {
         let prefix = try await version().pathPrefix
         return try await get(target: Self.target(prefix + path, query: query))
     }
@@ -191,10 +212,13 @@ public actor ThrallEngineClient {
             // The engine puts a usable sentence in `{"message": ...}`. Falling
             // back to the reason phrase keeps the error readable when it does
             // not (a proxy 502, say).
-            let message = (try? JSONDecoder().decode(ThrallEngineMessageDTO.self,
-                                                     from: response.body))?.message
-            throw ThrallEngineError.http(status: response.head.statusCode,
-                                         message: message ?? response.head.reasonPhrase)
+            let message =
+                (try? JSONDecoder().decode(
+                    ThrallEngineMessageDTO.self,
+                    from: response.body))?.message
+            throw ThrallEngineError.http(
+                status: response.head.statusCode,
+                message: message ?? response.head.reasonPhrase)
         }
         do {
             return try JSONDecoder().decode(Value.self, from: response.body)
@@ -224,13 +248,16 @@ public actor ThrallEngineClient {
     /// containing `../` would address a different endpoint entirely.
     static func identifier(_ raw: String) throws -> String {
         let allowed = { (character: Character) -> Bool in
-            character.isASCII && (character.isLetter || character.isNumber
-                || character == "_" || character == "." || character == "-")
+            character.isASCII
+                && (character.isLetter || character.isNumber
+                    || character == "_" || character == "." || character == "-")
         }
         guard !raw.isEmpty, raw.count <= 255, raw.allSatisfy(allowed),
-              let first = raw.first, first.isASCII, first.isLetter || first.isNumber else {
-            throw ThrallEngineError.decoding(type: "identifier",
-                                             detail: "\(raw.debugDescription) is not a container id or name")
+            let first = raw.first, first.isASCII, first.isLetter || first.isNumber
+        else {
+            throw ThrallEngineError.decoding(
+                type: "identifier",
+                detail: "\(raw.debugDescription) is not a container id or name")
         }
         return raw
     }

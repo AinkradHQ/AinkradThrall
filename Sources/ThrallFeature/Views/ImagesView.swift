@@ -1,5 +1,5 @@
-import SwiftUI
 import AinkradAppKit
+import SwiftUI
 
 /// Task O — Images.
 ///
@@ -14,8 +14,9 @@ struct ImagesView: View {
     @Environment(\.ainkradTheme) private var theme
     /// Pre-set to size-descending rather than left nil, so the table opens on
     /// the answer instead of on insertion order.
-    @State private var sort: AinkradTableSort? = AinkradTableSort(columnID: "size",
-                                                                  ascending: false)
+    @State private var sort: AinkradTableSort? = AinkradTableSort(
+        columnID: "size",
+        ascending: false)
 
     private struct Row: Identifiable {
         let id: String
@@ -28,7 +29,8 @@ struct ImagesView: View {
 
     private var rows: [Row] {
         let mapped = storage.images.map { image in
-            Row(id: image.id,
+            Row(
+                id: image.id,
                 tag: image.repoTags.first ?? "<none>:<none>",
                 size: image.size,
                 containers: image.containers,
@@ -50,13 +52,15 @@ struct ImagesView: View {
         VStack(spacing: 0) {
             header
             if let error = storage.error {
-                AinkradEmptyState(icon: "exclamationmark.triangle",
-                                  title: "Could not read images", message: error)
+                AinkradEmptyState(
+                    icon: "exclamationmark.triangle",
+                    title: "Could not read images", message: error)
             } else if storage.isLoading && storage.usage == nil {
                 AinkradLoadingState(label: "Reading image sizes… (system/df is slow)")
             } else if rows.isEmpty {
-                AinkradEmptyState(icon: "archivebox", title: "No images",
-                                  message: "Nothing is stored on \(model.engineLabel).")
+                AinkradEmptyState(
+                    icon: "archivebox", title: "No images",
+                    message: "Nothing is stored on \(model.engineLabel).")
             } else {
                 ScrollView {
                     AinkradDataTable(rows: rows, columns: columns, sort: $sort)
@@ -93,9 +97,10 @@ struct ImagesView: View {
                 .font(.system(size: 11, weight: .medium))
             let unused = rows.filter { $0.containers == 0 }
             if !unused.isEmpty {
-                AinkradBadge(text: "\(unused.count) unused · "
-                             + ThrallReclaimPlan.humanBytes(unused.reduce(0) { $0 + $1.size }),
-                             status: .warning)
+                AinkradBadge(
+                    text: "\(unused.count) unused · "
+                        + ThrallReclaimPlan.humanBytes(unused.reduce(0) { $0 + $1.size }),
+                    status: .warning)
             }
             Spacer(minLength: 0)
             if let loadedAt = storage.loadedAt {

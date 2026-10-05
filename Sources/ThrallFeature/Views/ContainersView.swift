@@ -1,5 +1,5 @@
-import SwiftUI
 import AinkradAppKit
+import SwiftUI
 
 /// The flat container list, and Task R's engine panel.
 ///
@@ -27,7 +27,8 @@ struct ContainersView: View {
         let all = model.world.stacks.flatMap { stack in
             stack.services.flatMap { service in
                 service.containers.map {
-                    Row(id: $0.id, name: $0.name,
+                    Row(
+                        id: $0.id, name: $0.name,
                         stack: stack.displayName, service: service.name,
                         state: $0.state.label, image: $0.image)
                 }
@@ -95,10 +96,13 @@ struct ContainersView: View {
                             AinkradBadge(text: "not running", status: .warning)
                         }
                         Spacer(minLength: 0)
-                        Text(ThrallPathDisplay.abbreviate(context.endpoint.displayString,
-                                                           maxLength: 40))
-                            .font(.system(size: 10).monospaced())
-                            .foregroundStyle(theme.foreground.opacity(0.45))
+                        Text(
+                            ThrallPathDisplay.abbreviate(
+                                context.endpoint.displayString,
+                                maxLength: 40)
+                        )
+                        .font(.system(size: 10).monospaced())
+                        .foregroundStyle(theme.foreground.opacity(0.45))
                     }
                 }
                 // The finding that made `engineKey` exist: two contexts can be
@@ -180,8 +184,9 @@ struct ContainersView: View {
                         title: row.name,
                         subtitle: "\(row.stack) · \(row.service) · \(row.image)",
                         trailing: {
-                            AinkradBadge(text: row.state,
-                                         status: row.state == "Running" ? .success : .warning)
+                            AinkradBadge(
+                                text: row.state,
+                                status: row.state == "Running" ? .success : .warning)
                         })
                 }
             }

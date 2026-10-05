@@ -47,10 +47,12 @@ public enum ThrallRow: Identifiable, Hashable, Sendable {
 /// testable without a view: **rows never reorder on a state change.** The
 /// world arrives already sorted by identity, and nothing here re-sorts.
 public enum ThrallRowBuilder {
-    public static func rows(for world: ThrallWorld,
-                            expandedStacks: Set<ThrallStackID>,
-                            expandedServices: Set<String>,
-                            showUnmanaged: Bool) -> [ThrallRow] {
+    public static func rows(
+        for world: ThrallWorld,
+        expandedStacks: Set<ThrallStackID>,
+        expandedServices: Set<String>,
+        showUnmanaged: Bool
+    ) -> [ThrallRow] {
         var rows: [ThrallRow] = []
         for stack in world.stacks {
             if stack.id.isLoose && !showUnmanaged { continue }
@@ -61,8 +63,10 @@ public enum ThrallRowBuilder {
                 let key = serviceKey(stack: stack.id, service: service.name)
                 guard expandedServices.contains(key) else { continue }
                 for container in service.containers {
-                    rows.append(.container(stack: stack.id, service: service.name,
-                                           container: container))
+                    rows.append(
+                        .container(
+                            stack: stack.id, service: service.name,
+                            container: container))
                 }
             }
         }

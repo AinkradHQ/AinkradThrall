@@ -41,73 +41,82 @@ public struct ThrallRemedy: Equatable, Sendable, Identifiable {
     public var id: String { title }
 
     /// Builds the remedy list for an incident.
-    public static func remedies(for incident: ThrallIncident,
-                                stack: ThrallStack?) -> [ThrallRemedy] {
+    public static func remedies(
+        for incident: ThrallIncident,
+        stack: ThrallStack?
+    ) -> [ThrallRemedy] {
         var found: [ThrallRemedy] = []
         let project = stack?.displayName ?? incident.stackName
 
         // Highest confidence: there is a named dependency and it is down.
         if let verdict = incident.brokenDependencies.first {
             let dependents = incident.services.filter { $0 != verdict.dependency }
-            found.append(ThrallRemedy(
-                kind: .restartDependencyThenDependents(dependency: verdict.dependency,
-                                                       dependents: dependents),
-                confidence: 100,
-                title: "Restart \(verdict.dependency), then \(dependents.count) dependent"
-                    + "\(dependents.count == 1 ? "" : "s")",
-                commandPreview: "docker compose -p \(project) restart -- \(verdict.dependency)\n"
-                    + "docker compose -p \(project) restart -- "
-                    + dependents.joined(separator: " "),
-                destroysState: false))
+            found.append(
+                ThrallRemedy(
+                    kind: .restartDependencyThenDependents(
+                        dependency: verdict.dependency,
+                        dependents: dependents),
+                    confidence: 100,
+                    title: "Restart \(verdict.dependency), then \(dependents.count) dependent"
+                        + "\(dependents.count == 1 ? "" : "s")",
+                    commandPreview: "docker compose -p \(project) restart -- \(verdict.dependency)\n"
+                        + "docker compose -p \(project) restart -- "
+                        + dependents.joined(separator: " "),
+                    destroysState: false))
         }
 
         let isOrphaned = stack?.isConfigMissing ?? false
         if isOrphaned {
             // Compose cannot touch an orphan at all, so the engine-level
             // restart is what is on offer.
-            found.append(ThrallRemedy(
-                kind: .restartServices(incident.services),
-                confidence: 70,
-                title: "Restart \(incident.services.count) container"
-                    + "\(incident.services.count == 1 ? "" : "s") through the engine",
-                commandPreview: incident.containerIDs.prefix(3)
-                    .map { "POST /containers/\($0.prefix(12))/restart" }
-                    .joined(separator: "\n")
-                    + (incident.containerIDs.count > 3
-                       ? "\n… and \(incident.containerIDs.count - 3) more" : ""),
-                destroysState: false))
-            found.append(ThrallRemedy(
-                kind: .teardownByLabel,
-                confidence: 20,
-                title: "Tear this stack down by label",
-                commandPreview: "POST /containers/{id}/stop for every container labelled\n"
-                    + "com.docker.compose.project=\(project)\n"
-                    + "then DELETE /containers/{id}",
-                destroysState: true))
+            found.append(
+                ThrallRemedy(
+                    kind: .restartServices(incident.services),
+                    confidence: 70,
+                    title: "Restart \(incident.services.count) container"
+                        + "\(incident.services.count == 1 ? "" : "s") through the engine",
+                    commandPreview: incident.containerIDs.prefix(3)
+                        .map { "POST /containers/\($0.prefix(12))/restart" }
+                        .joined(separator: "\n")
+                        + (incident.containerIDs.count > 3
+                            ? "\n… and \(incident.containerIDs.count - 3) more" : ""),
+                    destroysState: false))
+            found.append(
+                ThrallRemedy(
+                    kind: .teardownByLabel,
+                    confidence: 20,
+                    title: "Tear this stack down by label",
+                    commandPreview: "POST /containers/{id}/stop for every container labelled\n"
+                        + "com.docker.compose.project=\(project)\n"
+                        + "then DELETE /containers/{id}",
+                    destroysState: true))
         } else {
-            found.append(ThrallRemedy(
-                kind: .restartServices(incident.services),
-                confidence: 60,
-                title: "Restart \(incident.services.count) failing service"
-                    + "\(incident.services.count == 1 ? "" : "s")",
-                commandPreview: "docker compose -p \(project) restart -- "
-                    + incident.services.joined(separator: " "),
-                destroysState: false))
-            found.append(ThrallRemedy(
-                kind: .upStack,
-                confidence: 40,
-                title: "Bring \(project) up",
-                commandPreview: "docker compose -p \(project) up -d --remove-orphans",
-                destroysState: false))
+            found.append(
+                ThrallRemedy(
+                    kind: .restartServices(incident.services),
+                    confidence: 60,
+                    title: "Restart \(incident.services.count) failing service"
+                        + "\(incident.services.count == 1 ? "" : "s")",
+                    commandPreview: "docker compose -p \(project) restart -- "
+                        + incident.services.joined(separator: " "),
+                    destroysState: false))
+            found.append(
+                ThrallRemedy(
+                    kind: .upStack,
+                    confidence: 40,
+                    title: "Bring \(project) up",
+                    commandPreview: "docker compose -p \(project) up -d --remove-orphans",
+                    destroysState: false))
             // Only offered where the evidence points at the image rather than
             // at a dependency.
             if incident.brokenDependencies.isEmpty {
-                found.append(ThrallRemedy(
-                    kind: .pullStack,
-                    confidence: 25,
-                    title: "Re-pull \(project)'s images",
-                    commandPreview: "docker compose -p \(project) pull",
-                    destroysState: false))
+                found.append(
+                    ThrallRemedy(
+                        kind: .pullStack,
+                        confidence: 25,
+                        title: "Re-pull \(project)'s images",
+                        commandPreview: "docker compose -p \(project) pull",
+                        destroysState: false))
             }
         }
         return found.sorted { $0.confidence > $1.confidence }

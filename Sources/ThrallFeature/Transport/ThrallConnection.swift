@@ -79,8 +79,14 @@ public final class ThrallConnection: ThrallByteStream, @unchecked Sendable {
             // a deliberate difference from the enclosing scope rather than an
             // accidental one.
             try await suspendVoid { [self] guard_ in
-                guard !self.isClosed else { guard_.fire(.failure(.closed)); return }
-                guard self.connection == nil else { guard_.fire(.success(())); return }
+                guard !self.isClosed else {
+                    guard_.fire(.failure(.closed))
+                    return
+                }
+                guard self.connection == nil else {
+                    guard_.fire(.success(()))
+                    return
+                }
 
                 let connection = NWConnection(to: .unix(path: self.socketPath), using: .tcp)
                 self.connection = connection
@@ -136,14 +142,16 @@ public final class ThrallConnection: ThrallByteStream, @unchecked Sendable {
                     return
                 }
                 let waiter = self.register { guard_.fire(.failure($0)) }
-                connection.send(content: bytes, completion: .contentProcessed { [weak self] error in
-                    self?.discard(waiter)
-                    if let error {
-                        guard_.fire(.failure(.connectionFailed("\(error)")))
-                    } else {
-                        guard_.fire(.success(()))
-                    }
-                })
+                connection.send(
+                    content: bytes,
+                    completion: .contentProcessed { [weak self] error in
+                        self?.discard(waiter)
+                        if let error {
+                            guard_.fire(.failure(.connectionFailed("\(error)")))
+                        } else {
+                            guard_.fire(.success(()))
+                        }
+                    })
             }
         } onCancel: {
             cancelEverything()
@@ -269,12 +277,15 @@ public final class ThrallConnection: ThrallByteStream, @unchecked Sendable {
         connection = nil
     }
 
-    private func scheduleTimeout(_ duration: Duration,
-                                 on waiter: Waiter,
-                                 _ body: @escaping @Sendable () -> Void) {
+    private func scheduleTimeout(
+        _ duration: Duration,
+        on waiter: Waiter,
+        _ body: @escaping @Sendable () -> Void
+    ) {
         let item = DispatchWorkItem(block: body)
         waiter.timeout = item
-        let seconds = Double(duration.components.seconds)
+        let seconds =
+            Double(duration.components.seconds)
             + Double(duration.components.attoseconds) / 1e18
         queue.asyncAfter(deadline: .now() + seconds, execute: item)
     }

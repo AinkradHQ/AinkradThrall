@@ -55,15 +55,18 @@ public struct ThrallEventHistory: Equatable, Sendable {
         guard event.isContainer, event.action == .die else { return }
         guard let service = event.composeService, let project = event.composeProject else { return }
         let key = ServiceKey(
-            stack: ThrallStackID(engineKey: engineKey,
-                                 projectName: project,
-                                 workingDirectory: event.composeWorkingDirectory
-                                     .flatMap { $0.isEmpty ? nil : ThrallPathKey($0) }),
+            stack: ThrallStackID(
+                engineKey: engineKey,
+                projectName: project,
+                workingDirectory: event.composeWorkingDirectory
+                    .flatMap { $0.isEmpty ? nil : ThrallPathKey($0) }),
             service: service)
         var recorded = deaths[key] ?? []
-        recorded.append(Death(containerID: event.containerID,
-                              exitCode: event.exitCode ?? 0,
-                              at: event.time))
+        recorded.append(
+            Death(
+                containerID: event.containerID,
+                exitCode: event.exitCode ?? 0,
+                at: event.time))
         if recorded.count > limitPerService {
             recorded.removeFirst(recorded.count - limitPerService)
         }

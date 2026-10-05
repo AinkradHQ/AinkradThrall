@@ -1,5 +1,5 @@
-import Foundation
 import AinkradAppKit
+import Foundation
 
 /// The write half of Thrall's MCP surface, and its guard table.
 ///
@@ -51,7 +51,9 @@ enum ThrallMCPWriteTools {
             case bool(Bool)
 
             var foundation: Any {
-                switch self { case .bool(let flag): return flag }
+                switch self {
+                case .bool(let flag): return flag
+                }
             }
 
             func matches(_ candidate: Any?) -> Bool {
@@ -78,78 +80,85 @@ enum ThrallMCPWriteTools {
     /// The whole write surface, as data. Being a table rather than five
     /// `addTool` calls is what makes the invariants testable.
     static let table: [Tool] = [
-        Tool(name: "thrall_restart_service",
-             summary: """
-                 Restart the containers of one service, or of a whole stack when `service` is \
-                 omitted. **Ungated and unconfirmed on purpose**: the service is already broken \
-                 and restart is idempotent, so requiring approval to fix it would defeat the \
-                 point. Use this as the first remedy for a crash loop, and restart the failing \
-                 DEPENDENCY before its dependents.
-                 """,
-             schemaJSON: """
-                 {"type":"object","properties":{\
-                 "stack":{"type":"string","description":"Stack name or id from thrall_stacks."},\
-                 "service":{"type":"string","description":"Service to restart. Omit for the whole stack."}},\
-                 "required":["stack"],"additionalProperties":false}
-                 """,
-             destructive: false,
-             operation: "restart"),
+        Tool(
+            name: "thrall_restart_service",
+            summary: """
+                Restart the containers of one service, or of a whole stack when `service` is \
+                omitted. **Ungated and unconfirmed on purpose**: the service is already broken \
+                and restart is idempotent, so requiring approval to fix it would defeat the \
+                point. Use this as the first remedy for a crash loop, and restart the failing \
+                DEPENDENCY before its dependents.
+                """,
+            schemaJSON: """
+                {"type":"object","properties":{\
+                "stack":{"type":"string","description":"Stack name or id from thrall_stacks."},\
+                "service":{"type":"string","description":"Service to restart. Omit for the whole stack."}},\
+                "required":["stack"],"additionalProperties":false}
+                """,
+            destructive: false,
+            operation: "restart"),
 
-        Tool(name: "thrall_stack_up",
-             summary: """
-                 Bring a stack up (`docker compose up -d --remove-orphans`). Fails for a stack \
-                 whose compose file is gone — check `configMissing` from `thrall_stacks` first.
-                 """,
-             schemaJSON: """
-                 {"type":"object","properties":{\
-                 "stack":{"type":"string","description":"Stack name or id."}},\
-                 "required":["stack"],"additionalProperties":false}
-                 """,
-             destructive: false,
-             operation: "up"),
+        Tool(
+            name: "thrall_stack_up",
+            summary: """
+                Bring a stack up (`docker compose up -d --remove-orphans`). Fails for a stack \
+                whose compose file is gone — check `configMissing` from `thrall_stacks` first.
+                """,
+            schemaJSON: """
+                {"type":"object","properties":{\
+                "stack":{"type":"string","description":"Stack name or id."}},\
+                "required":["stack"],"additionalProperties":false}
+                """,
+            destructive: false,
+            operation: "up"),
 
-        Tool(name: "thrall_stack_down",
-             summary: """
-                 Stop and remove a stack's containers (`docker compose down`). **Named volumes \
-                 are kept** — this tool cannot remove one, in any spelling. Ask the user to do \
-                 that in Thrall's UI if it is genuinely wanted.
-                 """,
-             schemaJSON: """
-                 {"type":"object","properties":{\
-                 "stack":{"type":"string","description":"Stack name or id."},\
-                 "removeVolumes":{"type":"boolean","description":"Refused. Volume removal is not available to tools."}},\
-                 "required":["stack"],"additionalProperties":false}
-                 """,
-             destructive: true,
-             rejects: [GuardRule("removeVolumes", .bool(true))],
-             operation: "down"),
+        Tool(
+            name: "thrall_stack_down",
+            summary: """
+                Stop and remove a stack's containers (`docker compose down`). **Named volumes \
+                are kept** — this tool cannot remove one, in any spelling. Ask the user to do \
+                that in Thrall's UI if it is genuinely wanted.
+                """,
+            schemaJSON: """
+                {"type":"object","properties":{\
+                "stack":{"type":"string","description":"Stack name or id."},\
+                "removeVolumes":{"type":"boolean","description":"Refused. Volume removal is not available to tools."}},\
+                "required":["stack"],"additionalProperties":false}
+                """,
+            destructive: true,
+            rejects: [GuardRule("removeVolumes", .bool(true))],
+            operation: "down"),
 
-        Tool(name: "thrall_stack_teardown",
-             summary: """
-                 Tear down a stack whose compose file is gone, by matching the compose project \
-                 label through the Engine API. This is the ONLY way to clean up such a stack — \
-                 `docker compose down` needs the file the stack was started from. Volumes are \
-                 not touched.
-                 """,
-             schemaJSON: """
-                 {"type":"object","properties":{\
-                 "stack":{"type":"string","description":"Stack name or id."}},\
-                 "required":["stack"],"additionalProperties":false}
-                 """,
-             destructive: true,
-             // The safe twin of `removeVolumes`: this operation injects
-             // `byLabel` itself rather than accepting a route from the model.
-             injects: [GuardRule("byLabel", .bool(true))],
-             operation: "down"),
+        Tool(
+            name: "thrall_stack_teardown",
+            summary: """
+                Tear down a stack whose compose file is gone, by matching the compose project \
+                label through the Engine API. This is the ONLY way to clean up such a stack — \
+                `docker compose down` needs the file the stack was started from. Volumes are \
+                not touched.
+                """,
+            schemaJSON: """
+                {"type":"object","properties":{\
+                "stack":{"type":"string","description":"Stack name or id."}},\
+                "required":["stack"],"additionalProperties":false}
+                """,
+            destructive: true,
+            // The safe twin of `removeVolumes`: this operation injects
+            // `byLabel` itself rather than accepting a route from the model.
+            injects: [GuardRule("byLabel", .bool(true))],
+            operation: "down"),
     ]
 
     /// Rejects an argument the tool refuses, or injects the ones it owns.
     /// Returns nil when the call may proceed, with `arguments` rewritten.
     static func vet(tool: Tool, arguments: [String: Any])
-        -> (rejection: String?, arguments: [String: Any]) {
+        -> (rejection: String?, arguments: [String: Any])
+    {
         for rule in tool.rejects where rule.value.matches(arguments[rule.key]) {
-            return ("\(tool.name) refuses \(rule.key). "
-                + volumeExplanation(for: rule.key), arguments)
+            return (
+                "\(tool.name) refuses \(rule.key). "
+                    + volumeExplanation(for: rule.key), arguments
+            )
         }
         var rewritten = arguments
         // ALL listed values are injected: the destructive twin owns every
@@ -169,7 +178,8 @@ enum ThrallMCPWriteTools {
 
     /// Builds the specs, wrapping each handler in the guard.
     static func specs(model: @escaping @MainActor @Sendable () -> ThrallViewModel)
-        -> [MCPToolSpec] {
+        -> [MCPToolSpec]
+    {
         table.map { tool in
             MCPToolSpec(
                 name: tool.name,
@@ -190,8 +200,10 @@ enum ThrallMCPWriteTools {
 
     // MARK: - Execution
 
-    static func run(tool: Tool, arguments: [String: Any],
-                    model: ThrallViewModel) async -> AgentActionResult {
+    static func run(
+        tool: Tool, arguments: [String: Any],
+        model: ThrallViewModel
+    ) async -> AgentActionResult {
         guard let identifier = arguments["stack"] as? String, !identifier.isEmpty else {
             return AgentActionResult(text: "`stack` is required.", isError: true)
         }
@@ -219,8 +231,9 @@ enum ThrallMCPWriteTools {
             model.perform(stack.isConfigMissing ? .engineRestart : .restart, on: stack)
             return AgentActionResult(
                 text: "Restarting \(stack.displayName)"
-                    + (stack.isConfigMissing ? " through the engine (its compose file is gone)."
-                       : " with docker compose."),
+                    + (stack.isConfigMissing
+                        ? " through the engine (its compose file is gone)."
+                        : " with docker compose."),
                 isError: false)
         case "up":
             guard !stack.isConfigMissing else {

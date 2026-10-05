@@ -36,14 +36,17 @@ public struct ThrallProcessRunner: Sendable {
     public static let maximumOutputBytes = 4 * 1_048_576
     public static let maximumErrorBytes = 1_048_576
 
-    private static let queue = DispatchQueue(label: "com.ainkrad.thrall.process",
-                                             attributes: .concurrent)
+    private static let queue = DispatchQueue(
+        label: "com.ainkrad.thrall.process",
+        attributes: .concurrent)
 
     public var binary: ThrallDockerBinary
     public var environment: [String: String]
 
-    public init(binary: ThrallDockerBinary = ThrallDockerBinary(),
-                environment: [String: String] = [:]) {
+    public init(
+        binary: ThrallDockerBinary = ThrallDockerBinary(),
+        environment: [String: String] = [:]
+    ) {
         self.binary = binary
         self.environment = environment
     }
@@ -54,9 +57,11 @@ public struct ThrallProcessRunner: Sendable {
     /// unwinds cleanly (leaving a consistent stack), and only a process that
     /// ignores it gets killed. Killing first would leave half-created
     /// containers behind.
-    public func run(_ arguments: [String],
-                    workingDirectory: String? = nil,
-                    graceSeconds: Double = 3) async throws -> ThrallProcessResult {
+    public func run(
+        _ arguments: [String],
+        workingDirectory: String? = nil,
+        graceSeconds: Double = 3
+    ) async throws -> ThrallProcessResult {
         if let rejection = ThrallComposeArgumentGuard.rejection(in: arguments) {
             throw ThrallProcessError.rejected(rejection.message)
         }
@@ -68,11 +73,12 @@ public struct ThrallProcessRunner: Sendable {
             try await withCheckedThrowingContinuation { continuation in
                 Self.queue.async {
                     do {
-                        let result = try Self.runBlocking(executable: executable,
-                                                          arguments: arguments,
-                                                          workingDirectory: workingDirectory,
-                                                          environment: environment,
-                                                          handle: handle)
+                        let result = try Self.runBlocking(
+                            executable: executable,
+                            arguments: arguments,
+                            workingDirectory: workingDirectory,
+                            environment: environment,
+                            handle: handle)
                         continuation.resume(returning: result)
                     } catch {
                         continuation.resume(throwing: error)
@@ -86,11 +92,13 @@ public struct ThrallProcessRunner: Sendable {
 
     /// The blocking spawn. `nonisolated static` so it cannot touch any actor's
     /// state by accident.
-    private nonisolated static func runBlocking(executable: String,
-                                                arguments: [String],
-                                                workingDirectory: String?,
-                                                environment: [String: String],
-                                                handle: ProcessHandle) throws -> ThrallProcessResult {
+    private nonisolated static func runBlocking(
+        executable: String,
+        arguments: [String],
+        workingDirectory: String?,
+        environment: [String: String],
+        handle: ProcessHandle
+    ) throws -> ThrallProcessResult {
         let process = Process()
         let output = Pipe()
         let errorOutput = Pipe()

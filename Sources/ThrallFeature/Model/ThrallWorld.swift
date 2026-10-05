@@ -90,9 +90,10 @@ public struct ThrallDependency: Hashable, Sendable {
         return label.split(separator: ",").compactMap { clause in
             let parts = clause.split(separator: ":", omittingEmptySubsequences: false)
             guard parts.count == 3, !parts[0].isEmpty else { return nil }
-            return ThrallDependency(service: String(parts[0]),
-                                    condition: String(parts[1]),
-                                    restartsDependents: parts[2] == "true")
+            return ThrallDependency(
+                service: String(parts[0]),
+                condition: String(parts[1]),
+                restartsDependents: parts[2] == "true")
         }
     }
 }
@@ -109,8 +110,10 @@ public struct ThrallContainer: Hashable, Sendable, Identifiable {
     public let replicaNumber: Int?
     public let isOneOff: Bool
 
-    public init(id: String, name: String, image: String, state: ThrallContainerState,
-                statusText: String, created: Date, replicaNumber: Int?, isOneOff: Bool) {
+    public init(
+        id: String, name: String, image: String, state: ThrallContainerState,
+        statusText: String, created: Date, replicaNumber: Int?, isOneOff: Bool
+    ) {
         self.id = id
         self.name = name
         self.image = image
@@ -137,8 +140,10 @@ public struct ThrallService: Hashable, Sendable, Identifiable {
         containers.max { $0.state.severity < $1.state.severity }?.state
     }
 
-    public init(name: String, containers: [ThrallContainer],
-                dependsOn: [ThrallDependency], isDeclaredButAbsent: Bool) {
+    public init(
+        name: String, containers: [ThrallContainer],
+        dependsOn: [ThrallDependency], isDeclaredButAbsent: Bool
+    ) {
         self.name = name
         self.containers = containers
         self.dependsOn = dependsOn
@@ -224,10 +229,12 @@ public struct ThrallStack: Hashable, Sendable, Identifiable {
 
     public var containerCount: Int { breakdown.total }
 
-    public init(id: ThrallStackID, displayName: String, workingDirectoryDisplay: String?,
-                configFiles: [String], absentConfigFiles: [String], services: [ThrallService],
-                breakdown: ThrallStateBreakdown, health: ThrallStackHealth,
-                isStaleRelativeToConfig: Bool) {
+    public init(
+        id: ThrallStackID, displayName: String, workingDirectoryDisplay: String?,
+        configFiles: [String], absentConfigFiles: [String], services: [ThrallService],
+        breakdown: ThrallStateBreakdown, health: ThrallStackHealth,
+        isStaleRelativeToConfig: Bool
+    ) {
         self.id = id
         self.displayName = displayName
         self.workingDirectoryDisplay = workingDirectoryDisplay

@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 /// **argv only, never a shell string.** Everything Thrall knows about a
@@ -10,11 +11,13 @@ import Testing
 struct ThrallExecRunnerTests {
     @Test("a plain command splits into argv")
     func plainCommand() throws {
-        #expect(try ThrallExecRunner.parse(commandLine: "nc -z db 5432")
-            == ["nc", "-z", "db", "5432"])
+        #expect(
+            try ThrallExecRunner.parse(commandLine: "nc -z db 5432")
+                == ["nc", "-z", "db", "5432"])
         #expect(try ThrallExecRunner.parse(commandLine: "env") == ["env"])
-        #expect(try ThrallExecRunner.parse(commandLine: "  cat  /etc/hosts  ")
-            == ["cat", "/etc/hosts"])
+        #expect(
+            try ThrallExecRunner.parse(commandLine: "  cat  /etc/hosts  ")
+                == ["cat", "/etc/hosts"])
     }
 
     /// Quoting is what makes the metacharacter check usable. Scanning the
@@ -24,21 +27,27 @@ struct ThrallExecRunnerTests {
     /// which is correct.
     @Test("quotes group an argument, and make metacharacters literal")
     func quoting() throws {
-        #expect(try ThrallExecRunner.parse(commandLine: #"php -r "echo 1;""#)
-            == ["php", "-r", "echo 1;"])
+        #expect(
+            try ThrallExecRunner.parse(commandLine: #"php -r "echo 1;""#)
+                == ["php", "-r", "echo 1;"])
         #expect(try ThrallExecRunner.parse(commandLine: "ls 'my dir'") == ["ls", "my dir"])
-        #expect(try ThrallExecRunner.parse(commandLine: #"grep "a|b" f"#)
-            == ["grep", "a|b", "f"])
-        #expect(try ThrallExecRunner.parse(commandLine: #"echo "$HOME""#)
-            == ["echo", "$HOME"])
+        #expect(
+            try ThrallExecRunner.parse(commandLine: #"grep "a|b" f"#)
+                == ["grep", "a|b", "f"])
+        #expect(
+            try ThrallExecRunner.parse(commandLine: #"echo "$HOME""#)
+                == ["echo", "$HOME"])
     }
 
     /// **Refused with a reason, not silently passed through as a literal.** A
     /// user typing `cat x > y` expects a redirect; getting a file named `>`
     /// with no explanation is worse than being told no.
-    @Test("shell metacharacters are refused, and the message explains why",
-          arguments: ["cat x > y", "ps | grep php", "a && b", "a; b", "echo $(id)",
-                      "echo `id`", "cat < f", "a || b", "echo $PATH"])
+    @Test(
+        "shell metacharacters are refused, and the message explains why",
+        arguments: [
+            "cat x > y", "ps | grep php", "a && b", "a; b", "echo $(id)",
+            "echo `id`", "cat < f", "a || b", "echo $PATH",
+        ])
     func shellMetacharactersRefused(line: String) {
         do {
             _ = try ThrallExecRunner.parse(commandLine: line)
@@ -94,10 +103,12 @@ struct ThrallExecRunnerTests {
     }
 
     /// The commands this exists for — roughly 80% of crash-loop triage.
-    @Test("the triage one-liners the feature exists for all parse", arguments: [
-        "env", "cat /etc/hosts", "nc -z db 5432", "ls -la /var/log",
-        "php artisan --version", "pg_isready -h pgsql", "printenv DATABASE_URL",
-    ])
+    @Test(
+        "the triage one-liners the feature exists for all parse",
+        arguments: [
+            "env", "cat /etc/hosts", "nc -z db 5432", "ls -la /var/log",
+            "php artisan --version", "pg_isready -h pgsql", "printenv DATABASE_URL",
+        ])
     func triageCommandsParse(line: String) throws {
         #expect(!(try ThrallExecRunner.parse(commandLine: line)).isEmpty)
     }
@@ -115,8 +126,9 @@ struct ThrallExecLiveTests {
     /// Content-Type" rule holds for `/containers/{id}/logs` but **not** here,
     /// so the runner trusts the `Tty: false` it sent itself. If that were
     /// wrong, this test would return frame headers as text.
-    @Test("a live exec returns demuxed output and an exit code",
-          .enabled(if: canRun))
+    @Test(
+        "a live exec returns demuxed output and an exit code",
+        .enabled(if: canRun))
     func liveExec() async throws {
         let path = try #require(LiveEngine.socketPath)
         let client = try ThrallEngineClient(endpoint: .unixSocket(path: path))
@@ -126,8 +138,9 @@ struct ThrallExecLiveTests {
             return
         }
         let runner = ThrallExecRunner(client: client)
-        let result = try await runner.run(containerID: target.id,
-                                          command: try ThrallExecRunner.parse(commandLine: "env"))
+        let result = try await runner.run(
+            containerID: target.id,
+            command: try ThrallExecRunner.parse(commandLine: "env"))
         #expect(result.exitCode == 0)
         #expect(!result.stdout.isEmpty)
         #expect(result.stdout.contains("PATH="))

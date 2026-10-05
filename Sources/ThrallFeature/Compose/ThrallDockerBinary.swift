@@ -15,10 +15,14 @@ public struct ThrallDockerBinary: Sendable {
     public var primaryPath: String
     public var fallbackPaths: [String]
 
-    public init(primaryPath: String = "/usr/local/bin/docker",
-                fallbackPaths: [String] = ["/opt/homebrew/bin/docker",
-                                           "/usr/bin/docker",
-                                           "/usr/local/bin/docker"]) {
+    public init(
+        primaryPath: String = "/usr/local/bin/docker",
+        fallbackPaths: [String] = [
+            "/opt/homebrew/bin/docker",
+            "/usr/bin/docker",
+            "/usr/local/bin/docker",
+        ]
+    ) {
         self.primaryPath = primaryPath
         self.fallbackPaths = fallbackPaths
     }
@@ -44,10 +48,10 @@ public struct ThrallDockerBinary: Sendable {
     }
 }
 
-private extension Array where Element == String {
+extension Array where Element == String {
     /// Order-preserving dedupe, so a primary that repeats in the fallbacks is
     /// listed once.
-    func reduced() -> [String] {
+    fileprivate func reduced() -> [String] {
         var seen = Set<String>()
         return filter { seen.insert($0).inserted }
     }

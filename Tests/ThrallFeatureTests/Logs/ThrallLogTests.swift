@@ -1,6 +1,7 @@
+import AinkradAppKit
 import Foundation
 import Testing
-import AinkradAppKit
+
 @testable import ThrallFeature
 
 @Suite("ThrallLogsModel")

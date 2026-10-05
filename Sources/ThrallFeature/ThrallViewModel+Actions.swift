@@ -1,5 +1,5 @@
-import Foundation
 import AinkradAppKit
+import Foundation
 
 /// The action half of `ThrallViewModel`.
 ///
@@ -47,7 +47,8 @@ extension ThrallViewModel {
             let outcome = await ThrallOrphanTeardown.run(stack: stack, using: client)
             guard let self else { return }
             self.busyStacks.remove(stack.id)
-            self.lastActionMessage = outcome.failures.isEmpty
+            self.lastActionMessage =
+                outcome.failures.isEmpty
                 ? "Tore down \(stack.displayName) by label — \(outcome.summary)."
                 : "Teardown of \(stack.displayName) partly failed: \(outcome.summary)"
             await self.refresh()
@@ -75,17 +76,21 @@ extension ThrallViewModel {
         do {
             if let verb = action.composeVerb {
                 guard let directory = stack.workingDirectoryDisplay,
-                      let project = stack.id.projectName else {
+                    let project = stack.id.projectName
+                else {
                     lastActionMessage = "\(stack.displayName) has no project directory to run in."
                     return
                 }
-                let command = ThrallComposeCommand(verb: verb,
-                                                   projectName: project,
-                                                   projectDirectory: directory,
-                                                   configFiles: stack.configFiles)
-                let result = try await compose.run(command, stack: stack.id,
-                                                   dockerHost: dockerHostValue)
-                lastActionMessage = result.succeeded
+                let command = ThrallComposeCommand(
+                    verb: verb,
+                    projectName: project,
+                    projectDirectory: directory,
+                    configFiles: stack.configFiles)
+                let result = try await compose.run(
+                    command, stack: stack.id,
+                    dockerHost: dockerHostValue)
+                lastActionMessage =
+                    result.succeeded
                     ? "\(action.title) finished on \(stack.displayName)."
                     : "\(action.title) failed on \(stack.displayName): \(result.summary)"
             } else if let engineVerb = action.engineVerb {
@@ -106,8 +111,10 @@ extension ThrallViewModel {
         await refresh()
     }
 
-    private func runEngineVerb(_ verb: ThrallStackAction.EngineVerb,
-                               on stack: ThrallStack) async throws {
+    private func runEngineVerb(
+        _ verb: ThrallStackAction.EngineVerb,
+        on stack: ThrallStack
+    ) async throws {
         guard let client else { throw ThrallEngineError.noEngineSelected(name: engineLabel) }
         let containers = stack.services.flatMap(\.containers)
         for container in containers {
@@ -174,8 +181,9 @@ extension ThrallViewModel {
             // Disk candidates arrive with the indexer (Task F); until then the
             // world is engine-only, which is exactly rule 1 of the
             // reconciler's precedence and renders correctly on its own.
-            world = ThrallReconciler.reconcile(engineKey: context.endpoint.engineKey,
-                                               containers: containers)
+            world = ThrallReconciler.reconcile(
+                engineKey: context.endpoint.engineKey,
+                containers: containers)
             state = .loaded
             startEventStream(version: version)
             // Skipped in basic mode: the scan reads container logs to fingerprint
@@ -202,18 +210,21 @@ extension ThrallViewModel {
             return
         }
         let engineKey = activeContext?.endpoint.engineKey ?? ""
-        let supervisor = ThrallStreamSupervisor(socketPath: path,
-                                                apiVersion: version.negotiated)
+        let supervisor = ThrallStreamSupervisor(
+            socketPath: path,
+            apiVersion: version.negotiated)
         self.supervisor = supervisor
         Task {
             // Each handler carries its own `[weak self]`: they outlive the
             // enclosing task and a shared captured `self` var is not sendable
             // into them.
-            await supervisor.start(onEvent: { [weak self] event in
-                await self?.handle(event, engineKey: engineKey)
-            }, onConnected: { [weak self] connected in
-                await self?.setEventStreamConnected(connected)
-            })
+            await supervisor.start(
+                onEvent: { [weak self] event in
+                    await self?.handle(event, engineKey: engineKey)
+                },
+                onConnected: { [weak self] connected in
+                    await self?.setEventStreamConnected(connected)
+                })
         }
     }
 
@@ -236,9 +247,10 @@ extension ThrallViewModel {
             world: suppressedWorld(),
             inspect: { try await client.inspect(containerID: $0) },
             readLog: { try await client.logTail(containerID: $0) })
-        reporter.report(incidents: triage.incidents,
-                        suppressedStacks: settlingStacks(),
-                        to: host.signals)
+        reporter.report(
+            incidents: triage.incidents,
+            suppressedStacks: settlingStacks(),
+            to: host.signals)
     }
 
     /// Stacks inside their 30 s settle window.
@@ -256,9 +268,10 @@ extension ThrallViewModel {
     private func suppressedWorld() -> ThrallWorld {
         let settling = settlingStacks()
         guard !settling.isEmpty else { return world }
-        return ThrallWorld(engineKey: world.engineKey,
-                           stacks: world.stacks.filter { !settling.contains($0.id) },
-                           generatedAt: world.generatedAt)
+        return ThrallWorld(
+            engineKey: world.engineKey,
+            stacks: world.stacks.filter { !settling.contains($0.id) },
+            generatedAt: world.generatedAt)
     }
 
     /// Runs a remedy. Only a state-destroying one confirms.

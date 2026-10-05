@@ -1,35 +1,41 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 @Suite("ThrallEngineEndpoint")
 struct ThrallEngineEndpointTests {
     @Test("a unix socket URL becomes a path")
     func unixSocket() {
-        #expect(ThrallEngineEndpoint.parse("unix:///Users/me/.orbstack/run/docker.sock")
-            == .unixSocket(path: "/Users/me/.orbstack/run/docker.sock"))
+        #expect(
+            ThrallEngineEndpoint.parse("unix:///Users/me/.orbstack/run/docker.sock")
+                == .unixSocket(path: "/Users/me/.orbstack/run/docker.sock"))
     }
 
     @Test("a bare absolute path is accepted — it is what a settings field gets")
     func barePath() {
-        #expect(ThrallEngineEndpoint.parse("/var/run/docker.sock")
-            == .unixSocket(path: "/var/run/docker.sock"))
+        #expect(
+            ThrallEngineEndpoint.parse("/var/run/docker.sock")
+                == .unixSocket(path: "/var/run/docker.sock"))
     }
 
     @Test("surrounding whitespace is trimmed")
     func trimmed() {
-        #expect(ThrallEngineEndpoint.parse("  unix:///tmp/d.sock\n")
-            == .unixSocket(path: "/tmp/d.sock"))
+        #expect(
+            ThrallEngineEndpoint.parse("  unix:///tmp/d.sock\n")
+                == .unixSocket(path: "/tmp/d.sock"))
     }
 
     /// Refused, but **listed with a reason** — a context that vanishes from the
     /// switcher is a support call, and with three contexts configured here
     /// "which daemon am I looking at" is the failure mode the switcher exists
     /// to answer.
-    @Test("a transport Thrall will not drive is unsupported, not dropped", arguments: [
-        "tcp://10.0.0.4:2376", "ssh://user@host", "npipe:////./pipe/docker_engine",
-        "fd://", "https://example.test:2376", "quic://weird",
-    ])
+    @Test(
+        "a transport Thrall will not drive is unsupported, not dropped",
+        arguments: [
+            "tcp://10.0.0.4:2376", "ssh://user@host", "npipe:////./pipe/docker_engine",
+            "fd://", "https://example.test:2376", "quic://weird",
+        ])
     func unsupportedTransports(raw: String) throws {
         let endpoint = try #require(ThrallEngineEndpoint.parse(raw))
         #expect(!endpoint.isSupported)
@@ -40,8 +46,9 @@ struct ThrallEngineEndpointTests {
         #expect(!reason.isEmpty, "an unsupported endpoint must be able to explain itself")
     }
 
-    @Test("input that names nothing at all parses to nothing",
-          arguments: ["", "   ", "docker.sock", "unix://relative/path", "unix://"])
+    @Test(
+        "input that names nothing at all parses to nothing",
+        arguments: ["", "   ", "docker.sock", "unix://relative/path", "unix://"])
     func namesNothing(raw: String) {
         #expect(ThrallEngineEndpoint.parse(raw) == nil)
     }
@@ -51,8 +58,9 @@ struct ThrallEngineEndpointTests {
     /// the implicit `default` context and `orbstack` are **one engine wearing
     /// two names**. Keyed on the literal path they would show as two engines,
     /// and every stack seen through both would duplicate.
-    @Test("two paths to the same socket share one engine key",
-          .enabled(if: FileManager.default.fileExists(atPath: "/var/run/docker.sock")))
+    @Test(
+        "two paths to the same socket share one engine key",
+        .enabled(if: FileManager.default.fileExists(atPath: "/var/run/docker.sock")))
     func symlinkedPathsShareAnEngineKey() throws {
         let viaPlatform = ThrallEngineEndpoint.unixSocket(path: "/var/run/docker.sock")
         let resolved = URL(fileURLWithPath: "/var/run/docker.sock")

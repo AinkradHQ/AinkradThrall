@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import ThrallFeature
 
 /// Driven entirely by the captured 48-container response. The two spine tests
@@ -11,17 +12,21 @@ struct ThrallReconcilerTests {
     private static let engineKey = "unix:/Users/me/.orbstack/run/docker.sock"
 
     private func fixtureContainers() throws -> [ThrallContainerDTO] {
-        try JSONDecoder().decode([ThrallContainerDTO].self,
-                                 from: try Fixtures.data(Fixtures.containersAll48))
+        try JSONDecoder().decode(
+            [ThrallContainerDTO].self,
+            from: try Fixtures.data(Fixtures.containersAll48))
     }
 
-    private func world(diskCandidates: [ThrallDiskCandidate] = [],
-                       probe: ThrallFileProbe = .nothingExists) throws -> ThrallWorld {
-        ThrallReconciler.reconcile(engineKey: Self.engineKey,
-                                   containers: try fixtureContainers(),
-                                   diskCandidates: diskCandidates,
-                                   probe: probe,
-                                   now: Date(timeIntervalSince1970: 1_789_000_000))
+    private func world(
+        diskCandidates: [ThrallDiskCandidate] = [],
+        probe: ThrallFileProbe = .nothingExists
+    ) throws -> ThrallWorld {
+        ThrallReconciler.reconcile(
+            engineKey: Self.engineKey,
+            containers: try fixtureContainers(),
+            diskCandidates: diskCandidates,
+            probe: probe,
+            now: Date(timeIntervalSince1970: 1_789_000_000))
     }
 
     // MARK: - Spine
@@ -62,10 +67,11 @@ struct ThrallReconcilerTests {
     @Test("five stacks and the loose pseudo-stack, with the right counts")
     func stackCounts() throws {
         let stacks = try world().stacks
-        #expect(stacks.map { "\($0.displayName)=\($0.containerCount)" } == [
-            "aai1058=24", "althaqeel=12", "compose=1", "compose=1", "optimus=8",
-            "Unmanaged=2",
-        ])
+        #expect(
+            stacks.map { "\($0.displayName)=\($0.containerCount)" } == [
+                "aai1058=24", "althaqeel=12", "compose=1", "compose=1", "optimus=8",
+                "Unmanaged=2",
+            ])
     }
 
     /// Sorted by identity, never by state — with containers flapping, a
@@ -141,9 +147,11 @@ struct ThrallReconcilerTests {
         // filesystem, and the day that directory was deleted too the test
         // failed on its premise instead of on the behaviour.
         let aaiFiles = ThrallReconciler.configFiles(
-            from: try #require(try fixtureContainers().first {
-                $0.labels["com.docker.compose.project"] == "aai1058"
-            }).labels)
+            from: try #require(
+                try fixtureContainers().first {
+                    $0.labels["com.docker.compose.project"] == "aai1058"
+                }
+            ).labels)
         let directoryOnly = ThrallFileProbe { !aaiFiles.contains($0) }
         let stacks = try world(probe: directoryOnly).stacks
         let aai = try #require(stacks.first { $0.displayName == "aai1058" })
@@ -162,15 +170,19 @@ struct ThrallReconcilerTests {
     func partialConfigPresence() throws {
         let containers = try fixtureContainers()
         let aaiFiles = ThrallReconciler.configFiles(
-            from: try #require(containers.first {
-                $0.labels["com.docker.compose.project"] == "aai1058"
-            }).labels)
+            from: try #require(
+                containers.first {
+                    $0.labels["com.docker.compose.project"] == "aai1058"
+                }
+            ).labels)
         let firstOnly = aaiFiles[0]
         let probe = ThrallFileProbe { $0 == firstOnly }
         let stack = try #require(
-            ThrallReconciler.reconcile(engineKey: Self.engineKey, containers: containers,
-                                       probe: probe)
-                .stacks.first { $0.displayName == "aai1058" })
+            ThrallReconciler.reconcile(
+                engineKey: Self.engineKey, containers: containers,
+                probe: probe
+            )
+            .stacks.first { $0.displayName == "aai1058" })
         #expect(!stack.isConfigMissing)
         #expect(stack.absentConfigFiles.count == 1)
     }
@@ -182,12 +194,16 @@ struct ThrallReconcilerTests {
     /// brought up.
     @Test("a stack with zero containers is listed from disk alone")
     func zeroContainerStackFromDisk() throws {
-        let candidate = ThrallDiskCandidate(projectName: "dormant",
-                                            workingDirectory: "/Users/me/Projects/Dormant",
-                                            configFiles: ["/Users/me/Projects/Dormant/compose.yml"],
-                                            declaredServices: ["api", "db"])
-        let stack = try #require(try world(diskCandidates: [candidate],
-                                           probe: .everythingExists)
+        let candidate = ThrallDiskCandidate(
+            projectName: "dormant",
+            workingDirectory: "/Users/me/Projects/Dormant",
+            configFiles: ["/Users/me/Projects/Dormant/compose.yml"],
+            declaredServices: ["api", "db"])
+        let stack = try #require(
+            try world(
+                diskCandidates: [candidate],
+                probe: .everythingExists
+            )
             .stacks.first { $0.displayName == "dormant" })
         #expect(stack.containerCount == 0)
         #expect(stack.health == .down)
@@ -199,14 +215,16 @@ struct ThrallReconcilerTests {
     @Test("a declared service with no container joins a running stack as absent")
     func declaredButAbsentServiceInRunningStack() throws {
         let containers = try fixtureContainers()
-        let optimus = try #require(containers.first {
-            $0.labels["com.docker.compose.project"] == "optimus"
-        })
+        let optimus = try #require(
+            containers.first {
+                $0.labels["com.docker.compose.project"] == "optimus"
+            })
         let directory = try #require(
             optimus.labels["com.docker.compose.project.working_dir"])
-        let running = Set(containers
-            .filter { $0.labels["com.docker.compose.project"] == "optimus" }
-            .compactMap { $0.labels["com.docker.compose.service"] })
+        let running = Set(
+            containers
+                .filter { $0.labels["com.docker.compose.project"] == "optimus" }
+                .compactMap { $0.labels["com.docker.compose.service"] })
 
         let candidate = ThrallDiskCandidate(
             projectName: "optimus",
@@ -214,9 +232,11 @@ struct ThrallReconcilerTests {
             configFiles: ThrallReconciler.configFiles(from: optimus.labels),
             declaredServices: Array(running) + ["never-started"])
         let stack = try #require(
-            ThrallReconciler.reconcile(engineKey: Self.engineKey, containers: containers,
-                                       diskCandidates: [candidate], probe: .everythingExists)
-                .stacks.first { $0.displayName == "optimus" })
+            ThrallReconciler.reconcile(
+                engineKey: Self.engineKey, containers: containers,
+                diskCandidates: [candidate], probe: .everythingExists
+            )
+            .stacks.first { $0.displayName == "optimus" })
 
         let absent = stack.services.filter(\.isDeclaredButAbsent)
         #expect(absent.map(\.name) == ["never-started"])
@@ -228,22 +248,27 @@ struct ThrallReconcilerTests {
     @Test("a disk candidate matches a running stack through the folded key")
     func diskCandidateMergesByFoldedKey() throws {
         let containers = try fixtureContainers()
-        let directory = try #require(containers
-            .first { $0.labels["com.docker.compose.project"] == "althaqeel" }?
-            .labels["com.docker.compose.project.working_dir"])
+        let directory = try #require(
+            containers
+                .first { $0.labels["com.docker.compose.project"] == "althaqeel" }?
+                .labels["com.docker.compose.project.working_dir"])
         // Same directory, opposite case, and a trailing slash for good measure.
-        let flipped = directory.hasSuffix("/Run")
+        let flipped =
+            directory.hasSuffix("/Run")
             ? directory.replacingOccurrences(of: "/Run", with: "/run") + "/"
             : directory.replacingOccurrences(of: "/run", with: "/Run") + "/"
-        let candidate = ThrallDiskCandidate(projectName: "althaqeel",
-                                            workingDirectory: flipped,
-                                            configFiles: [],
-                                            declaredServices: ["ghost"])
-        let stacks = ThrallReconciler.reconcile(engineKey: Self.engineKey,
-                                                containers: containers,
-                                                diskCandidates: [candidate],
-                                                probe: .everythingExists)
-            .stacks.filter { $0.displayName == "althaqeel" }
+        let candidate = ThrallDiskCandidate(
+            projectName: "althaqeel",
+            workingDirectory: flipped,
+            configFiles: [],
+            declaredServices: ["ghost"])
+        let stacks = ThrallReconciler.reconcile(
+            engineKey: Self.engineKey,
+            containers: containers,
+            diskCandidates: [candidate],
+            probe: .everythingExists
+        )
+        .stacks.filter { $0.displayName == "althaqeel" }
         #expect(stacks.count == 1, "the candidate must not create a second althaqeel")
         #expect(stacks[0].containerCount == 12)
         #expect(stacks[0].services.contains { $0.name == "ghost" && $0.isDeclaredButAbsent })
@@ -260,14 +285,17 @@ struct ThrallReconcilerTests {
         let newest = try #require(optimus.map(\.created).max())
 
         func stack(configModified: Date) throws -> ThrallStack {
-            let candidate = ThrallDiskCandidate(projectName: "optimus",
-                                                workingDirectory: directory,
-                                                configFiles: [],
-                                                configModified: configModified)
+            let candidate = ThrallDiskCandidate(
+                projectName: "optimus",
+                workingDirectory: directory,
+                configFiles: [],
+                configModified: configModified)
             return try #require(
-                ThrallReconciler.reconcile(engineKey: Self.engineKey, containers: containers,
-                                           diskCandidates: [candidate], probe: .everythingExists)
-                    .stacks.first { $0.displayName == "optimus" })
+                ThrallReconciler.reconcile(
+                    engineKey: Self.engineKey, containers: containers,
+                    diskCandidates: [candidate], probe: .everythingExists
+                )
+                .stacks.first { $0.displayName == "optimus" })
         }
         let after = Date(timeIntervalSince1970: TimeInterval(newest) + 60)
         let before = Date(timeIntervalSince1970: TimeInterval(newest) - 60)
@@ -320,8 +348,9 @@ struct ThrallReconcilerTests {
         #expect(stacks.allSatisfy { $0.health != .unhealthy })
     }
 
-    @Test("a restarting or dead container makes the whole stack unhealthy",
-          arguments: ["restarting", "dead"])
+    @Test(
+        "a restarting or dead container makes the whole stack unhealthy",
+        arguments: ["restarting", "dead"])
     func unhealthyRollUp(state: String) throws {
         var containers = try fixtureContainers()
             .filter { $0.labels["com.docker.compose.project"] == "optimus" }
@@ -363,8 +392,9 @@ struct ThrallReconcilerTests {
         #expect(!withDependencies.isEmpty)
         let aai = try #require(stacks.first { $0.displayName == "aai1058" })
         #expect(aai.isConfigMissing)
-        #expect(aai.services.contains { !$0.dependsOn.isEmpty },
-                "the dependency graph must survive the compose file being gone")
+        #expect(
+            aai.services.contains { !$0.dependsOn.isEmpty },
+            "the dependency graph must survive the compose file being gone")
     }
 
     @Test("an empty engine gives an empty world, not a crash")
@@ -379,8 +409,9 @@ struct ThrallReconcilerTests {
 struct ThrallPathKeyTests {
     @Test("case-only differences fold together")
     func foldsCase() {
-        #expect(ThrallPathKey("/Users/me/Projects/Althaqeel/Run")
-            == ThrallPathKey("/Users/me/Projects/althaqeel/run"))
+        #expect(
+            ThrallPathKey("/Users/me/Projects/Althaqeel/Run")
+                == ThrallPathKey("/Users/me/Projects/althaqeel/run"))
     }
 
     @Test("a trailing slash is not an identity")
@@ -403,8 +434,9 @@ struct ThrallPathKeyTests {
 
     @Test("genuinely different directories stay different")
     func keepsRealDifferences() {
-        #expect(ThrallPathKey("/Users/me/Projects/UlynkHomeCloud/deploy/compose")
-            != ThrallPathKey("/tmp/scratch/UlynkControlPlane/deploy/compose"))
+        #expect(
+            ThrallPathKey("/Users/me/Projects/UlynkHomeCloud/deploy/compose")
+                != ThrallPathKey("/tmp/scratch/UlynkControlPlane/deploy/compose"))
     }
 
     @Test("decomposed and precomposed Unicode fold together")
@@ -422,14 +454,18 @@ struct ThrallDependencyTests {
         let parsed = ThrallDependency.parse(
             label: "redis:service_started:false,mysql:service_healthy:true")
         #expect(parsed.count == 2)
-        #expect(parsed[0] == ThrallDependency(service: "redis", condition: "service_started",
-                                              restartsDependents: false))
+        #expect(
+            parsed[0]
+                == ThrallDependency(
+                    service: "redis", condition: "service_started",
+                    restartsDependents: false))
         #expect(parsed[1].restartsDependents)
     }
 
     /// A bad label must never cost the user a row.
-    @Test("malformed clauses are dropped, not thrown",
-          arguments: ["", "redis", "redis:only-two", ":empty:false", "a:b:c:d"])
+    @Test(
+        "malformed clauses are dropped, not thrown",
+        arguments: ["", "redis", "redis:only-two", ":empty:false", "a:b:c:d"])
     func dropsMalformed(label: String) {
         #expect(ThrallDependency.parse(label: label).isEmpty)
     }

@@ -111,10 +111,16 @@ public struct ThrallContainerInspectDTO: Decodable, Equatable, Sendable {
         public let finishedAt: Date?
 
         enum CodingKeys: String, CodingKey {
-            case status = "Status", running = "Running", paused = "Paused"
-            case restarting = "Restarting", oomKilled = "OOMKilled", dead = "Dead"
-            case exitCode = "ExitCode", error = "Error"
-            case startedAt = "StartedAt", finishedAt = "FinishedAt"
+            case status = "Status"
+            case running = "Running"
+            case paused = "Paused"
+            case restarting = "Restarting"
+            case oomKilled = "OOMKilled"
+            case dead = "Dead"
+            case exitCode = "ExitCode"
+            case error = "Error"
+            case startedAt = "StartedAt"
+            case finishedAt = "FinishedAt"
         }
 
         public init(from decoder: any Decoder) throws {
@@ -157,9 +163,13 @@ public struct ThrallContainerInspectDTO: Decodable, Equatable, Sendable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id = "Id", name = "Name", created = "Created"
-        case restartCount = "RestartCount", state = "State"
-        case hostConfig = "HostConfig", config = "Config"
+        case id = "Id"
+        case name = "Name"
+        case created = "Created"
+        case restartCount = "RestartCount"
+        case state = "State"
+        case hostConfig = "HostConfig"
+        case config = "Config"
     }
 
     private enum HostConfigKeys: String, CodingKey { case restartPolicy = "RestartPolicy" }
@@ -175,9 +185,12 @@ public struct ThrallContainerInspectDTO: Decodable, Equatable, Sendable {
         restartCount = try values.decodeIfPresent(Int.self, forKey: .restartCount) ?? 0
         state = try values.decode(State.self, forKey: .state)
 
-        if let hostConfig = try? values.nestedContainer(keyedBy: HostConfigKeys.self,
-                                                        forKey: .hostConfig) {
-            restartPolicy = try hostConfig.decodeIfPresent(RestartPolicy.self, forKey: .restartPolicy)
+        if let hostConfig = try? values.nestedContainer(
+            keyedBy: HostConfigKeys.self,
+            forKey: .hostConfig)
+        {
+            restartPolicy =
+                try hostConfig.decodeIfPresent(RestartPolicy.self, forKey: .restartPolicy)
                 ?? RestartPolicy(name: "no", maximumRetryCount: 0)
         } else {
             restartPolicy = RestartPolicy(name: "no", maximumRetryCount: 0)

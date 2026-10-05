@@ -1,6 +1,7 @@
-import Testing
-import SwiftUI
 import AinkradAppKit
+import SwiftUI
+import Testing
+
 @testable import ThrallFeature
 
 /// Thrall's basic mode: the stacks, and the verbs on them.

@@ -1,6 +1,6 @@
+import AinkradAppKit
 import Foundation
 import Testing
-import AinkradAppKit
 
 /// Guards the bundle metadata that the host reads but no build step verifies.
 ///
@@ -14,14 +14,17 @@ struct BundleMetadataTests {
     /// test does not depend on where the bundle happens to be built.
     private static func sourceInfoPlist() throws -> [String: Any] {
         let testFile = URL(fileURLWithPath: #filePath)
-        let repoRoot = testFile
-            .deletingLastPathComponent()   // ThrallFeatureTests
-            .deletingLastPathComponent()   // Tests
-            .deletingLastPathComponent()   // repo root
-        let plist = repoRoot
+        let repoRoot =
+            testFile
+            .deletingLastPathComponent()  // ThrallFeatureTests
+            .deletingLastPathComponent()  // Tests
+            .deletingLastPathComponent()  // repo root
+        let plist =
+            repoRoot
             .appendingPathComponent("Sources/ThrallPlugin/Info.plist")
         let data = try Data(contentsOf: plist)
-        let parsed = try PropertyListSerialization
+        let parsed =
+            try PropertyListSerialization
             .propertyList(from: data, options: [], format: nil)
         return try #require(parsed as? [String: Any])
     }
