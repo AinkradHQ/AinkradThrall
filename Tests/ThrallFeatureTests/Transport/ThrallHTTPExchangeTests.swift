@@ -70,6 +70,24 @@ struct ThrallHTTPExchangeTests {
         }
     }
 
+    /// A stream left open on an error path is a leaked socket per failed call.
+    @Test("the stream is closed when the call throws")
+    func closesOnThrow() async throws {
+        let stream = ScriptedByteStream.splitting(RawResponses.containersChunked, every: 64)
+        _ = try? await ThrallHTTPExchange.perform(
+            ThrallHTTPRequest(target: "/v1.51/containers/json"),
+            over: stream, maximumBodyLength: 16)
+        #expect(await stream.closeCount == 1)
+    }
+
+    @Test("the stream is closed when the call succeeds")
+    func closesOnSuccess() async throws {
+        let stream = ScriptedByteStream.splitting(RawResponses.versionContentLength, every: 64)
+        _ = try await ThrallHTTPExchange.perform(
+            ThrallHTTPRequest(target: "/version"), over: stream)
+        #expect(await stream.closeCount == 1)
+    }
+
     @Test("the reader hands events out one at a time and then nil")
     func readerSequence() async throws {
         let stream = ScriptedByteStream.splitting(RawResponses.versionContentLength, every: 11)

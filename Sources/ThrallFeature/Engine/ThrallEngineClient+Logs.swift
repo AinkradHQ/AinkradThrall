@@ -32,48 +32,49 @@ extension ThrallEngineClient {
             ])
         let stream = makeStream()
         let reader = ThrallHTTPResponseReader(stream: stream)
-        try await stream.connect()
-        try await stream.send(ThrallHTTPRequest(target: target).encoded())
+        return try await stream.closing { () async throws -> [ThrallLogFrame] in
+            try await stream.connect()
+            try await stream.send(ThrallHTTPRequest(target: target).encoded())
 
-        var decoder: ThrallLogFrameDecoder?
-        var frames: [ThrallLogFrame] = []
-        var kept = 0
+            var decoder: ThrallLogFrameDecoder?
+            var frames: [ThrallLogFrame] = []
+            var kept = 0
 
-        while let event = try await reader.next(timeout: requestTimeout) {
-            switch event {
-            case .head(let head):
-                guard head.isSuccess else {
-                    throw ThrallEngineError.http(
-                        status: head.statusCode,
-                        message: head.reasonPhrase)
-                }
-                guard
-                    let framing =
-                        ThrallLogFrameDecoder
-                        .framing(forContentType: head.contentType)
-                else {
+            while let event = try await reader.next(timeout: requestTimeout) {
+                switch event {
+                case .head(let head):
+                    guard head.isSuccess else {
+                        throw ThrallEngineError.http(
+                            status: head.statusCode,
+                            message: head.reasonPhrase)
+                    }
+                    guard
+                        let framing =
+                            ThrallLogFrameDecoder
+                            .framing(forContentType: head.contentType)
+                    else {
+                        throw ThrallTransportError.unsupportedFraming(
+                            "log Content-Type \(head.contentType ?? "absent") is not one Thrall reads")
+                    }
+                    decoder = ThrallLogFrameDecoder(framing: framing)
+                case .body(let chunk):
+                    guard decoder != nil else {
+                        throw ThrallTransportError.malformedResponse("log body before the head")
+                    }
+                    for frame in try decoder!.feed(chunk) {
+                        kept += frame.payload.count
+                        guard kept <= maximumBytes else { return frames }
+                        frames.append(frame)
+                    }
+                case .end, .trailers:
+                    break
+                case .upgraded:
                     throw ThrallTransportError.unsupportedFraming(
-                        "log Content-Type \(head.contentType ?? "absent") is not one Thrall reads")
+                        "a log read must not upgrade the connection")
                 }
-                decoder = ThrallLogFrameDecoder(framing: framing)
-            case .body(let chunk):
-                guard decoder != nil else {
-                    throw ThrallTransportError.malformedResponse("log body before the head")
-                }
-                for frame in try decoder!.feed(chunk) {
-                    kept += frame.payload.count
-                    guard kept <= maximumBytes else { return frames }
-                    frames.append(frame)
-                }
-            case .end, .trailers:
-                break
-            case .upgraded:
-                throw ThrallTransportError.unsupportedFraming(
-                    "a log read must not upgrade the connection")
             }
+            return frames
         }
-        await stream.close()
-        return frames
     }
 
     /// The tail as text, which is what fingerprinting needs.

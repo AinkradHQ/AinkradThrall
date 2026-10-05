@@ -67,39 +67,41 @@ public enum ThrallHTTPExchange {
         timeout: Duration = .seconds(30),
         maximumBodyLength: Int = 64 * 1024 * 1024
     ) async throws -> ThrallHTTPResponse {
-        try await stream.connect()
-        try await stream.send(request.encoded())
+        try await stream.closing { () async throws -> ThrallHTTPResponse in
+            try await stream.connect()
+            try await stream.send(request.encoded())
 
-        let reader = ThrallHTTPResponseReader(stream: stream)
-        var head: ThrallHTTPResponseHead?
-        var body = Data()
-        var trailers: ThrallHTTPHeaders?
+            let reader = ThrallHTTPResponseReader(stream: stream)
+            var head: ThrallHTTPResponseHead?
+            var body = Data()
+            var trailers: ThrallHTTPHeaders?
 
-        while let event = try await reader.next(timeout: timeout) {
-            switch event {
-            case .head(let value):
-                head = value
-            case .body(let chunk):
-                guard body.count + chunk.count <= maximumBodyLength else {
-                    throw ThrallTransportError.tooLarge(
-                        "response body exceeded \(maximumBodyLength) bytes")
+            while let event = try await reader.next(timeout: timeout) {
+                switch event {
+                case .head(let value):
+                    head = value
+                case .body(let chunk):
+                    guard body.count + chunk.count <= maximumBodyLength else {
+                        throw ThrallTransportError.tooLarge(
+                            "response body exceeded \(maximumBodyLength) bytes")
+                    }
+                    body.append(chunk)
+                case .trailers(let value):
+                    trailers = value
+                case .end:
+                    break
+                case .upgraded:
+                    // A unary caller has nowhere to put a hijacked pipe, and
+                    // returning the head alone would leak the socket while looking
+                    // like success.
+                    throw ThrallTransportError.unsupportedFraming(
+                        "the engine upgraded the connection; use ThrallHijackedStream")
                 }
-                body.append(chunk)
-            case .trailers(let value):
-                trailers = value
-            case .end:
-                break
-            case .upgraded:
-                // A unary caller has nowhere to put a hijacked pipe, and
-                // returning the head alone would leak the socket while looking
-                // like success.
-                throw ThrallTransportError.unsupportedFraming(
-                    "the engine upgraded the connection; use ThrallHijackedStream")
             }
+            guard let head else {
+                throw ThrallTransportError.malformedResponse("no response head was read")
+            }
+            return ThrallHTTPResponse(head: head, body: body, trailers: trailers)
         }
-        guard let head else {
-            throw ThrallTransportError.malformedResponse("no response head was read")
-        }
-        return ThrallHTTPResponse(head: head, body: body, trailers: trailers)
     }
 }
