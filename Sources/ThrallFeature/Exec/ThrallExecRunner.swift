@@ -183,60 +183,60 @@ extension ThrallEngineClient {
 
         // Start. The response hijacks the connection and runs to close.
         let stream = makeStream()
-        try await stream.connect()
-        let startBody = Data(#"{"Detach":false,"Tty":false}"#.utf8)
-        try await stream.send(
-            ThrallHTTPRequest(
-                method: "POST",
-                target: Self.target(prefix + "/exec/\(try Self.identifier(execID))/start", query: []),
-                headers: [(name: "Content-Type", value: "application/json")],
-                body: startBody
-            ).encoded())
-
-        // Always multiplexed, because we sent `Tty: false` — see
-        // `ThrallExecRunner`'s note on the raw-stream header.
-        var decoder = ThrallLogFrameDecoder(framing: .multiplexed)
-        let reader = ThrallHTTPResponseReader(stream: stream)
         var out = Data()
         var err = Data()
         var truncated = false
+        try await stream.closing {
+            try await stream.connect()
+            let startBody = Data(#"{"Detach":false,"Tty":false}"#.utf8)
+            try await stream.send(
+                ThrallHTTPRequest(
+                    method: "POST",
+                    target: Self.target(prefix + "/exec/\(try Self.identifier(execID))/start", query: []),
+                    headers: [(name: "Content-Type", value: "application/json")],
+                    body: startBody
+                ).encoded())
 
-        loop: while let event = try await reader.next(timeout: .seconds(60)) {
-            switch event {
-            case .head(let head):
-                guard head.isSuccess else {
-                    throw ThrallExecError.engine("exec start returned \(head.statusCode)")
-                }
-            case .body(let chunk):
-                for frame in try decoder.feed(chunk) {
-                    if out.count + err.count + frame.payload.count > maximumBytes {
-                        truncated = true
-                        break loop
+            // Always multiplexed, because we sent `Tty: false` — see
+            // `ThrallExecRunner`'s note on the raw-stream header.
+            var decoder = ThrallLogFrameDecoder(framing: .multiplexed)
+            let reader = ThrallHTTPResponseReader(stream: stream)
+            loop: while let event = try await reader.next(timeout: .seconds(60)) {
+                switch event {
+                case .head(let head):
+                    guard head.isSuccess else {
+                        throw ThrallExecError.engine("exec start returned \(head.statusCode)")
                     }
-                    if frame.stream == .stderr { err.append(frame.payload) } else { out.append(frame.payload) }
-                }
-            case .upgraded(let residual):
-                // The other spelling of a hijack. The residual is already
-                // output, which is exactly what `ThrallHijackedStream` exists
-                // for.
-                let hijacked = ThrallHijackedStream(upstream: stream, residual: residual)
-                while true {
-                    guard let chunk = try? await hijacked.read(timeout: .seconds(60)) else { break }
+                case .body(let chunk):
                     for frame in try decoder.feed(chunk) {
                         if out.count + err.count + frame.payload.count > maximumBytes {
                             truncated = true
-                            break
+                            break loop
                         }
                         if frame.stream == .stderr { err.append(frame.payload) } else { out.append(frame.payload) }
                     }
-                    if truncated { break }
+                case .upgraded(let residual):
+                    // The other spelling of a hijack. The residual is already
+                    // output, which is exactly what `ThrallHijackedStream` exists
+                    // for.
+                    let hijacked = ThrallHijackedStream(upstream: stream, residual: residual)
+                    while true {
+                        guard let chunk = try? await hijacked.read(timeout: .seconds(60)) else { break }
+                        for frame in try decoder.feed(chunk) {
+                            if out.count + err.count + frame.payload.count > maximumBytes {
+                                truncated = true
+                                break
+                            }
+                            if frame.stream == .stderr { err.append(frame.payload) } else { out.append(frame.payload) }
+                        }
+                        if truncated { break }
+                    }
+                    break loop
+                case .end, .trailers:
+                    break loop
                 }
-                break loop
-            case .end, .trailers:
-                break loop
             }
         }
-        await stream.close()
 
         // Exit code comes from a separate inspect — the stream carries none.
         let inspected: [String: Any]? = try? await getJSONObject(

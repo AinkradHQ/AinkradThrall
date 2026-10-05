@@ -46,6 +46,13 @@ final class ScriptedEngine: @unchecked Sendable {
         return streams
     }
 
+    /// How many times each stream was explicitly closed, in creation order.
+    func closeCounts() async -> [Int] {
+        var counts: [Int] = []
+        for stream in snapshotStreams() { counts.append(await stream.closeCount) }
+        return counts
+    }
+
     /// The request lines sent, in order.
     func requestLines() async -> [String] {
         var lines: [String] = []

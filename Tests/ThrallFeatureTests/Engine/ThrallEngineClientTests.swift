@@ -233,4 +233,43 @@ struct ThrallEngineClientTests {
             #expect(inspected.state.startedAt != nil)
         }
     }
+
+    // MARK: - Streams are closed on every exit path
+
+    @Test("a log read that throws closes its stream")
+    func logsCloseOnThrow() async throws {
+        let engine = ScriptedEngine([
+            ScriptedEngine.versionResponse,
+            ScriptedEngine.response(#"{"message":"gone"}"#, status: 404, reason: "Not Found"),
+        ])
+        _ = try? await client(engine).logs(containerID: "abc")
+        // Index 1 is the log stream; index 0 is the version handshake.
+        #expect(await engine.closeCounts().last == 1)
+    }
+
+    @Test("a log read that stops at the byte cap closes its stream")
+    func logsCloseOnEarlyReturn() async throws {
+        let frame = RawResponses.logFrame(stream: 1, payload: Data(repeating: 0x61, count: 64))
+        let engine = ScriptedEngine([
+            ScriptedEngine.versionResponse,
+            RawResponses.multiplexedLogResponse(frames: [frame, frame]),
+        ])
+        let frames = try await client(engine).logs(containerID: "abc", maximumBytes: 64)
+        #expect(frames.count == 1)
+        #expect(await engine.closeCounts().last == 1)
+    }
+
+    @Test("an exec whose start is refused closes the hijacked stream")
+    func execClosesOnThrow() async throws {
+        let engine = ScriptedEngine([
+            ScriptedEngine.versionResponse,
+            ScriptedEngine.response(#"{"Id":"e1"}"#, status: 201, reason: "Created"),
+            ScriptedEngine.response(
+                #"{"message":"no"}"#, status: 500, reason: "Internal Server Error"),
+        ])
+        _ = try? await client(engine).exec(
+            containerID: "abc", command: ["true"], maximumBytes: 1024)
+        // The exec-start stream is the last one opened.
+        #expect(await engine.closeCounts().last == 1)
+    }
 }

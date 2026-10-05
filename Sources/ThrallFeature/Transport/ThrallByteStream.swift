@@ -23,3 +23,21 @@ public protocol ThrallByteStream: Sendable {
     func read(timeout: Duration?) async throws -> Data
     func close() async
 }
+
+extension ThrallByteStream {
+    /// Runs `body`, then closes the stream on **every** exit — return, throw,
+    /// early return. `defer` cannot `await`, and `close()` is async, so this is
+    /// the one place that spells out the pairing.
+    nonisolated(nonsending) func closing<T>(
+        _ body: () async throws -> T
+    ) async throws -> T {
+        do {
+            let value = try await body()
+            await close()
+            return value
+        } catch {
+            await close()
+            throw error
+        }
+    }
+}

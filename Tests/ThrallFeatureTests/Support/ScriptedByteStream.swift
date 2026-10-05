@@ -17,6 +17,9 @@ actor ScriptedByteStream: ThrallByteStream {
     private var didClose = false
     private var sent = Data()
     private(set) var connectCount = 0
+    /// Explicit `close()` calls only. `didClose` also flips when the script runs
+    /// out, which says nothing about whether the caller closed.
+    private(set) var closeCount = 0
 
     init(reads: [Data]) {
         self.pending = reads
@@ -56,6 +59,7 @@ actor ScriptedByteStream: ThrallByteStream {
     }
 
     func close() async {
+        closeCount += 1
         didClose = true
     }
 
