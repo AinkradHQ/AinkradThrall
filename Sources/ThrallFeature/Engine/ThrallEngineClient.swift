@@ -47,11 +47,16 @@ public actor ThrallEngineClient {
     /// reader, not the unary JSON path.
     let makeStream: StreamFactory
     let requestTimeout: Duration
+    /// `/system/df` is silent until it has walked every volume and build-cache
+    /// entry — 54 s on a large OrbStack — so it cannot share the 30 s unary
+    /// timeout, which would fire before the engine says a word.
+    let diskUsageTimeout: Duration
     private var cachedVersion: ThrallEngineVersion?
 
     public init(
         endpoint: ThrallEngineEndpoint,
         requestTimeout: Duration = .seconds(30),
+        diskUsageTimeout: Duration = .seconds(180),
         streamFactory: StreamFactory? = nil
     ) throws {
         guard case .unixSocket(let path) = endpoint else {
@@ -62,6 +67,7 @@ public actor ThrallEngineClient {
         }
         self.endpoint = endpoint
         self.requestTimeout = requestTimeout
+        self.diskUsageTimeout = diskUsageTimeout
         self.makeStream = streamFactory ?? { ThrallConnection(socketPath: path) }
     }
 
@@ -132,7 +138,7 @@ public actor ThrallEngineClient {
     /// `.task` — it is an explicit, on-demand call for the storage area, with
     /// the result cached above this layer.
     public func diskUsage() async throws -> ThrallDiskUsageDTO {
-        try await versioned(path: "/system/df")
+        try await versioned(path: "/system/df", timeout: diskUsageTimeout)
     }
 
     // MARK: - Writes
@@ -196,17 +202,20 @@ public actor ThrallEngineClient {
 
     private func versioned<Value: Decodable>(
         path: String,
-        query: [(String, String)] = []
+        query: [(String, String)] = [],
+        timeout: Duration? = nil
     ) async throws -> Value {
         let prefix = try await version().pathPrefix
-        return try await get(target: Self.target(prefix + path, query: query))
+        return try await get(target: Self.target(prefix + path, query: query), timeout: timeout)
     }
 
-    private func get<Value: Decodable>(target: String) async throws -> Value {
+    private func get<Value: Decodable>(target: String, timeout: Duration? = nil) async throws
+        -> Value
+    {
         let response = try await ThrallHTTPExchange.perform(
             ThrallHTTPRequest(target: target),
             over: makeStream(),
-            timeout: requestTimeout)
+            timeout: timeout ?? requestTimeout)
 
         guard response.head.isSuccess else {
             // The engine puts a usable sentence in `{"message": ...}`. Falling
