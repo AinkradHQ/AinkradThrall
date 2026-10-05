@@ -24,12 +24,36 @@ extension ThrallViewModel {
         return [.up, .restart, .pull, .down]
     }
 
-    public func perform(_ action: ThrallStackAction, on stack: ThrallStack) {
+    /// `services` narrows a compose or engine verb to those services; empty
+    /// means the whole stack.
+    public func perform(
+        _ action: ThrallStackAction, on stack: ThrallStack, services: [String] = []
+    ) {
         if action == .down, settings.settings.confirmBeforeDown {
             pendingDown = stack
             return
         }
-        run(action, on: stack)
+        run(action, on: stack, services: services)
+    }
+
+    /// The compose command a verb becomes, or nil when the stack has no project
+    /// directory to run it in. A seam so the service narrowing is testable
+    /// without a view model.
+    static func composeCommand(
+        _ verb: ThrallComposeCommand.Verb, on stack: ThrallStack, services: [String]
+    ) -> ThrallComposeCommand? {
+        guard let directory = stack.workingDirectoryDisplay, let project = stack.id.projectName
+        else { return nil }
+        return ThrallComposeCommand(
+            verb: verb, projectName: project, projectDirectory: directory,
+            configFiles: stack.configFiles, services: services)
+    }
+
+    /// The containers an engine-level verb touches: the named services', or all.
+    static func engineTargets(in stack: ThrallStack, services: [String]) -> [ThrallContainer] {
+        stack.services
+            .filter { services.isEmpty || services.contains($0.name) }
+            .flatMap(\.containers)
     }
 
     public func confirmPendingDown() {
@@ -55,7 +79,9 @@ extension ThrallViewModel {
         }
     }
 
-    private func run(_ action: ThrallStackAction, on stack: ThrallStack) {
+    private func run(
+        _ action: ThrallStackAction, on stack: ThrallStack, services: [String] = []
+    ) {
         guard actionTasks[stack.id] == nil else { return }
         // Opens the settle window before the verb runs, so the `die` events it
         // is about to cause are already suppressed when they arrive.
@@ -63,29 +89,26 @@ extension ThrallViewModel {
         busyStacks.insert(stack.id)
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.execute(action, on: stack)
+            await self.execute(action, on: stack, services: services)
         }
         actionTasks[stack.id] = task
     }
 
-    private func execute(_ action: ThrallStackAction, on stack: ThrallStack) async {
+    private func execute(
+        _ action: ThrallStackAction, on stack: ThrallStack, services: [String]
+    ) async {
         defer {
             busyStacks.remove(stack.id)
             actionTasks[stack.id] = nil
         }
         do {
             if let verb = action.composeVerb {
-                guard let directory = stack.workingDirectoryDisplay,
-                    let project = stack.id.projectName
+                guard
+                    let command = Self.composeCommand(verb, on: stack, services: services)
                 else {
                     lastActionMessage = "\(stack.displayName) has no project directory to run in."
                     return
                 }
-                let command = ThrallComposeCommand(
-                    verb: verb,
-                    projectName: project,
-                    projectDirectory: directory,
-                    configFiles: stack.configFiles)
                 let result = try await compose.run(
                     command, stack: stack.id,
                     dockerHost: dockerHostValue)
@@ -94,7 +117,7 @@ extension ThrallViewModel {
                     ? "\(action.title) finished on \(stack.displayName)."
                     : "\(action.title) failed on \(stack.displayName): \(result.summary)"
             } else if let engineVerb = action.engineVerb {
-                try await runEngineVerb(engineVerb, on: stack)
+                try await runEngineVerb(engineVerb, on: stack, services: services)
                 lastActionMessage = "\(action.title) finished on \(stack.displayName)."
             }
         } catch let error as ThrallProcessError {
@@ -113,10 +136,11 @@ extension ThrallViewModel {
 
     private func runEngineVerb(
         _ verb: ThrallStackAction.EngineVerb,
-        on stack: ThrallStack
+        on stack: ThrallStack,
+        services: [String]
     ) async throws {
         guard let client else { throw ThrallEngineError.noEngineSelected(name: engineLabel) }
-        let containers = stack.services.flatMap(\.containers)
+        let containers = Self.engineTargets(in: stack, services: services)
         for container in containers {
             switch verb {
             case .start: try await client.start(containerID: container.id)

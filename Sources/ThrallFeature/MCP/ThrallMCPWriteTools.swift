@@ -228,9 +228,16 @@ enum ThrallMCPWriteTools {
             // An orphaned stack gets the engine-level verb, because compose
             // cannot reach it. Choosing here rather than in the schema keeps
             // the model from having to know the difference.
-            model.perform(stack.isConfigMissing ? .engineRestart : .restart, on: stack)
+            let services: [String]
+            switch requestedServices(arguments, in: stack) {
+            case .success(let names): services = names
+            case .failure(let error): return AgentActionResult(text: error.message, isError: true)
+            }
+            model.perform(
+                stack.isConfigMissing ? .engineRestart : .restart, on: stack, services: services)
+            let scope = services.isEmpty ? stack.displayName : "\(services.joined(separator: ", ")) in \(stack.displayName)"
             return AgentActionResult(
-                text: "Restarting \(stack.displayName)"
+                text: "Restarting \(scope)"
                     + (stack.isConfigMissing
                         ? " through the engine (its compose file is gone)."
                         : " with docker compose."),
@@ -254,11 +261,44 @@ enum ThrallMCPWriteTools {
                     isError: false)
             }
             model.perform(.down, on: stack)
-            return AgentActionResult(
-                text: "Taking \(stack.displayName) down. Named volumes are kept.",
-                isError: false)
+            return downResult(for: stack, confirmationPending: model.pendingDown != nil)
         default:
             return AgentActionResult(text: "\(tool.name) is not implemented.", isError: true)
         }
+    }
+
+    /// The `service` argument, validated against the stack. Empty means the
+    /// whole stack. An unknown name is refused rather than silently widened to
+    /// a whole-stack restart.
+    static func requestedServices(
+        _ arguments: [String: Any], in stack: ThrallStack
+    ) -> Result<[String], ServiceError> {
+        guard let name = arguments["service"] as? String, !name.isEmpty else { return .success([]) }
+        guard stack.services.contains(where: { $0.name == name }) else {
+            return .failure(
+                ServiceError(
+                    "\(stack.displayName) has no service \(name). Known: "
+                        + stack.services.map(\.name).joined(separator: ", ")))
+        }
+        return .success([name])
+    }
+
+    struct ServiceError: Error, Equatable {
+        let message: String
+        init(_ message: String) { self.message = message }
+    }
+
+    /// `perform(.down)` only *asks* when the user has confirmation switched on.
+    /// Claiming the stack is going down then would be false — the model would
+    /// report a teardown that has not happened.
+    static func downResult(for stack: ThrallStack, confirmationPending: Bool) -> AgentActionResult {
+        confirmationPending
+            ? AgentActionResult(
+                text: "Confirmation pending: \(stack.displayName) is not down yet. "
+                    + "The user must confirm taking it down in Thrall.",
+                isError: false)
+            : AgentActionResult(
+                text: "Taking \(stack.displayName) down. Named volumes are kept.",
+                isError: false)
     }
 }
