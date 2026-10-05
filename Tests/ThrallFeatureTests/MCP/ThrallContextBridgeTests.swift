@@ -55,4 +55,15 @@ struct ThrallContextBridgeTests {
     func detailLimitIsSmall() {
         #expect(ThrallContextBridge.detailedIncidentLimit <= 3)
     }
+
+    /// A tool the brief omits is a tool the assistant does not know to call.
+    @Test("the brief lists every tool the MCP server publishes")
+    func briefListsEveryTool() {
+        let read = [
+            "thrall_diagnose", "thrall_engines", "thrall_stacks", "thrall_stack", "thrall_logs",
+        ]
+        for name in read + ThrallMCPWriteTools.table.map(\.name) {
+            #expect(ThrallContextBridge.toolsLine.contains(name), Comment(rawValue: name))
+        }
+    }
 }

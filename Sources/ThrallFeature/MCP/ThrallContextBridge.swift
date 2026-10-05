@@ -36,6 +36,12 @@ public final class ThrallContextBridge {
 
     public init() {}
 
+    /// Every tool the assistant can call, so the brief never hides one.
+    static let toolsLine =
+        "Tools: thrall_diagnose, thrall_engines, thrall_stacks, thrall_stack, thrall_logs, "
+        + "thrall_restart_service, thrall_stack_up, thrall_stack_down, "
+        + "thrall_stack_teardown."
+
     public func setSource(_ model: ThrallViewModel) {
         self.model = model
     }
@@ -127,10 +133,7 @@ public final class ThrallContextBridge {
         }
 
         lines.append("")
-        lines.append(
-            "Tools: thrall_diagnose, thrall_stacks, thrall_stack, thrall_logs, "
-                + "thrall_restart_service, thrall_stack_up, thrall_stack_down, "
-                + "thrall_stack_teardown.")
+        lines.append(Self.toolsLine)
 
         return Self.clamp(lines.joined(separator: "\n"))
     }
