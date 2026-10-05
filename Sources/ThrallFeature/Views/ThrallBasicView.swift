@@ -57,7 +57,7 @@ struct ThrallBasicView: View {
     }
 
     private var subtitle: String {
-        if let version = model.engineVersion { return "engine \(version)" }
+        if let version = model.engineVersion { return version.summary }
         return "connecting…"
     }
 }
