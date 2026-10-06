@@ -82,28 +82,32 @@ struct ContainersView: View {
             VStack(alignment: .leading, spacing: AinkradSpacing.sm) {
                 Text("Engines").font(.system(size: 13, weight: .semibold))
                 ForEach(model.contexts) { context in
-                    HStack(spacing: AinkradSpacing.sm) {
-                        Circle()
-                            .fill(indicator(for: context))
-                            .frame(width: 6, height: 6)
-                        Text(context.name).font(.system(size: 11, weight: .medium))
-                        if context.name == model.activeContext?.name {
-                            AinkradBadge(text: "active", status: .success)
-                        }
-                        if !context.isSupported {
-                            AinkradBadge(text: "unsupported", status: .neutral)
-                        } else if !isReachable(context) {
-                            AinkradBadge(text: "not running", status: .warning)
-                        }
-                        Spacer(minLength: 0)
-                        Text(
-                            ThrallPathDisplay.abbreviate(
-                                context.endpoint.displayString,
-                                maxLength: 40)
-                        )
-                        .font(.system(size: 10).monospaced())
-                        .foregroundStyle(theme.foreground.opacity(0.45))
-                    }
+                    AinkradListRow(
+                        leading: {
+                            Circle()
+                                .fill(indicator(for: context))
+                                .frame(width: 6, height: 6)
+                        },
+                        title: context.name,
+                        trailing: {
+                            HStack(spacing: AinkradSpacing.sm) {
+                                if context.name == model.activeContext?.name {
+                                    AinkradBadge(text: "active", status: .success)
+                                }
+                                if !context.isSupported {
+                                    AinkradBadge(text: "unsupported", status: .neutral)
+                                } else if !isReachable(context) {
+                                    AinkradBadge(text: "not running", status: .warning)
+                                }
+                                Text(
+                                    ThrallPathDisplay.abbreviate(
+                                        context.endpoint.displayString,
+                                        maxLength: 40)
+                                )
+                                .font(.system(size: 10).monospaced())
+                                .foregroundStyle(theme.foreground.opacity(0.45))
+                            }
+                        })
                 }
                 // The finding that made `engineKey` exist: two contexts can be
                 // the same daemon, and saying so stops a false "my container
@@ -149,19 +153,22 @@ struct ContainersView: View {
                 Text("Networks — \(storage.networks.count)")
                     .font(.system(size: 13, weight: .semibold))
                 ForEach(storage.networks, id: \.id) { network in
-                    HStack(spacing: AinkradSpacing.sm) {
-                        Text(network.name).font(.system(size: 11))
-                        if let project = network.composeProject {
-                            AinkradBadge(text: project, status: .neutral)
-                        }
-                        if network.internalOnly {
-                            AinkradBadge(text: "internal", status: .neutral)
-                        }
-                        Spacer(minLength: 0)
-                        Text(network.driver)
-                            .font(.system(size: 10).monospaced())
-                            .foregroundStyle(theme.foreground.opacity(0.45))
-                    }
+                    AinkradListRow(
+                        leading: { EmptyView() },
+                        title: network.name,
+                        trailing: {
+                            HStack(spacing: AinkradSpacing.sm) {
+                                if let project = network.composeProject {
+                                    AinkradBadge(text: project, status: .neutral)
+                                }
+                                if network.internalOnly {
+                                    AinkradBadge(text: "internal", status: .neutral)
+                                }
+                                Text(network.driver)
+                                    .font(.system(size: 10).monospaced())
+                                    .foregroundStyle(theme.foreground.opacity(0.45))
+                            }
+                        })
                 }
             }
         }

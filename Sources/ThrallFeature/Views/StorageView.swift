@@ -122,25 +122,26 @@ struct StorageView: View {
                     // Enumerated by name. The list is the safety mechanism, so
                     // it is not collapsed behind a disclosure.
                     ForEach(plan.targets.prefix(12)) { target in
-                        HStack(spacing: AinkradSpacing.sm) {
-                            AinkradBadge(
-                                text: target.kind.rawValue,
-                                status: target.kind == .volume ? .danger : .neutral)
-                            Text(target.displayName)
-                                .font(.system(size: 10).monospaced())
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            Spacer(minLength: 0)
-                            Text(ThrallReclaimPlan.humanBytes(target.bytes))
-                                .font(.system(size: 10).monospacedDigit())
-                                .foregroundStyle(theme.foreground.opacity(0.5))
-                            AinkradIconButton(
-                                systemName: "minus.circle", size: 20,
-                                tooltip: "Leave this one alone"
-                            ) {
-                                storage.excluded.insert(target.id)
-                            }
-                        }
+                        AinkradListRow(
+                            leading: {
+                                AinkradBadge(
+                                    text: target.kind.rawValue,
+                                    status: target.kind == .volume ? .danger : .neutral)
+                            },
+                            title: target.displayName,
+                            trailing: {
+                                HStack(spacing: AinkradSpacing.sm) {
+                                    Text(ThrallReclaimPlan.humanBytes(target.bytes))
+                                        .font(.system(size: 10).monospacedDigit())
+                                        .foregroundStyle(theme.foreground.opacity(0.5))
+                                    AinkradIconButton(
+                                        systemName: "minus.circle", size: 20,
+                                        tooltip: "Leave this one alone"
+                                    ) {
+                                        storage.excluded.insert(target.id)
+                                    }
+                                }
+                            })
                     }
                     if plan.targets.count > 12 {
                         AinkradCaption(
@@ -181,23 +182,22 @@ struct StorageView: View {
                     // whole point of the grouping.
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(group.volumes, id: \.name) { volume in
-                            HStack(spacing: AinkradSpacing.sm) {
-                                Text(volume.name)
-                                    .font(.system(size: 10).monospaced())
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                                if (volume.usage?.refCount ?? -1) == 0 {
-                                    AinkradBadge(text: "unused", status: .warning)
-                                }
-                                Spacer(minLength: 0)
-                                Text(
-                                    ThrallReclaimPlan.humanBytes(
-                                        max(0, volume.usage?.size ?? 0))
-                                )
-                                .font(.system(size: 10).monospacedDigit())
-                                .foregroundStyle(theme.foreground.opacity(0.5))
-                            }
-                            .padding(.vertical, 1)
+                            AinkradListRow(
+                                leading: { EmptyView() },
+                                title: volume.name,
+                                trailing: {
+                                    HStack(spacing: AinkradSpacing.sm) {
+                                        if (volume.usage?.refCount ?? -1) == 0 {
+                                            AinkradBadge(text: "unused", status: .warning)
+                                        }
+                                        Text(
+                                            ThrallReclaimPlan.humanBytes(
+                                                max(0, volume.usage?.size ?? 0))
+                                        )
+                                        .font(.system(size: 10).monospacedDigit())
+                                        .foregroundStyle(theme.foreground.opacity(0.5))
+                                    }
+                                })
                         }
                     }
                 }
