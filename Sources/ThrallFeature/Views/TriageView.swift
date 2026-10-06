@@ -157,18 +157,16 @@ private struct IncidentCard: View {
                     onRun: { onRemedy(remedy) })
             }
             if all.count > 1 {
-                Button(
-                    showsAllRemedies
+                AinkradButton(
+                    title: showsAllRemedies
                         ? "Fewer options"
-                        : "\(all.count - 1) other option\(all.count == 2 ? "" : "s")"
+                        : "\(all.count - 1) other option\(all.count == 2 ? "" : "s")",
+                    style: .ghost
                 ) {
                     withAnimation(reduceMotion ? nil : AinkradMotion.present) {
                         showsAllRemedies.toggle()
                     }
                 }
-                .buttonStyle(.plain)
-                .font(.system(size: 11))
-                .foregroundStyle(theme.accentPrimary)
             }
         }
     }
@@ -189,12 +187,9 @@ private struct RemedyRow: View {
                     title: remedy.title,
                     style: isPrimary ? .primary : .secondary,
                     action: onRun)
-                Button(showsCommand ? "Hide command" : "Show command") {
+                AinkradButton(title: showsCommand ? "Hide command" : "Show command", style: .ghost) {
                     showsCommand.toggle()
                 }
-                .buttonStyle(.plain)
-                .font(.system(size: 10))
-                .foregroundStyle(theme.foreground.opacity(0.5))
                 if remedy.destroysState {
                     AinkradBadge(text: "Destroys state", status: .danger)
                 }
