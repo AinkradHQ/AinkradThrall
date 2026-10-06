@@ -11,6 +11,7 @@ struct LogsView: View {
     @ObservedObject var logs: ThrallLogsModel
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     @Environment(\.ainkradStatusColors) private var statusColors
 
     /// Selection is by stack; the pane tails every container in it. A
@@ -44,7 +45,7 @@ struct LogsView: View {
             ) {
                 ThrallPullDownLabel {
                     Text(selectedStack?.displayName ?? "Choose a stack")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(skin.font(AinkradFontToken(sizeKey: "t11", weight: "medium")))
                 }
             }
             .fixedSize()
@@ -55,7 +56,7 @@ struct LogsView: View {
             Spacer(minLength: 0)
 
             Text(lineSummary)
-                .font(.system(size: 10).monospacedDigit())
+                .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
                 .foregroundStyle(theme.foreground.opacity(0.45))
 
             AinkradToggleButton(

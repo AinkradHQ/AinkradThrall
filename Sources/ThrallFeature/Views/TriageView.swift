@@ -7,6 +7,7 @@ struct TriageView: View {
     @ObservedObject var triage: ThrallTriageModel
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     @Environment(\.ainkradReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -45,7 +46,7 @@ struct TriageView: View {
                     : "Reading restart counts and recent deaths.")
             if let scan = triage.lastScan, triage.hasBaseline {
                 Text("Last checked \(scan.formatted(date: .omitted, time: .standard))")
-                    .font(.system(size: 10).monospacedDigit())
+                    .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
                     .foregroundStyle(theme.foreground.opacity(0.4))
             }
         }
@@ -60,6 +61,7 @@ private struct IncidentCard: View {
     let onRemedy: (ThrallRemedy) -> Void
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     @Environment(\.ainkradStatusColors) private var statusColors
     @Environment(\.ainkradReduceMotion) private var reduceMotion
     @State private var showsAllRemedies = false
@@ -94,9 +96,9 @@ private struct IncidentCard: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(incident.headline)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(skin.font(AinkradFontToken(sizeKey: "t13", weight: "semibold")))
                 Text("\(incident.stackName)  ·  \(incident.restartTotal) restarts")
-                    .font(.system(size: 11).monospacedDigit())
+                    .font(skin.font(AinkradFontToken(sizeKey: "t11", monospacedDigits: true)))
                     .foregroundStyle(theme.foreground.opacity(0.55))
             }
             Spacer(minLength: 0)
@@ -125,7 +127,7 @@ private struct IncidentCard: View {
 
     private var members: some View {
         Text(incident.services.joined(separator: ", "))
-            .font(.system(size: 11).monospaced())
+            .font(skin.font(AinkradFontToken(sizeKey: "t11", mono: "system")))
             .foregroundStyle(theme.foreground.opacity(0.6))
             .lineLimit(2)
             .truncationMode(.tail)

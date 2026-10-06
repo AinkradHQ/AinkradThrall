@@ -12,6 +12,7 @@ struct ContainersView: View {
     @ObservedObject var storage: ThrallStorageModel
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     @State private var filter = ""
 
     private struct Row: Identifiable {
@@ -65,7 +66,7 @@ struct ContainersView: View {
                 .frame(maxWidth: 280)
             Spacer(minLength: 0)
             Text("\(rows.count) containers")
-                .font(.system(size: 11).monospacedDigit())
+                .font(skin.font(AinkradFontToken(sizeKey: "t11", monospacedDigits: true)))
                 .foregroundStyle(theme.foreground.opacity(0.5))
         }
         .padding(.horizontal, AinkradSpacing.lg)
@@ -80,7 +81,7 @@ struct ContainersView: View {
     private var enginePanel: some View {
         AinkradCard {
             VStack(alignment: .leading, spacing: AinkradSpacing.sm) {
-                Text("Engines").font(.system(size: 13, weight: .semibold))
+                Text("Engines").font(skin.font(AinkradFontToken(sizeKey: "t13", weight: "semibold")))
                 ForEach(model.contexts) { context in
                     AinkradListRow(
                         leading: {
@@ -104,7 +105,7 @@ struct ContainersView: View {
                                         context.endpoint.displayString,
                                         maxLength: 40)
                                 )
-                                .font(.system(size: 10).monospaced())
+                                .font(skin.font(AinkradFontToken(sizeKey: "t10", mono: "system")))
                                 .foregroundStyle(theme.foreground.opacity(0.45))
                             }
                         })
@@ -151,7 +152,7 @@ struct ContainersView: View {
         AinkradCard {
             VStack(alignment: .leading, spacing: AinkradSpacing.sm) {
                 Text("Networks — \(storage.networks.count)")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(skin.font(AinkradFontToken(sizeKey: "t13", weight: "semibold")))
                 ForEach(storage.networks, id: \.id) { network in
                     AinkradListRow(
                         leading: { EmptyView() },
@@ -165,7 +166,7 @@ struct ContainersView: View {
                                     AinkradBadge(text: "internal", status: .neutral)
                                 }
                                 Text(network.driver)
-                                    .font(.system(size: 10).monospaced())
+                                    .font(skin.font(AinkradFontToken(sizeKey: "t10", mono: "system")))
                                     .foregroundStyle(theme.foreground.opacity(0.45))
                             }
                         })
@@ -177,7 +178,7 @@ struct ContainersView: View {
     private var containerTable: some View {
         VStack(alignment: .leading, spacing: AinkradSpacing.sm) {
             Text("Every container")
-                .font(.system(size: 12, weight: .semibold))
+                .font(skin.font(AinkradFontToken(sizeKey: "t12", weight: "semibold")))
             // Lazy, and one row per container: 48 rows is fine here where 135
             // volume rows were not, and the filter keeps it smaller in practice.
             LazyVStack(alignment: .leading, spacing: 0) {

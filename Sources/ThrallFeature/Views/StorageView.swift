@@ -10,6 +10,7 @@ struct StorageView: View {
     @ObservedObject var storage: ThrallStorageModel
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     @State private var expandedGroups: Set<String> = []
     @State private var confirmingReclaim = false
 
@@ -94,7 +95,7 @@ struct StorageView: View {
         AinkradCard {
             VStack(alignment: .leading, spacing: AinkradSpacing.md) {
                 Text("Reclaim")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(skin.font(AinkradFontToken(sizeKey: "t13", weight: "semibold")))
                 AinkradCaption(
                     "Thrall never runs `prune`. It lists exactly what it will remove, then "
                         + "removes each item by its own id.")
@@ -118,7 +119,7 @@ struct StorageView: View {
                         "\(plan.targets.count) items · "
                             + ThrallReclaimPlan.humanBytes(plan.totalBytes)
                     )
-                    .font(.system(size: 11, weight: .medium).monospacedDigit())
+                    .font(skin.font(AinkradFontToken(sizeKey: "t11", weight: "medium", monospacedDigits: true)))
                     // Enumerated by name. The list is the safety mechanism, so
                     // it is not collapsed behind a disclosure.
                     ForEach(plan.targets.prefix(12)) { target in
@@ -132,7 +133,7 @@ struct StorageView: View {
                             trailing: {
                                 HStack(spacing: AinkradSpacing.sm) {
                                     Text(ThrallReclaimPlan.humanBytes(target.bytes))
-                                        .font(.system(size: 10).monospacedDigit())
+                                        .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
                                         .foregroundStyle(theme.foreground.opacity(0.5))
                                     AinkradIconButton(
                                         systemName: "minus.circle", size: 20,
@@ -162,7 +163,7 @@ struct StorageView: View {
     private var volumeGroups: some View {
         VStack(alignment: .leading, spacing: AinkradSpacing.sm) {
             Text("Volumes by owner")
-                .font(.system(size: 12, weight: .semibold))
+                .font(skin.font(AinkradFontToken(sizeKey: "t12", weight: "semibold")))
             ForEach(storage.volumeGroups, id: \.owner) { group in
                 AinkradDisclosureGroup(
                     title: "\(group.owner) — \(group.volumes.count) · "
@@ -194,7 +195,7 @@ struct StorageView: View {
                                             ThrallReclaimPlan.humanBytes(
                                                 max(0, volume.usage?.size ?? 0))
                                         )
-                                        .font(.system(size: 10).monospacedDigit())
+                                        .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
                                         .foregroundStyle(theme.foreground.opacity(0.5))
                                     }
                                 })

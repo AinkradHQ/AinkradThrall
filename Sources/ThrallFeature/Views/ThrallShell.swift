@@ -17,6 +17,7 @@ struct ThrallShell: View {
     @State private var area: NavArea = .stacks
     @Environment(\.ainkradReduceMotion) private var reduceMotion
     @Environment(\.ainkradToastCenter) private var toasts
+    @Environment(\.ainkradSkin) private var skin
 
     init(host: HostServices) {
         self.host = host
@@ -77,7 +78,7 @@ struct ThrallShell: View {
     private var topBar: some View {
         HStack(spacing: AinkradSpacing.md) {
             Text("Thrall")
-                .font(.system(size: 13, weight: .semibold))
+                .font(skin.font(AinkradFontToken(sizeKey: "t13", weight: "semibold")))
                 .foregroundStyle(tokens.foreground.opacity(0.85))
 
             engineChip
@@ -140,11 +141,11 @@ struct ThrallShell: View {
                     .fill(engineIndicator)
                     .frame(width: 6, height: 6)
                 Text(model.engineLabel)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(skin.font(AinkradFontToken(sizeKey: "t11", weight: "medium")))
                     .foregroundStyle(tokens.foreground.opacity(0.85))
                 if let version = model.engineVersion {
                     Text("API \(version.negotiated.description)")
-                        .font(.system(size: 10).monospacedDigit())
+                        .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
                         .foregroundStyle(tokens.foreground.opacity(0.45))
                 }
             }
@@ -165,7 +166,7 @@ struct ThrallShell: View {
     private var summary: some View {
         let world = model.world
         return Text("\(world.stacks.count) stacks · \(world.runningCount)/\(world.containerCount) running")
-            .font(.system(size: 11).monospacedDigit())
+            .font(skin.font(AinkradFontToken(sizeKey: "t11", monospacedDigits: true)))
             .foregroundStyle(tokens.foreground.opacity(0.55))
     }
 

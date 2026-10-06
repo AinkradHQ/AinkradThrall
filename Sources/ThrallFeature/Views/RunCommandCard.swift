@@ -12,6 +12,7 @@ struct RunCommandCard: View {
     @ObservedObject var model: ThrallViewModel
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     @Environment(\.ainkradStatusColors) private var statusColors
     @State private var containerID: String?
     @State private var commandLine = "env"
@@ -37,7 +38,7 @@ struct RunCommandCard: View {
         AinkradCard {
             VStack(alignment: .leading, spacing: AinkradSpacing.md) {
                 Text("Run a command")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(skin.font(AinkradFontToken(sizeKey: "t13", weight: "semibold")))
                 AinkradCaption(
                     "Runs directly in the container — no shell, so no pipes, redirects or "
                         + "variable expansion. Rune handles interactive sessions.")
@@ -55,7 +56,7 @@ struct RunCommandCard: View {
                         ) {
                             ThrallPullDownLabel {
                                 Text(selectedLabel)
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(skin.font(AinkradFontToken(sizeKey: "t11", weight: "medium")))
                             }
                         }
                         .fixedSize()
@@ -70,7 +71,7 @@ struct RunCommandCard: View {
                         // The parser's own sentence, which already explains
                         // what to do instead.
                         Text(problem)
-                            .font(.system(size: 11))
+                            .font(skin.font(AinkradFontToken(sizeKey: "t11")))
                             .foregroundStyle(
                                 AinkradStatus.warning
                                     .color(in: theme, statusColors: statusColors))
@@ -110,7 +111,7 @@ struct RunCommandCard: View {
                 // Kept separate, which is the whole reason the exec stream is
                 // demultiplexed rather than concatenated.
                 Text("stderr")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(skin.font(AinkradFontToken(sizeKey: "t10", weight: "medium")))
                     .foregroundStyle(theme.foreground.opacity(0.5))
                 AinkradCodeBlock(result.stderr)
             }

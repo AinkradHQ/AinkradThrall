@@ -6,6 +6,7 @@ struct StacksView: View {
     @ObservedObject var model: ThrallViewModel
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     @Environment(\.ainkradReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -83,6 +84,7 @@ private struct StackRow: View {
     let onTap: () -> Void
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     @Environment(\.ainkradReduceMotion) private var reduceMotion
     @State private var hovering = false
 
@@ -95,7 +97,7 @@ private struct StackRow: View {
                     // Rotation only — a chevron that swaps glyphs changes
                     // metrics and nudges the title.
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(skin.font(AinkradFontToken(sizeKey: "t10", weight: "semibold")))
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                         .animation(reduceMotion ? nil : AinkradMotion.hover, value: isExpanded)
                         .frame(width: 10)
@@ -130,7 +132,7 @@ private struct StackRow: View {
                     AinkradStackedStatusBar(runs: statusRuns(for: stack.breakdown))
                         .frame(width: 64)  // design-lint: allow frame-literal token-gap stackedStatusBar.width
                     Text("\(stack.containerCount)")
-                        .font(.system(size: 11, weight: .medium).monospacedDigit())
+                        .font(skin.font(AinkradFontToken(sizeKey: "t11", weight: "medium", monospacedDigits: true)))
                         .foregroundStyle(theme.foreground.opacity(0.6))
                         .frame(width: 22, alignment: .trailing)
                     actionCluster
@@ -196,6 +198,7 @@ private struct ServiceRow: View {
     let onTap: () -> Void
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     @Environment(\.ainkradStatusColors) private var statusColors
     @Environment(\.ainkradReduceMotion) private var reduceMotion
 
@@ -205,7 +208,7 @@ private struct ServiceRow: View {
             leading: {
                 HStack(spacing: AinkradSpacing.sm) {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(skin.font(AinkradFontToken(sizeKey: "t9", weight: "semibold")))
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                         .animation(reduceMotion ? nil : AinkradMotion.hover, value: isExpanded)
                         .frame(width: 9)
@@ -238,6 +241,7 @@ private struct ContainerRow: View {
     let container: ThrallContainer
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
 
     var body: some View {
         AinkradListRow(
@@ -251,7 +255,7 @@ private struct ContainerRow: View {
             subtitle: container.statusText,
             trailing: {
                 Text(container.image)
-                    .font(.system(size: 10).monospaced())
+                    .font(skin.font(AinkradFontToken(sizeKey: "t10", mono: "system")))
                     .foregroundStyle(theme.foreground.opacity(0.45))
                     .lineLimit(1)
                     .truncationMode(.middle)

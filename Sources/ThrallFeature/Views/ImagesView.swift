@@ -12,6 +12,7 @@ struct ImagesView: View {
     @ObservedObject var storage: ThrallStorageModel
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     /// Pre-set to size-descending rather than left nil, so the table opens on
     /// the answer instead of on insertion order.
     @State private var sort: AinkradTableSort? = AinkradTableSort(
@@ -102,7 +103,7 @@ struct ImagesView: View {
             Spacer(minLength: 0)
             if let loadedAt = storage.loadedAt {
                 Text("read \(loadedAt.formatted(date: .omitted, time: .standard))")
-                    .font(.system(size: 10).monospacedDigit())
+                    .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
                     .foregroundStyle(theme.foreground.opacity(0.4))
             }
             AinkradIconButton(systemName: "arrow.clockwise", size: 24, tooltip: "Reload") {
