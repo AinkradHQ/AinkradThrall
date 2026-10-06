@@ -111,23 +111,10 @@ private struct IncidentCard: View {
     /// "`api` depends_on `db`; `db` is `exited`" — the answer, stated as a
     /// banner rather than left for the user to infer from a list of red rows.
     private func verdictBanner(_ verdict: ThrallDependencyVerdict) -> some View {
-        HStack(spacing: AinkradSpacing.sm) {
-            Image(systemName: "arrow.triangle.branch")
-                .font(.system(size: 11))
-            Text(
-                "\(verdict.dependent) depends_on \(verdict.dependency) "
-                    + "(\(verdict.condition)) — \(verdict.dependency) is \(verdict.stateLabel)"
-            )
-            .font(.system(size: 11))
-        }
-        .foregroundStyle(AinkradStatus.warning.color(in: theme, statusColors: statusColors))
-        .padding(.horizontal, AinkradSpacing.sm)
-        .padding(.vertical, AinkradSpacing.xs)
-        .background(
-            RoundedRectangle(cornerRadius: AinkradRadius.sm, style: .continuous)
-                .fill(
-                    AinkradStatus.warning.color(in: theme, statusColors: statusColors)
-                        .opacity(0.10)))
+        AinkradBanner(
+            message: "\(verdict.dependent) depends_on \(verdict.dependency) "
+                + "(\(verdict.condition)) — \(verdict.dependency) is \(verdict.stateLabel)",
+            status: .warning)
     }
 
     /// **The actual error text, never a paraphrase.** A summary the user
