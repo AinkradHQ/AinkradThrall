@@ -57,7 +57,7 @@ public final class ThrallLogsModel: ObservableObject {
                 } catch {
                     guard let self else { return }
                     self.isLoading = false
-                    self.error = "\(error)"
+                    self.error = error.localizedDescription
                 }
             }
         }

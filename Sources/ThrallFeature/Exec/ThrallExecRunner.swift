@@ -9,11 +9,13 @@ public struct ThrallExecResult: Equatable, Sendable {
     public var succeeded: Bool { exitCode == 0 }
 }
 
-public enum ThrallExecError: Error, Equatable, Sendable {
+public enum ThrallExecError: LocalizedError, Equatable, Sendable {
     case emptyCommand
     case invalidArgument(String)
     case tooManyArguments(Int)
     case engine(String)
+
+    public var errorDescription: String? { ThrallRunCommand.describe(self) }
 }
 
 /// Runs one non-interactive command inside a container.

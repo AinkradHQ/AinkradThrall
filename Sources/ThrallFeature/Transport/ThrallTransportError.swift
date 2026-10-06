@@ -8,7 +8,7 @@ import Foundation
 /// wire and reconnecting is the *only* safe recovery, and
 /// `.unsupportedFraming` must never be papered over — see
 /// `ThrallLogFrameDecoder`, where guessing the framing renders garbage.
-public enum ThrallTransportError: Error, Equatable, Sendable {
+public enum ThrallTransportError: LocalizedError, Equatable, Sendable {
     /// No connection has been established yet (or it was already torn down).
     case notConnected
     /// The peer closed, or `close()` was called. On a streaming endpoint this
@@ -32,4 +32,10 @@ public enum ThrallTransportError: Error, Equatable, Sendable {
     /// The response is framed in a way this build cannot read, e.g. a log
     /// stream with an unrecognised `Content-Type`.
     case unsupportedFraming(String)
+}
+
+extension ThrallTransportError {
+    /// Without an endpoint the text names "the engine socket"; callers that
+    /// know the socket use `ThrallViewModel.describe(_:endpoint:)` directly.
+    public var errorDescription: String? { ThrallViewModel.describe(self, endpoint: nil) }
 }

@@ -17,11 +17,13 @@ public struct ThrallProcessResult: Equatable, Sendable {
     }
 }
 
-public enum ThrallProcessError: Error, Equatable, Sendable {
+public enum ThrallProcessError: LocalizedError, Equatable, Sendable {
     case binaryNotFound(String)
     case launchFailed(String)
     case rejected(String)
     case cancelled
+
+    public var errorDescription: String? { ThrallViewModel.describe(self) }
 }
 
 /// Spawns `docker` and collects its output.

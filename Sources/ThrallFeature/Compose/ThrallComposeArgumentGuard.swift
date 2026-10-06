@@ -64,13 +64,15 @@ public enum ThrallComposeArgumentGuard {
         "--parallel", "--profile", "--compatibility",
     ]
 
-    public enum Rejection: Error, Equatable, Sendable {
+    public enum Rejection: LocalizedError, Equatable, Sendable {
         case subcommand(String)
         case option(String)
         case optionValue(option: String, value: String)
         case forbidden(String)
         case identifier(String)
         case missingValue(String)
+
+        public var errorDescription: String? { message }
 
         public var message: String {
             switch self {

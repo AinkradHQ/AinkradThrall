@@ -52,7 +52,7 @@ public struct ThrallOrphanTeardown: Sendable {
             } catch {
                 // One container failing must not abandon the rest — a
                 // half-torn-down stack is worse than either outcome.
-                failures.append("\(container.name): \(error)")
+                failures.append("\(container.name): \(error.localizedDescription)")
             }
         }
         return Outcome(stopped: stopped, removed: removed, failures: failures)

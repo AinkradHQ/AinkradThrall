@@ -28,7 +28,7 @@ struct ThrallRunCommand {
         } catch let error as ThrallExecError {
             return .failure(Problem(message: describe(error)))
         } catch {
-            return .failure(Problem(message: "\(error)"))
+            return .failure(Problem(message: error.localizedDescription))
         }
     }
 
@@ -40,7 +40,7 @@ struct ThrallRunCommand {
         } catch let error as ThrallExecError {
             return .failure(Problem(message: Self.describe(error)))
         } catch {
-            return .failure(Problem(message: "\(error)"))
+            return .failure(Problem(message: error.localizedDescription))
         }
     }
 

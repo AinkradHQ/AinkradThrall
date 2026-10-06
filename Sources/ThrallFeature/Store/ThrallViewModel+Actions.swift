@@ -129,7 +129,7 @@ extension ThrallViewModel {
         } catch is CancellationError {
             lastActionMessage = "\(action.title) on \(stack.displayName) was cancelled."
         } catch {
-            lastActionMessage = "\(error)"
+            lastActionMessage = error.localizedDescription
         }
         await refresh()
     }
@@ -189,7 +189,7 @@ extension ThrallViewModel {
         } catch let error as ThrallEngineError {
             state = .failed(Self.describe(error))
         } catch {
-            state = .failed("\(error)")
+            state = .failed(error.localizedDescription)
         }
     }
 
@@ -222,7 +222,7 @@ extension ThrallViewModel {
             Log.transport.error("refresh failed: \(String(describing: error))")
             state = .failed(Self.describe(error, endpoint: context.endpoint))
         } catch {
-            state = .failed("\(error)")
+            state = .failed(error.localizedDescription)
         }
     }
 

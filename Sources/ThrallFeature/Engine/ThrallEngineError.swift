@@ -1,7 +1,7 @@
 import Foundation
 
 /// Failures that belong to the engine conversation rather than to the socket.
-public enum ThrallEngineError: Error, Equatable, Sendable {
+public enum ThrallEngineError: LocalizedError, Equatable, Sendable {
     /// The selected context names a transport Thrall will not drive.
     case unsupportedEndpoint(reason: String)
     /// No context resolved — a `currentContext` naming nothing in the store.
@@ -18,4 +18,8 @@ public enum ThrallEngineError: Error, Equatable, Sendable {
     /// The body did not decode. Carries the type so the log names the shape
     /// that changed, which is the only useful thing to know here.
     case decoding(type: String, detail: String)
+}
+
+extension ThrallEngineError {
+    public var errorDescription: String? { ThrallViewModel.describe(self) }
 }

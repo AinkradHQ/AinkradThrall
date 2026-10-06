@@ -125,7 +125,7 @@ public final class ThrallStorageModel: ObservableObject {
             } else if let transport = error as? ThrallTransportError {
                 self.error = ThrallViewModel.describe(transport, endpoint: client.endpoint)
             } else {
-                self.error = "\(error)"
+                self.error = error.localizedDescription
             }
         }
     }
@@ -152,7 +152,7 @@ public final class ThrallStorageModel: ObservableObject {
                 removed += 1
                 freed += target.bytes
             } catch {
-                failures.append("\(target.displayName): \(error)")
+                failures.append("\(target.displayName): \(error.localizedDescription)")
             }
         }
         // Build cache in one call, with the exact ids as a filter — the engine
@@ -163,7 +163,7 @@ public final class ThrallStorageModel: ObservableObject {
                 freed += try await client.pruneBuildCache(ids: cacheIDs)
                 removed += cacheIDs.count
             } catch {
-                failures.append("build cache: \(error)")
+                failures.append("build cache: \(error.localizedDescription)")
             }
         }
 
