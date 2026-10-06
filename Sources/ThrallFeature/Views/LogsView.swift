@@ -51,7 +51,7 @@ struct LogsView: View {
             .fixedSize()
 
             AinkradSearchField(text: $logs.filter, placeholder: "Filter lines")
-                .frame(maxWidth: 260)
+                .frame(maxWidth: skin.size.s260)
 
             Spacer(minLength: 0)
 
@@ -62,8 +62,8 @@ struct LogsView: View {
             AinkradToggleButton(
                 isOn: $logs.isFollowing, systemName: "arrow.down.to.line",
                 title: "Follow")
-            AinkradIconButton(systemName: "trash", size: 24, tooltip: "Clear") { logs.clear() }
-            AinkradIconButton(systemName: "arrow.clockwise", size: 24, tooltip: "Reload") {
+            AinkradIconButton(systemName: "trash", size: skin.size.s24, tooltip: "Clear") { logs.clear() }
+            AinkradIconButton(systemName: "arrow.clockwise", size: skin.size.s24, tooltip: "Reload") {
                 Task { await load() }
             }
         }

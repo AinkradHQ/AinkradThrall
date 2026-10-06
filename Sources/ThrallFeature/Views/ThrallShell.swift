@@ -95,7 +95,7 @@ struct ThrallShell: View {
 
             if !triage.incidents.isEmpty {
                 AinkradIconButton(
-                    systemName: "sparkles", size: 24,
+                    systemName: "sparkles", size: skin.size.s24,
                     tooltip: "Ask Sage about this"
                 ) {
                     let message = ThrallRuntime.contextBridge(for: host)
@@ -103,7 +103,7 @@ struct ThrallShell: View {
                     toasts.show(message, status: .neutral)
                 }
             }
-            AinkradIconButton(systemName: "arrow.clockwise", size: 24, tooltip: "Refresh") {
+            AinkradIconButton(systemName: "arrow.clockwise", size: skin.size.s24, tooltip: "Refresh") {
                 Task { await model.refresh() }
             }
         }
@@ -139,7 +139,7 @@ struct ThrallShell: View {
             ThrallPullDownLabel {
                 Circle()
                     .fill(engineIndicator)
-                    .frame(width: 6, height: 6)
+                    .frame(width: skin.size.s6, height: skin.size.s6)
                 Text(model.engineLabel)
                     .font(skin.font(AinkradFontToken(sizeKey: "t11", weight: "medium")))
                     .foregroundStyle(tokens.foreground.opacity(skin.opacity.o85))
@@ -187,7 +187,7 @@ struct ThrallShell: View {
         }
         .padding(.vertical, AinkradSpacing.md)
         .padding(.horizontal, AinkradSpacing.sm)
-        .frame(width: 56)
+        .frame(width: skin.size.s56)
         // Fill, not a rule.
         .background(tokens.surface.opacity(skin.opacity.o35))
     }

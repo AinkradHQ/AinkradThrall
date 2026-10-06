@@ -100,7 +100,7 @@ private struct StackRow: View {
                         .font(skin.font(AinkradFontToken(sizeKey: "t10", weight: "semibold")))
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                         .animation(reduceMotion ? nil : AinkradMotion.hover, value: isExpanded)
-                        .frame(width: 10)
+                        .frame(width: skin.size.s10)
                         .foregroundStyle(skin.color(skin.text.muted))
                     AinkradIconGlyph(
                         systemName: stack.isConfigMissing
@@ -130,11 +130,11 @@ private struct StackRow: View {
                             .fixedSize()
                     }
                     AinkradStackedStatusBar(runs: statusRuns(for: stack.breakdown))
-                        .frame(width: 64)  // design-lint: allow frame-literal token-gap stackedStatusBar.width
+                        .frame(width: skin.size.s64)
                     Text("\(stack.containerCount)")
                         .font(skin.font(AinkradFontToken(sizeKey: "t11", weight: "medium", monospacedDigits: true)))
                         .foregroundStyle(theme.foreground.opacity(skin.opacity.o60))
-                        .frame(width: 22, alignment: .trailing)
+                        .frame(width: skin.size.s22, alignment: .trailing)
                     actionCluster
                 }
                 .layoutPriority(1)
@@ -152,15 +152,15 @@ private struct StackRow: View {
     private var actionCluster: some View {
         HStack(spacing: AinkradSpacing.xs) {
             if isBusy {
-                AinkradSpinner(size: 14)
+                AinkradSpinner(size: skin.size.s14)
                     .frame(
-                        width: 22 * CGFloat(actions.count)
+                        width: skin.size.s22 * CGFloat(actions.count)
                             + AinkradSpacing.xs * CGFloat(max(0, actions.count - 1)),
-                        height: 22)
+                        height: skin.size.s22)
             } else {
                 ForEach(actions) { action in
                     AinkradIconButton(
-                        systemName: action.icon, size: 22,
+                        systemName: action.icon, size: skin.size.s22,
                         tooltip: action.title
                     ) {
                         onAction(action)
@@ -211,11 +211,13 @@ private struct ServiceRow: View {
                         .font(skin.font(AinkradFontToken(sizeKey: "t9", weight: "semibold")))
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                         .animation(reduceMotion ? nil : AinkradMotion.hover, value: isExpanded)
-                        .frame(width: 9)
+                        .frame(width: skin.size.s9)
                         .foregroundStyle(
                             theme.foreground
                                 .opacity(service.containers.isEmpty ? 0 : skin.opacity.o45))
-                    AinkradIconGlyph(systemName: "shippingbox", size: 13)
+                    AinkradIconGlyph(
+                        systemName: "shippingbox",
+                        size: 13)  // design-lint: allow frame-literal token-gap size.s13
                 }
                 .padding(.leading, AinkradSpacing.lg)
             },
@@ -246,7 +248,7 @@ private struct ContainerRow: View {
     var body: some View {
         AinkradListRow(
             leading: {
-                AinkradIconGlyph(systemName: "cube", size: 12)
+                AinkradIconGlyph(systemName: "cube", size: skin.size.s12)
                     .padding(.leading, AinkradSpacing.xl + AinkradSpacing.sm)
             },
             title: container.name,
@@ -259,7 +261,7 @@ private struct ContainerRow: View {
                     .foregroundStyle(skin.color(skin.text.faint))
                     .lineLimit(1)
                     .truncationMode(.middle)
-                    .frame(maxWidth: 220, alignment: .trailing)
+                    .frame(maxWidth: skin.size.s220, alignment: .trailing)
             })
     }
 }

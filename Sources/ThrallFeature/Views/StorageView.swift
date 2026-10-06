@@ -50,8 +50,8 @@ struct StorageView: View {
         HStack(spacing: AinkradSpacing.md) {
             AinkradSectionHeader(title: "Storage")
             Spacer(minLength: 0)
-            if storage.isLoading { AinkradSpinner(size: 14) }
-            AinkradIconButton(systemName: "arrow.clockwise", size: 24, tooltip: "Reload") {
+            if storage.isLoading { AinkradSpinner(size: skin.size.s14) }
+            AinkradIconButton(systemName: "arrow.clockwise", size: skin.size.s24, tooltip: "Reload") {
                 Task { await storage.load(client: model.engineClient, force: true) }
             }
         }
@@ -136,7 +136,7 @@ struct StorageView: View {
                                         .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
                                         .foregroundStyle(theme.foreground.opacity(skin.opacity.o50))
                                     AinkradIconButton(
-                                        systemName: "minus.circle", size: 20,
+                                        systemName: "minus.circle", size: skin.size.s20,
                                         tooltip: "Leave this one alone"
                                     ) {
                                         storage.excluded.insert(target.id)
@@ -181,7 +181,7 @@ struct StorageView: View {
                 ) {
                     // Only the expanded group's rows are built, which is the
                     // whole point of the grouping.
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: skin.size.s2) {
                         ForEach(group.volumes, id: \.name) { volume in
                             AinkradListRow(
                                 leading: { EmptyView() },

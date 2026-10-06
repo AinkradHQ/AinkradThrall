@@ -63,7 +63,7 @@ struct ContainersView: View {
     private var header: some View {
         HStack(spacing: AinkradSpacing.md) {
             AinkradSearchField(text: $filter, placeholder: "Filter containers")
-                .frame(maxWidth: 280)
+                .frame(maxWidth: skin.size.s280)
             Spacer(minLength: 0)
             Text("\(rows.count) containers")
                 .font(skin.font(AinkradFontToken(sizeKey: "t11", monospacedDigits: true)))
@@ -87,7 +87,7 @@ struct ContainersView: View {
                         leading: {
                             Circle()
                                 .fill(indicator(for: context))
-                                .frame(width: 6, height: 6)
+                                .frame(width: skin.size.s6, height: skin.size.s6)
                         },
                         title: context.name,
                         trailing: {
@@ -184,7 +184,7 @@ struct ContainersView: View {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(rows) { row in
                     AinkradListRow(
-                        leading: { AinkradIconGlyph(systemName: "cube", size: 12) },
+                        leading: { AinkradIconGlyph(systemName: "cube", size: skin.size.s12) },
                         title: row.name,
                         subtitle: "\(row.stack) · \(row.service) · \(row.image)",
                         trailing: {

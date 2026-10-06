@@ -106,7 +106,7 @@ struct ImagesView: View {
                     .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
                     .foregroundStyle(theme.foreground.opacity(skin.opacity.o40))
             }
-            AinkradIconButton(systemName: "arrow.clockwise", size: 24, tooltip: "Reload") {
+            AinkradIconButton(systemName: "arrow.clockwise", size: skin.size.s24, tooltip: "Reload") {
                 Task { await storage.load(client: model.engineClient, force: true) }
             }
         }

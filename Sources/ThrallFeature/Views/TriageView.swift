@@ -89,12 +89,17 @@ private struct IncidentCard: View {
             BudgetedTimelineView { date in
                 Circle()
                     .fill(AinkradStatus.danger.color(in: theme, statusColors: statusColors))
-                    .frame(width: 8, height: 8)
-                    .opacity(reduceMotion ? 1 : spinnerPulseOpacity(date: date, period: 1.4))
+                    .frame(width: skin.size.s8, height: skin.size.s8)
+                    .opacity(
+                        reduceMotion
+                            ? 1
+                            : spinnerPulseOpacity(
+                                date: date,
+                                period: 1.4))  // design-lint: allow motion-literal token-gap motion.durations.d1_4
             }
-            .frame(width: 8, height: 8)
+            .frame(width: skin.size.s8, height: skin.size.s8)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: skin.size.s2) {
                 Text(incident.headline)
                     .font(skin.font(AinkradFontToken(sizeKey: "t13", weight: "semibold")))
                 Text("\(incident.stackName)  ·  \(incident.restartTotal) restarts")
@@ -102,7 +107,7 @@ private struct IncidentCard: View {
                     .foregroundStyle(skin.color(skin.text.muted))
             }
             Spacer(minLength: 0)
-            if isBusy { AinkradSpinner(size: 14) }
+            if isBusy { AinkradSpinner(size: skin.size.s14) }
             if let exitCode = incident.exitCode {
                 AinkradBadge(text: "exit \(exitCode)", status: .danger)
             }
