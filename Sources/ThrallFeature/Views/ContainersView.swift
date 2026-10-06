@@ -145,7 +145,7 @@ struct ContainersView: View {
     private func indicator(for context: ThrallEngineContext) -> Color {
         if !context.isSupported { return theme.foreground.opacity(skin.opacity.o25) }
         if context.name == model.activeContext?.name { return theme.accentPrimary }
-        return isReachable(context) ? theme.foreground.opacity(skin.opacity.o50) : .orange
+        return isReachable(context) ? theme.foreground.opacity(skin.opacity.o50) : skin.color(skin.palette.warning)
     }
 
     private var networksCard: some View {

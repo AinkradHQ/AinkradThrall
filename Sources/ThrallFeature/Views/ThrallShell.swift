@@ -156,7 +156,7 @@ struct ThrallShell: View {
     private var engineIndicator: Color {
         switch model.state {
         case .loaded: return tokens.accentPrimary
-        case .failed: return .orange
+        case .failed: return skin.color(skin.palette.warning)
         case .idle, .loading: return tokens.foreground.opacity(skin.opacity.o35)
         }
     }
