@@ -24,14 +24,14 @@ import Foundation
 /// dedupe key is the incident's own id — `(stack, fingerprint)` — which is
 /// stable across recreates by construction.
 @MainActor
-public final class ThrallSignalReporter {
+final class ThrallSignalReporter {
     /// Incident ids currently reported, so a repeat scan is silent.
     private var reported: Set<String> = []
     /// Titles kept so a clear can name what recovered.
     private var titles: [String: String] = [:]
     private var hasBaseline = false
 
-    public init() {}
+    init() {}
 
     /// Diffs `incidents` against what has already been reported.
     ///
@@ -39,7 +39,7 @@ public final class ThrallSignalReporter {
     ///   - suppressedStacks: stacks inside their settle window. Their
     ///     incidents are neither emitted **nor** cleared — a stack mid-restart
     ///     is not news in either direction.
-    public func report(
+    func report(
         incidents: [ThrallIncident],
         suppressedStacks: Set<ThrallStackID>,
         to signals: any PluginSignalEmitter
@@ -110,7 +110,7 @@ public final class ThrallSignalReporter {
 
     /// Drops state for a torn-down engine, so switching context does not
     /// announce every incident as recovered.
-    public func reset() {
+    func reset() {
         reported = []
         titles = [:]
         hasBaseline = false

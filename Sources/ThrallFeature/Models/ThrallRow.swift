@@ -8,12 +8,12 @@ import Foundation
 /// instant it expands, while still passing the repo's
 /// `check-virtualization.sh` regex. Flattening to one array of leaf rows is
 /// what makes the laziness real.
-public enum ThrallRow: Identifiable, Hashable, Sendable {
+enum ThrallRow: Identifiable, Hashable, Sendable {
     case stack(ThrallStack)
     case service(stack: ThrallStackID, service: ThrallService)
     case container(stack: ThrallStackID, service: String, container: ThrallContainer)
 
-    public var id: String {
+    var id: String {
         switch self {
         case .stack(let stack):
             return "s:\(stack.id.description)"
@@ -30,8 +30,8 @@ public enum ThrallRow: Identifiable, Hashable, Sendable {
 /// A pure function, so the ordering rule that matters most in this app is
 /// testable without a view: **rows never reorder on a state change.** The
 /// world arrives already sorted by identity, and nothing here re-sorts.
-public enum ThrallRowBuilder {
-    public static func rows(
+enum ThrallRowBuilder {
+    static func rows(
         for world: ThrallWorld,
         expandedStacks: Set<ThrallStackID>,
         expandedServices: Set<String>,
@@ -59,7 +59,7 @@ public enum ThrallRowBuilder {
 
     /// A service is only unique within its stack — two stacks both having a
     /// `db` service is the normal case, not a collision.
-    public static func serviceKey(stack: ThrallStackID, service: String) -> String {
+    static func serviceKey(stack: ThrallStackID, service: String) -> String {
         "\(stack.description)/\(service)"
     }
 }

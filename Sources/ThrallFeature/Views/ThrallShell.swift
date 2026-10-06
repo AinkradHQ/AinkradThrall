@@ -5,7 +5,7 @@ import SwiftUI
 /// on the right, and **no separator line** anywhere. Surfaces are
 /// distinguished by fill, never by a rule — the house rule is that it should
 /// look like an OS, not a web app.
-public struct ThrallShell: View {
+struct ThrallShell: View {
     private let host: HostServices
     @ObservedObject private var model: ThrallViewModel
     /// Observed **separately** from `model`. A nested `ObservableObject` does
@@ -18,7 +18,7 @@ public struct ThrallShell: View {
     @Environment(\.ainkradReduceMotion) private var reduceMotion
     @Environment(\.ainkradToastCenter) private var toasts
 
-    public init(host: HostServices) {
+    init(host: HostServices) {
         self.host = host
         let model = ThrallRuntime.viewModel(for: host)
         self.model = model
@@ -28,7 +28,7 @@ public struct ThrallShell: View {
 
     private var tokens: HostThemeTokens { host.theme.tokens }
 
-    public var body: some View {
+    var body: some View {
         VStack(spacing: 0) {
             topBar
             HStack(spacing: 0) {

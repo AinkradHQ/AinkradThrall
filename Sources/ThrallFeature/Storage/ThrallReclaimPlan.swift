@@ -1,28 +1,28 @@
 import Foundation
 
 /// Something reclaimable, named.
-public struct ThrallReclaimTarget: Equatable, Sendable, Identifiable {
-    public enum Kind: String, Equatable, Sendable {
+struct ThrallReclaimTarget: Equatable, Sendable, Identifiable {
+    enum Kind: String, Equatable, Sendable {
         case image, volume, buildCache
     }
 
-    public let kind: Kind
+    let kind: Kind
     /// The **exact** id removal will use. Never re-derived at removal time.
-    public let identifier: String
+    let identifier: String
     /// What the user sees. For a volume this is its name, which is the only
     /// thing that lets them recognise their own database.
-    public let displayName: String
-    public let bytes: Int64
+    let displayName: String
+    let bytes: Int64
     /// The owning compose project, where one is known.
-    public let owner: String?
+    let owner: String?
     /// Why this is considered reclaimable, in the user's words.
-    public let reason: String
+    let reason: String
 
     /// Kind-prefixed, because an image id and a volume name can collide and a
     /// list that silently drops one row is how the wrong thing gets deleted.
-    public var id: String { "\(kind.rawValue):\(identifier)" }
+    var id: String { "\(kind.rawValue):\(identifier)" }
 
-    public init(
+    init(
         kind: Kind, identifier: String, displayName: String, bytes: Int64,
         owner: String?, reason: String
     ) {
@@ -49,13 +49,13 @@ public struct ThrallReclaimTarget: Equatable, Sendable, Identifiable {
 ///
 /// A prune leaves the daemon to decide what "unused" meant at the moment it
 /// ran, which can differ from what the user was shown. Removing by ID cannot.
-public struct ThrallReclaimPlan: Equatable, Sendable {
-    public let targets: [ThrallReclaimTarget]
+struct ThrallReclaimPlan: Equatable, Sendable {
+    let targets: [ThrallReclaimTarget]
 
-    public var totalBytes: Int64 { targets.reduce(0) { $0 + $1.bytes } }
-    public var isEmpty: Bool { targets.isEmpty }
+    var totalBytes: Int64 { targets.reduce(0) { $0 + $1.bytes } }
+    var isEmpty: Bool { targets.isEmpty }
 
-    public func targets(of kind: ThrallReclaimTarget.Kind) -> [ThrallReclaimTarget] {
+    func targets(of kind: ThrallReclaimTarget.Kind) -> [ThrallReclaimTarget] {
         targets.filter { $0.kind == kind }
     }
 
@@ -64,7 +64,7 @@ public struct ThrallReclaimPlan: Equatable, Sendable {
     /// Deliberately conservative at each step, because the cost of including
     /// something wrongly is unbounded and the cost of missing something is a
     /// few gigabytes.
-    public static func make(
+    static func make(
         from usage: ThrallDiskUsageDTO,
         includeVolumes: Bool,
         includeImages: Bool,
@@ -125,7 +125,7 @@ public struct ThrallReclaimPlan: Equatable, Sendable {
     }
 
     /// The sentence shown before anything is removed.
-    public func confirmation() -> String {
+    func confirmation() -> String {
         let volumes = targets(of: .volume)
         var lines = [
             "Thrall will remove \(targets.count) item"
@@ -145,7 +145,7 @@ public struct ThrallReclaimPlan: Equatable, Sendable {
         return lines.joined(separator: "\n")
     }
 
-    public static func humanBytes(_ bytes: Int64) -> String {
+    static func humanBytes(_ bytes: Int64) -> String {
         let units = ["B", "KB", "MB", "GB", "TB"]
         var value = Double(bytes)
         var index = 0

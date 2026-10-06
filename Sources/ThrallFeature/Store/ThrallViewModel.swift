@@ -4,8 +4,8 @@ import Foundation
 /// The stacks surface's state, and the only place that decides *when* to talk
 /// to the engine.
 @MainActor
-public final class ThrallViewModel: ObservableObject {
-    public enum LoadState: Equatable {
+final class ThrallViewModel: ObservableObject {
+    enum LoadState: Equatable {
         case idle
         case loading
         case loaded
@@ -14,26 +14,26 @@ public final class ThrallViewModel: ObservableObject {
         case failed(String)
     }
 
-    @Published public internal(set) var world: ThrallWorld
-    @Published public internal(set) var contexts: [ThrallEngineContext] = []
-    @Published public internal(set) var activeContext: ThrallEngineContext?
-    @Published public internal(set) var engineVersion: ThrallEngineVersion?
-    @Published public internal(set) var state: LoadState = .idle
+    @Published var world: ThrallWorld
+    @Published var contexts: [ThrallEngineContext] = []
+    @Published var activeContext: ThrallEngineContext?
+    @Published var engineVersion: ThrallEngineVersion?
+    @Published var state: LoadState = .idle
     /// Reasons a context was skipped or overridden, shown in the engine panel.
-    @Published public internal(set) var contextNotes: [String] = []
+    @Published var contextNotes: [String] = []
 
-    @Published public var selectedStack: ThrallStackID?
-    @Published public var expandedStacks: Set<ThrallStackID> = []
-    @Published public var expandedServices: Set<String> = []
+    @Published var selectedStack: ThrallStackID?
+    @Published var expandedStacks: Set<ThrallStackID> = []
+    @Published var expandedServices: Set<String> = []
 
     /// A finished action, shown as a toast and then dismissed.
     @Published var lastActionNotice: ThrallNotice?
     /// Stacks with a compose verb in flight, so a row can show a spinner.
-    @Published public internal(set) var busyStacks: Set<ThrallStackID> = []
+    @Published var busyStacks: Set<ThrallStackID> = []
     /// A pending Down awaiting confirmation. Down destroys state; Restart and
     /// Up never confirm — gating the action that *fixes* a broken service is
     /// what makes people stop using the tool.
-    @Published public var pendingDown: ThrallStack?
+    @Published var pendingDown: ThrallStack?
 
     /// Whether `refresh()` also scans for incidents.
     ///
@@ -41,9 +41,9 @@ public final class ThrallViewModel: ObservableObject {
     /// crash loops, and its only consumers are the triage area and the rail's
     /// incident badge, neither of which basic has. Default `true`, so advanced
     /// and anything that forgets to set it keep the old behaviour.
-    public var scansForIncidents = true
+    var scansForIncidents = true
     /// A pending by-label teardown of an orphaned stack.
-    @Published public var pendingTeardown: ThrallStack?
+    @Published var pendingTeardown: ThrallStack?
 
     let host: HostServices
     /// `internal` rather than `private` so `ThrallViewModel+Actions` can
@@ -66,15 +66,15 @@ public final class ThrallViewModel: ObservableObject {
 
     /// The triage surface's own model. Public so the shell can hand it to
     /// `TriageView` without the shell owning the scan schedule.
-    public let triage = ThrallTriageModel()
+    let triage = ThrallTriageModel()
     let reporter = ThrallSignalReporter()
     /// The logs area's own model, so its reads are not on the reconcile path.
-    public let logs = ThrallLogsModel()
+    let logs = ThrallLogsModel()
     /// Images, storage and networks. Its `/system/df` read costs 1.86 s, so it
     /// is loaded on demand by its own areas and never by `refresh()`.
-    public let storage = ThrallStorageModel()
+    let storage = ThrallStorageModel()
 
-    public init(
+    init(
         host: HostServices,
         settings: ThrallSettingsStore,
         resolver: ThrallContextResolver = .system(),
@@ -88,7 +88,7 @@ public final class ThrallViewModel: ObservableObject {
         self.world = .empty(engineKey: "")
     }
 
-    public var rows: [ThrallRow] {
+    var rows: [ThrallRow] {
         ThrallRowBuilder.rows(
             for: world,
             expandedStacks: expandedStacks,
@@ -98,11 +98,11 @@ public final class ThrallViewModel: ObservableObject {
 
     /// What the engine chip reads. The context name, not the socket path —
     /// `orbstack` is what the user recognises.
-    public var engineLabel: String { activeContext?.name ?? "No engine" }
+    var engineLabel: String { activeContext?.name ?? "No engine" }
 
     // MARK: - Lifecycle
 
-    public func bootstrap() {
+    func bootstrap() {
         guard case .idle = state else { return }
         resolveContexts()
         Task { await refresh() }
@@ -114,7 +114,7 @@ public final class ThrallViewModel: ObservableObject {
     /// event-driven UI then freezes on stale state with nothing to say so. The
     /// poll is what guarantees the screen converges on the truth even when
     /// every other mechanism has failed.
-    public func startPolling() {
+    func startPolling() {
         guard pollTask == nil else { return }
         let seconds = settings.settings.effectivePollSeconds
         pollTask = Task { [weak self] in
@@ -126,7 +126,7 @@ public final class ThrallViewModel: ObservableObject {
         }
     }
 
-    public func shutdown() {
+    func shutdown() {
         pollTask?.cancel()
         pollTask = nil
         // The one long-lived socket in the app. An uncancelled `NWConnection`
@@ -149,7 +149,7 @@ public final class ThrallViewModel: ObservableObject {
     /// Lives here rather than in `ThrallLogsModel` because the engine client
     /// is the view model's, and a log read is the one place where handing the
     /// client out would let a view open a socket.
-    public func tailLogs(
+    func tailLogs(
         _ containers: [(id: String, service: String)],
         into logs: ThrallLogsModel
     ) async {
@@ -164,7 +164,7 @@ public final class ThrallViewModel: ObservableObject {
 
     // MARK: - Row interaction
 
-    public func toggle(stack id: ThrallStackID) {
+    func toggle(stack id: ThrallStackID) {
         if expandedStacks.contains(id) {
             expandedStacks.remove(id)
         } else {
@@ -172,7 +172,7 @@ public final class ThrallViewModel: ObservableObject {
         }
     }
 
-    public func toggle(service name: String, in stack: ThrallStackID) {
+    func toggle(service name: String, in stack: ThrallStackID) {
         let key = ThrallRowBuilder.serviceKey(stack: stack, service: name)
         if expandedServices.contains(key) {
             expandedServices.remove(key)
@@ -181,7 +181,7 @@ public final class ThrallViewModel: ObservableObject {
         }
     }
 
-    public func isExpanded(service name: String, in stack: ThrallStackID) -> Bool {
+    func isExpanded(service name: String, in stack: ThrallStackID) -> Bool {
         expandedServices.contains(ThrallRowBuilder.serviceKey(stack: stack, service: name))
     }
 

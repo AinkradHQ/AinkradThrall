@@ -2,14 +2,14 @@ import Foundation
 
 /// Whether a path is on disk, injected so the reconciler takes no I/O of its
 /// own and a test can state the filesystem instead of arranging one.
-public struct ThrallFileProbe: Sendable {
-    public let exists: @Sendable (String) -> Bool
+struct ThrallFileProbe: Sendable {
+    let exists: @Sendable (String) -> Bool
 
-    public init(exists: @escaping @Sendable (String) -> Bool) {
+    init(exists: @escaping @Sendable (String) -> Bool) {
         self.exists = exists
     }
 
-    public static let filesystem = ThrallFileProbe {
+    static let filesystem = ThrallFileProbe {
         FileManager.default.fileExists(atPath: $0)
     }
 }
@@ -31,11 +31,11 @@ public struct ThrallFileProbe: Sendable {
 ///     no event type appears in this file's signature. One dropped event would
 ///     otherwise leave the UI permanently wrong, and the daemon keeps only
 ///     minutes of history, so there is no replay to recover from.
-public enum ThrallReconciler {
+enum ThrallReconciler {
     /// The row title for containers belonging to no compose project.
-    public static let looseStackName = "Unmanaged"
+    static let looseStackName = "Unmanaged"
 
-    public static func reconcile(
+    static func reconcile(
         engineKey: String,
         containers: [ThrallContainerDTO],
         probe: ThrallFileProbe = .filesystem,

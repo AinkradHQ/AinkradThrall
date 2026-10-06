@@ -13,17 +13,17 @@ import Foundation
 /// **`Host` is required even over AF_UNIX.** There is no host in a unix socket
 /// address, but HTTP/1.1 mandates the field (RFC 9112 3.2) and the Docker
 /// engine's mux rejects a request without one. The value is arbitrary.
-public struct ThrallHTTPRequest: Equatable, Sendable {
-    public var method: String
+struct ThrallHTTPRequest: Equatable, Sendable {
+    var method: String
     /// Request target, **already percent-encoded**, including any query.
     /// Encoding is the caller's job because only the caller knows which parts
     /// are data: a container name may legally contain a `.` and an image
     /// reference a `/`, and a helpful re-encode here would corrupt both.
-    public var target: String
-    public var headers: [(name: String, value: String)]
-    public var body: Data?
+    var target: String
+    var headers: [(name: String, value: String)]
+    var body: Data?
 
-    public init(
+    init(
         method: String = "GET",
         target: String,
         headers: [(name: String, value: String)] = [],
@@ -42,7 +42,7 @@ public struct ThrallHTTPRequest: Equatable, Sendable {
     /// unescaped CRLF in any of them would let a value smuggle a second
     /// request onto a socket that is root-equivalent on this machine. It is
     /// cheap, it is at the boundary, and it is the last place to catch it.
-    public func encoded() throws -> Data {
+    func encoded() throws -> Data {
         guard !method.isEmpty, method.allSatisfy(Self.isTokenCharacter) else {
             throw ThrallTransportError.invalidRequest("method is not an HTTP token: \(method)")
         }
@@ -114,7 +114,7 @@ public struct ThrallHTTPRequest: Equatable, Sendable {
         return "!#$%&'*+-.^_`|~".utf8.contains(ascii)
     }
 
-    public static func == (lhs: ThrallHTTPRequest, rhs: ThrallHTTPRequest) -> Bool {
+    static func == (lhs: ThrallHTTPRequest, rhs: ThrallHTTPRequest) -> Bool {
         lhs.method == rhs.method && lhs.target == rhs.target && lhs.body == rhs.body
             && lhs.headers.count == rhs.headers.count
             && zip(lhs.headers, rhs.headers).allSatisfy { $0.name == $1.name && $0.value == $1.value }

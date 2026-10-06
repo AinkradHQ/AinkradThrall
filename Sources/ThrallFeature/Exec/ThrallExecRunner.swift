@@ -1,21 +1,21 @@
 import Foundation
 
-public struct ThrallExecResult: Equatable, Sendable {
-    public let stdout: String
-    public let stderr: String
-    public let exitCode: Int?
-    public let truncated: Bool
+struct ThrallExecResult: Equatable, Sendable {
+    let stdout: String
+    let stderr: String
+    let exitCode: Int?
+    let truncated: Bool
 
-    public var succeeded: Bool { exitCode == 0 }
+    var succeeded: Bool { exitCode == 0 }
 }
 
-public enum ThrallExecError: LocalizedError, Equatable, Sendable {
+enum ThrallExecError: LocalizedError, Equatable, Sendable {
     case emptyCommand
     case invalidArgument(String)
     case tooManyArguments(Int)
     case engine(String)
 
-    public var errorDescription: String? { ThrallRunCommand.describe(self) }
+    var errorDescription: String? { ThrallRunCommand.describe(self) }
 }
 
 /// Runs one non-interactive command inside a container.
@@ -45,15 +45,15 @@ public enum ThrallExecError: LocalizedError, Equatable, Sendable {
 /// it: the container-recreate race that made a pre-flight `inspect`
 /// untrustworthy for logs cannot apply to a value from our own request body in
 /// the same exchange. Thrall always sends `Tty: false`, so it always demuxes.
-public struct ThrallExecRunner: Sendable {
+struct ThrallExecRunner: Sendable {
     /// Enough for a diagnostic command; far short of anything that could be a
     /// script.
-    public static let maximumArguments = 24
-    public static let maximumOutputBytes = 256 * 1024
+    static let maximumArguments = 24
+    static let maximumOutputBytes = 256 * 1024
 
     private let client: ThrallEngineClient
 
-    public init(client: ThrallEngineClient) {
+    init(client: ThrallEngineClient) {
         self.client = client
     }
 
@@ -64,7 +64,7 @@ public struct ThrallExecRunner: Sendable {
     /// literal arguments, because a user typing `cat x > y` expects a redirect
     /// and would otherwise get a file named `>` with no explanation. Refusing
     /// with a reason is honest; silently doing something else is not.
-    public static func parse(commandLine: String) throws -> [String] {
+    static func parse(commandLine: String) throws -> [String] {
         let trimmed = commandLine.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw ThrallExecError.emptyCommand }
 
@@ -146,7 +146,7 @@ public struct ThrallExecRunner: Sendable {
             + "real terminal."
     }
 
-    public func run(containerID: String, command: [String]) async throws -> ThrallExecResult {
+    func run(containerID: String, command: [String]) async throws -> ThrallExecResult {
         guard !command.isEmpty else { throw ThrallExecError.emptyCommand }
         guard command.count <= Self.maximumArguments else {
             throw ThrallExecError.tooManyArguments(command.count)

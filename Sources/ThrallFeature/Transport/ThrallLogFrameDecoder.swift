@@ -1,7 +1,7 @@
 import Foundation
 
 /// Which of a container's streams a chunk of output came from.
-public enum ThrallLogStream: UInt8, Equatable, Sendable, CaseIterable {
+enum ThrallLogStream: UInt8, Equatable, Sendable, CaseIterable {
     case stdin = 0
     case stdout = 1
     case stderr = 2
@@ -10,11 +10,11 @@ public enum ThrallLogStream: UInt8, Equatable, Sendable, CaseIterable {
 /// One decoded piece of container output. Not a line — framing and line
 /// splitting are separate concerns, and a frame may hold a partial line or
 /// several.
-public struct ThrallLogFrame: Equatable, Sendable {
-    public let stream: ThrallLogStream
-    public let payload: Data
+struct ThrallLogFrame: Equatable, Sendable {
+    let stream: ThrallLogStream
+    let payload: Data
 
-    public init(stream: ThrallLogStream, payload: Data) {
+    init(stream: ThrallLogStream, payload: Data) {
         self.stream = stream
         self.payload = payload
     }
@@ -44,19 +44,19 @@ public struct ThrallLogFrame: Equatable, Sendable {
 /// padding bytes must be zero and the stream byte must be 0, 1 or 2 — so a
 /// mis-selected framing throws within one frame instead of producing plausible
 /// nonsense.
-public struct ThrallLogFrameDecoder {
-    public enum Framing: Equatable, Sendable {
+struct ThrallLogFrameDecoder {
+    enum Framing: Equatable, Sendable {
         case multiplexed
         case raw
     }
 
-    public static let multiplexedContentType = "application/vnd.docker.multiplexed-stream"
-    public static let rawContentType = "application/vnd.docker.raw-stream"
+    static let multiplexedContentType = "application/vnd.docker.multiplexed-stream"
+    static let rawContentType = "application/vnd.docker.raw-stream"
 
     /// Maps a normalised `Content-Type` to a framing, or nil when it is not
     /// one this build can read. Nil is a hard stop at the call site — there is
     /// no sensible default.
-    public static func framing(forContentType contentType: String?) -> Framing? {
+    static func framing(forContentType contentType: String?) -> Framing? {
         switch contentType {
         case multiplexedContentType: return .multiplexed
         case rawContentType: return .raw
@@ -66,14 +66,14 @@ public struct ThrallLogFrameDecoder {
 
     private static let headerLength = 8
 
-    public let framing: Framing
+    let framing: Framing
     /// Caps a declared frame length. A desynced header reads as a plausible
     /// hex number in the hundreds of megabytes; the cap turns that into an
     /// error instead of an allocation.
-    public let maximumFrameLength: Int
+    let maximumFrameLength: Int
     private(set) var carry = Data()
 
-    public init(framing: Framing, maximumFrameLength: Int = 16 * 1024 * 1024) {
+    init(framing: Framing, maximumFrameLength: Int = 16 * 1024 * 1024) {
         self.framing = framing
         self.maximumFrameLength = maximumFrameLength
     }
@@ -82,7 +82,7 @@ public struct ThrallLogFrameDecoder {
     /// stays in the carry buffer until it is whole — which happens constantly,
     /// because the dechunker above emits on chunk arrival and a frame has no
     /// reason to align to a chunk.
-    public mutating func feed(_ bytes: Data) throws -> [ThrallLogFrame] {
+    mutating func feed(_ bytes: Data) throws -> [ThrallLogFrame] {
         guard !bytes.isEmpty else { return [] }
         if framing == .raw {
             // A TTY container's output is already the thing the caller wants.

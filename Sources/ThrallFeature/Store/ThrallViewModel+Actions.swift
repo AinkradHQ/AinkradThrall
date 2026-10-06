@@ -17,7 +17,7 @@ extension ThrallViewModel {
     /// needs the file it was started from. Those stacks get engine-level
     /// container verbs instead, which is what makes them actionable rather
     /// than merely visible.
-    public func actions(for stack: ThrallStack) -> [ThrallStackAction] {
+    func actions(for stack: ThrallStack) -> [ThrallStackAction] {
         if stack.isConfigMissing {
             return [.engineStart, .engineRestart, .engineStop]
         }
@@ -26,7 +26,7 @@ extension ThrallViewModel {
 
     /// `services` narrows a compose or engine verb to those services; empty
     /// means the whole stack.
-    public func perform(
+    func perform(
         _ action: ThrallStackAction, on stack: ThrallStack, services: [String] = []
     ) {
         if action == .down, settings.settings.confirmBeforeDown {
@@ -56,13 +56,13 @@ extension ThrallViewModel {
             .flatMap(\.containers)
     }
 
-    public func confirmPendingDown() {
+    func confirmPendingDown() {
         guard let stack = pendingDown else { return }
         pendingDown = nil
         run(.down, on: stack)
     }
 
-    public func confirmPendingTeardown() {
+    func confirmPendingTeardown() {
         guard let stack = pendingTeardown, let client else { return }
         pendingTeardown = nil
         lastUserAction[stack.id] = Date()
@@ -170,7 +170,7 @@ extension ThrallViewModel {
 
     // MARK: - Engine selection
 
-    public func resolveContexts() {
+    func resolveContexts() {
         let resolution = resolver.resolve()
         contexts = resolution.contexts
         contextNotes = resolution.notes
@@ -181,7 +181,7 @@ extension ThrallViewModel {
         }
     }
 
-    public func select(_ context: ThrallEngineContext?) {
+    func select(_ context: ThrallEngineContext?) {
         activeContext = context
         engineVersion = nil
         client = nil
@@ -206,7 +206,7 @@ extension ThrallViewModel {
 
     // MARK: - Reading
 
-    public func refresh() async {
+    func refresh() async {
         guard let client, let context = activeContext else { return }
         if case .loaded = state {} else { state = .loading }
         do {
@@ -303,7 +303,7 @@ extension ThrallViewModel {
     }
 
     /// Runs a remedy. Only a state-destroying one confirms.
-    public func apply(_ remedy: ThrallRemedy, to incident: ThrallIncident) {
+    func apply(_ remedy: ThrallRemedy, to incident: ThrallIncident) {
         guard let stack = world.stack(incident.key.stack) else { return }
         switch remedy.kind {
         case .restartDependencyThenDependents, .restartServices:

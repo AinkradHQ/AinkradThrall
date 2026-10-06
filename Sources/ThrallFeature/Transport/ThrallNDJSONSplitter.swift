@@ -13,20 +13,20 @@ import Foundation
 /// Blank lines are dropped rather than reported. The engine sends none, but a
 /// keep-alive newline is a normal thing for a long-poll to send and it is not
 /// a document.
-public struct ThrallNDJSONSplitter {
+struct ThrallNDJSONSplitter {
     /// Caps the carry buffer. A peer that never sends a newline would
     /// otherwise grow this without bound for as long as the stream is open,
     /// which on `/events` is the whole session.
-    public let maximumLineLength: Int
+    let maximumLineLength: Int
     private(set) var carry = Data()
 
-    public init(maximumLineLength: Int = 4 * 1024 * 1024) {
+    init(maximumLineLength: Int = 4 * 1024 * 1024) {
         self.maximumLineLength = maximumLineLength
     }
 
     /// Returns every complete line the new bytes finished, in order. A
     /// trailing partial line stays in the carry buffer.
-    public mutating func feed(_ bytes: Data) throws -> [Data] {
+    mutating func feed(_ bytes: Data) throws -> [Data] {
         carry.append(bytes)
         var lines: [Data] = []
         var searchStart = carry.startIndex

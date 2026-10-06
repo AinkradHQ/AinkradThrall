@@ -1,29 +1,29 @@
 import Foundation
 
-public struct ThrallProcessResult: Equatable, Sendable {
-    public let exitCode: Int32
-    public let standardOutput: String
-    public let standardError: String
-    public let outputWasTruncated: Bool
+struct ThrallProcessResult: Equatable, Sendable {
+    let exitCode: Int32
+    let standardOutput: String
+    let standardError: String
+    let outputWasTruncated: Bool
 
-    public var succeeded: Bool { exitCode == 0 }
+    var succeeded: Bool { exitCode == 0 }
 
     /// The engine's or compose's own last words, for a toast. Prefers stderr,
     /// which is where compose writes progress and failures.
-    public var summary: String {
+    var summary: String {
         let source = standardError.isEmpty ? standardOutput : standardError
         return source.split(separator: "\n").last.map(String.init)?
             .trimmingCharacters(in: .whitespaces) ?? ""
     }
 }
 
-public enum ThrallProcessError: LocalizedError, Equatable, Sendable {
+enum ThrallProcessError: LocalizedError, Equatable, Sendable {
     case binaryNotFound(String)
     case launchFailed(String)
     case rejected(String)
     case cancelled
 
-    public var errorDescription: String? { ThrallViewModel.describe(self) }
+    var errorDescription: String? { ThrallViewModel.describe(self) }
 }
 
 /// Spawns `docker` and collects its output.
@@ -34,18 +34,18 @@ public enum ThrallProcessError: LocalizedError, Equatable, Sendable {
 /// buffer, the parent blocks waiting for a child that can never exit, and the
 /// actor dies with it. `docker compose up` on `aai1058`'s 24 services goes far
 /// past 64 KB, so this is the normal path here, not an edge case.
-public struct ThrallProcessRunner: Sendable {
-    public static let maximumOutputBytes = 4 * 1_048_576
-    public static let maximumErrorBytes = 1_048_576
+struct ThrallProcessRunner: Sendable {
+    static let maximumOutputBytes = 4 * 1_048_576
+    static let maximumErrorBytes = 1_048_576
 
     private static let queue = DispatchQueue(
         label: "com.ainkrad.thrall.process",
         attributes: .concurrent)
 
-    public var binary: ThrallDockerBinary
-    public var environment: [String: String]
+    var binary: ThrallDockerBinary
+    var environment: [String: String]
 
-    public init(
+    init(
         binary: ThrallDockerBinary = ThrallDockerBinary(),
         environment: [String: String] = [:]
     ) {
@@ -59,7 +59,7 @@ public struct ThrallProcessRunner: Sendable {
     /// unwinds cleanly (leaving a consistent stack), and only a process that
     /// ignores it gets killed. Killing first would leave half-created
     /// containers behind.
-    public func run(
+    func run(
         _ arguments: [String],
         workingDirectory: String? = nil,
         graceSeconds: Double = 3

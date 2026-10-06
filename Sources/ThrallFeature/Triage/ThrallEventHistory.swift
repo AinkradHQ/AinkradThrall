@@ -14,14 +14,14 @@ import Foundation
 /// container-keyed history would show six containers that each died once
 /// instead of one service that died six times, which is exactly the wrong
 /// answer, and it is also why signals dedupe per service.
-public struct ThrallEventHistory: Equatable, Sendable {
+struct ThrallEventHistory: Equatable, Sendable {
     /// One death.
-    public struct Death: Equatable, Sendable {
-        public let containerID: String
-        public let exitCode: Int
-        public let at: Date
+    struct Death: Equatable, Sendable {
+        let containerID: String
+        let exitCode: Int
+        let at: Date
 
-        public init(containerID: String, exitCode: Int, at: Date) {
+        init(containerID: String, exitCode: Int, at: Date) {
             self.containerID = containerID
             self.exitCode = exitCode
             self.at = at
@@ -29,11 +29,11 @@ public struct ThrallEventHistory: Equatable, Sendable {
     }
 
     /// Identifies a service across recreates.
-    public struct ServiceKey: Hashable, Sendable {
-        public let stack: ThrallStackID
-        public let service: String
+    struct ServiceKey: Hashable, Sendable {
+        let stack: ThrallStackID
+        let service: String
 
-        public init(stack: ThrallStackID, service: String) {
+        init(stack: ThrallStackID, service: String) {
             self.stack = stack
             self.service = service
         }
@@ -42,16 +42,16 @@ public struct ThrallEventHistory: Equatable, Sendable {
     /// Deaths retained per service, oldest first. Bounded because `/events`
     /// stays open for the whole session and a flapping service produces one
     /// entry every few seconds.
-    public let limitPerService: Int
+    let limitPerService: Int
     private(set) var deaths: [ServiceKey: [Death]] = [:]
 
-    public init(limitPerService: Int = 40) {
+    init(limitPerService: Int = 40) {
         self.limitPerService = limitPerService
     }
 
     /// Records a `die`. Anything else is ignored — including `exec_die`, which
     /// `ThrallEvent.parseAction` has already separated into `.exec`.
-    public mutating func record(_ event: ThrallEvent, engineKey: String) {
+    mutating func record(_ event: ThrallEvent, engineKey: String) {
         guard event.isContainer, event.action == .die else { return }
         guard let service = event.composeService, let project = event.composeProject else { return }
         let key = ServiceKey(
@@ -73,16 +73,16 @@ public struct ThrallEventHistory: Equatable, Sendable {
         deaths[key] = recorded
     }
 
-    public func deaths(for key: ServiceKey) -> [Death] { deaths[key] ?? [] }
+    func deaths(for key: ServiceKey) -> [Death] { deaths[key] ?? [] }
 
     /// Deaths within `window` of `now`, which is what the warm detector counts.
-    public func recentDeaths(for key: ServiceKey, since: Date) -> [Death] {
+    func recentDeaths(for key: ServiceKey, since: Date) -> [Death] {
         (deaths[key] ?? []).filter { $0.at >= since }
     }
 
     /// Drops history for services that no longer exist, so a long session does
     /// not accumulate dead keys.
-    public mutating func prune(keeping live: Set<ServiceKey>) {
+    mutating func prune(keeping live: Set<ServiceKey>) {
         deaths = deaths.filter { live.contains($0.key) }
     }
 }

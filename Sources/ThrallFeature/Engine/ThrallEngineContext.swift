@@ -1,15 +1,15 @@
 import Foundation
 
 /// One engine context, as the switcher chip will show it.
-public struct ThrallEngineContext: Equatable, Hashable, Sendable, Identifiable {
-    public let name: String
-    public let description: String?
-    public let endpoint: ThrallEngineEndpoint
+struct ThrallEngineContext: Equatable, Hashable, Sendable, Identifiable {
+    let name: String
+    let description: String?
+    let endpoint: ThrallEngineEndpoint
 
-    public var id: String { name }
-    public var isSupported: Bool { endpoint.isSupported }
+    var id: String { name }
+    var isSupported: Bool { endpoint.isSupported }
 
-    public init(
+    init(
         name: String,
         description: String? = nil,
         endpoint: ThrallEngineEndpoint

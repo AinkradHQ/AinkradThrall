@@ -21,26 +21,26 @@ import Foundation
 /// The store's directory names are `sha256(contextName)` (verified against all
 /// contexts on this machine), so a named lookup could skip the scan. The scan
 /// stays because listing needs it anyway and one pass answers both questions.
-public struct ThrallContextResolver: Sendable {
-    public struct Resolution: Equatable, Sendable {
+struct ThrallContextResolver: Sendable {
+    struct Resolution: Equatable, Sendable {
         /// Every context found, `default` first and the rest alphabetical.
-        public let contexts: [ThrallEngineContext]
+        let contexts: [ThrallEngineContext]
         /// The selected context, or nil when the name names nothing usable.
-        public let active: ThrallEngineContext?
+        let active: ThrallEngineContext?
         /// Human-readable reasons anything was skipped or overridden. Surfaced
         /// in the engine panel; a silently dropped context is a support call.
-        public let notes: [String]
+        let notes: [String]
     }
 
     /// Docker's config directory — `~/.docker` in production, a temporary
     /// directory in tests. Injected rather than derived so the resolver never
     /// needs the real one to be testable.
-    public let configDirectory: URL
-    public let environment: [String: String]
+    let configDirectory: URL
+    let environment: [String: String]
     /// The platform socket for the implicit `default` context.
-    public let platformSocketPath: String
+    let platformSocketPath: String
 
-    public init(
+    init(
         configDirectory: URL,
         environment: [String: String],
         platformSocketPath: String = "/var/run/docker.sock"
@@ -50,7 +50,7 @@ public struct ThrallContextResolver: Sendable {
         self.platformSocketPath = platformSocketPath
     }
 
-    public static func system(environment: [String: String] = ProcessInfo.processInfo.environment)
+    static func system(environment: [String: String] = ProcessInfo.processInfo.environment)
         -> ThrallContextResolver
     {
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -63,7 +63,7 @@ public struct ThrallContextResolver: Sendable {
             environment: environment)
     }
 
-    public func resolve() -> Resolution {
+    func resolve() -> Resolution {
         var notes: [String] = []
         let stored = storedContexts(notes: &notes)
 

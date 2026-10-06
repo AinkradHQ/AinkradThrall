@@ -1,10 +1,10 @@
 import Foundation
 
 /// A complete unary response.
-public struct ThrallHTTPResponse: Sendable {
-    public let head: ThrallHTTPResponseHead
-    public let body: Data
-    public let trailers: ThrallHTTPHeaders?
+struct ThrallHTTPResponse: Sendable {
+    let head: ThrallHTTPResponseHead
+    let body: Data
+    let trailers: ThrallHTTPHeaders?
 }
 
 /// Pulls framing events off a byte stream, one at a time.
@@ -13,13 +13,13 @@ public struct ThrallHTTPResponse: Sendable {
 /// unary `GET /containers/json` and a `follow` log stream differ only in the
 /// timeout they pass and in whether they accumulate the body. Two drivers
 /// would mean two chances to get the dechunker's mid-chunk emission wrong.
-public actor ThrallHTTPResponseReader {
+actor ThrallHTTPResponseReader {
     private let stream: any ThrallByteStream
     private var parser: ThrallHTTPResponseParser
     private var queued: [ThrallHTTPResponseParser.Output] = []
     private var isDone = false
 
-    public init(
+    init(
         stream: any ThrallByteStream,
         limits: ThrallHTTPResponseParser.Limits = .default
     ) {
@@ -33,7 +33,7 @@ public actor ThrallHTTPResponseReader {
     /// Pass `nil` for `timeout` on `/events` and on a `follow` log stream —
     /// both are legitimately silent for minutes, and a timeout there reads to
     /// the user as the engine dying.
-    public func next(timeout: Duration?) async throws -> ThrallHTTPResponseParser.Output? {
+    func next(timeout: Duration?) async throws -> ThrallHTTPResponseParser.Output? {
         while true {
             if !queued.isEmpty { return queued.removeFirst() }
             if isDone { return nil }
@@ -54,14 +54,14 @@ public actor ThrallHTTPResponseReader {
 
 /// The join: request out, response in. Kept separate from the engine client so
 /// that layer never assembles a byte.
-public enum ThrallHTTPExchange {
+enum ThrallHTTPExchange {
     /// Sends `request` and reads the whole response.
     ///
     /// Only for endpoints with a bounded body. `/events` and a `follow` log
     /// stream never complete, so calling this on one would accumulate until
     /// `maximumBodyLength` — use `ThrallHTTPResponseReader` directly for
     /// those.
-    public static func perform(
+    static func perform(
         _ request: ThrallHTTPRequest,
         over stream: any ThrallByteStream,
         timeout: Duration = .seconds(30),

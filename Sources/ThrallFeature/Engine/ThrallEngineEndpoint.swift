@@ -7,17 +7,17 @@ import Foundation
 /// to appear in the switcher — silently hiding it would leave the user
 /// wondering why `desktop-linux` vanished, and "is this the container I think
 /// it is" is the failure mode the switcher exists to prevent.
-public enum ThrallEngineEndpoint: Equatable, Hashable, Sendable {
+enum ThrallEngineEndpoint: Equatable, Hashable, Sendable {
     case unixSocket(path: String)
     case unsupported(scheme: String, detail: String, reason: String)
 
-    public var isSupported: Bool {
+    var isSupported: Bool {
         if case .unixSocket = self { return true }
         return false
     }
 
     /// How to describe this endpoint in the UI.
-    public var displayString: String {
+    var displayString: String {
         switch self {
         case .unixSocket(let path): return path
         case .unsupported(let scheme, let detail, _): return "\(scheme)://\(detail)"
@@ -37,7 +37,7 @@ public enum ThrallEngineEndpoint: Equatable, Hashable, Sendable {
     /// stopped Docker Desktop, say) this falls back to the standardized path,
     /// which is the best available answer and never wrong in a way that merges
     /// two live engines.
-    public var engineKey: String {
+    var engineKey: String {
         switch self {
         case .unixSocket(let path):
             let url = URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
@@ -52,7 +52,7 @@ public enum ThrallEngineEndpoint: Equatable, Hashable, Sendable {
     /// Returns nil only for input that names nothing at all. Anything that
     /// names a transport Thrall will not drive comes back as `.unsupported`
     /// with the reason, so it can be listed and explained rather than dropped.
-    public static func parse(_ raw: String) -> ThrallEngineEndpoint? {
+    static func parse(_ raw: String) -> ThrallEngineEndpoint? {
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
 

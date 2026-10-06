@@ -7,30 +7,30 @@ import Foundation
 /// over a fixture. Only the fields Thrall reads are declared; the engine sends
 /// more (`Mounts`, `NetworkSettings`, `ImageManifestDescriptor`) and decoding
 /// what nothing uses is just a bigger surface to break.
-public struct ThrallContainerDTO: Decodable, Equatable, Sendable {
-    public let id: String
+struct ThrallContainerDTO: Decodable, Equatable, Sendable {
+    let id: String
     /// As sent, each with a leading `/`.
-    public let names: [String]
-    public let image: String
-    public let imageID: String
-    public let command: String
+    let names: [String]
+    let image: String
+    let imageID: String
+    let command: String
     /// Unix seconds. Note the inconsistency: this endpoint sends an integer
     /// while `inspect` sends an RFC 3339 string for the same concept.
-    public let created: Int
+    let created: Int
     /// `running`, `exited`, `created`, `restarting`, `paused`, `dead`.
-    public let state: String
+    let state: String
     /// Prose, e.g. `Exited (137) 3 hours ago`. Display only — parsing it for
     /// an exit code is a localisation bug waiting to happen, and `inspect`
     /// gives the number.
-    public let status: String
-    public let labels: [String: String]
-    public let ports: [Port]
+    let status: String
+    let labels: [String: String]
+    let ports: [Port]
 
-    public struct Port: Decodable, Equatable, Sendable {
-        public let ip: String?
-        public let privatePort: Int
-        public let publicPort: Int?
-        public let type: String
+    struct Port: Decodable, Equatable, Sendable {
+        let ip: String?
+        let privatePort: Int
+        let publicPort: Int?
+        let type: String
 
         enum CodingKeys: String, CodingKey {
             case ip = "IP"
@@ -53,7 +53,7 @@ public struct ThrallContainerDTO: Decodable, Equatable, Sendable {
         case ports = "Ports"
     }
 
-    public init(from decoder: any Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
         names = try container.decodeIfPresent([String].self, forKey: .names) ?? []
@@ -71,7 +71,7 @@ public struct ThrallContainerDTO: Decodable, Equatable, Sendable {
     }
 
     /// The name without its leading slash. The engine sends `/optimus-scheduler-1`.
-    public var displayName: String {
+    var displayName: String {
         guard let first = names.first else { return String(id.prefix(12)) }
         return first.hasPrefix("/") ? String(first.dropFirst()) : first
     }
@@ -83,32 +83,32 @@ public struct ThrallContainerDTO: Decodable, Equatable, Sendable {
 /// appear in the list response, and crash-loop detection cannot be done
 /// without it. It is **lifetime-cumulative**, so it needs a recency clause
 /// before it means anything — see the M2 plan.
-public struct ThrallContainerInspectDTO: Decodable, Equatable, Sendable {
-    public let id: String
-    public let name: String
-    public let created: Date?
-    public let restartCount: Int
-    public let state: State
-    public let restartPolicy: RestartPolicy
+struct ThrallContainerInspectDTO: Decodable, Equatable, Sendable {
+    let id: String
+    let name: String
+    let created: Date?
+    let restartCount: Int
+    let state: State
+    let restartPolicy: RestartPolicy
     /// `Config.Tty`. **Not** used to pick log framing — that comes from the
     /// response's own `Content-Type`, because this value can go stale between
     /// the inspect and the log call if the container is recreated.
-    public let hasTTY: Bool
+    let hasTTY: Bool
 
-    public struct State: Decodable, Equatable, Sendable {
-        public let status: String
-        public let running: Bool
-        public let paused: Bool
-        public let restarting: Bool
-        public let oomKilled: Bool
-        public let dead: Bool
-        public let exitCode: Int
-        public let error: String
-        public let startedAt: Date?
+    struct State: Decodable, Equatable, Sendable {
+        let status: String
+        let running: Bool
+        let paused: Bool
+        let restarting: Bool
+        let oomKilled: Bool
+        let dead: Bool
+        let exitCode: Int
+        let error: String
+        let startedAt: Date?
         /// Nil for a container that has not finished. The engine sends the Go
         /// zero time here, which is why this goes through
         /// `ThrallEngineTimestamp`.
-        public let finishedAt: Date?
+        let finishedAt: Date?
 
         enum CodingKeys: String, CodingKey {
             case status = "Status"
@@ -123,7 +123,7 @@ public struct ThrallContainerInspectDTO: Decodable, Equatable, Sendable {
             case finishedAt = "FinishedAt"
         }
 
-        public init(from decoder: any Decoder) throws {
+        init(from decoder: any Decoder) throws {
             let values = try decoder.container(keyedBy: CodingKeys.self)
             status = try values.decodeIfPresent(String.self, forKey: .status) ?? ""
             running = try values.decodeIfPresent(Bool.self, forKey: .running) ?? false
@@ -140,22 +140,22 @@ public struct ThrallContainerInspectDTO: Decodable, Equatable, Sendable {
         }
     }
 
-    public struct RestartPolicy: Decodable, Equatable, Sendable {
+    struct RestartPolicy: Decodable, Equatable, Sendable {
         /// `no`, `always`, `unless-stopped`, `on-failure`.
-        public let name: String
-        public let maximumRetryCount: Int
+        let name: String
+        let maximumRetryCount: Int
 
         /// A container the engine will not restart cannot be in a crash loop,
         /// and checking this first is what keeps a one-shot job that exited 1
         /// out of the triage feed.
-        public var canRestart: Bool { !name.isEmpty && name != "no" }
+        var canRestart: Bool { !name.isEmpty && name != "no" }
 
         enum CodingKeys: String, CodingKey {
             case name = "Name"
             case maximumRetryCount = "MaximumRetryCount"
         }
 
-        public init(from decoder: any Decoder) throws {
+        init(from decoder: any Decoder) throws {
             let values = try decoder.container(keyedBy: CodingKeys.self)
             name = try values.decodeIfPresent(String.self, forKey: .name) ?? "no"
             maximumRetryCount = try values.decodeIfPresent(Int.self, forKey: .maximumRetryCount) ?? 0
@@ -175,7 +175,7 @@ public struct ThrallContainerInspectDTO: Decodable, Equatable, Sendable {
     private enum HostConfigKeys: String, CodingKey { case restartPolicy = "RestartPolicy" }
     private enum ConfigKeys: String, CodingKey { case tty = "Tty" }
 
-    public init(from decoder: any Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         id = try values.decode(String.self, forKey: .id)
         let rawName = try values.decodeIfPresent(String.self, forKey: .name) ?? ""

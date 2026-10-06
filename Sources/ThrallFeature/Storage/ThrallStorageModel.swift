@@ -8,27 +8,27 @@ import Foundation
 /// walks 289 build-cache entries and 135 volumes to get there. So this model
 /// fetches once when its area is opened, caches, and refreshes only when asked.
 @MainActor
-public final class ThrallStorageModel: ObservableObject {
-    @Published public private(set) var usage: ThrallDiskUsageDTO?
-    @Published public private(set) var networks: [ThrallNetworkDTO] = []
-    @Published public private(set) var isLoading = false
-    @Published public private(set) var error: String?
-    @Published public private(set) var loadedAt: Date?
+final class ThrallStorageModel: ObservableObject {
+    @Published private(set) var usage: ThrallDiskUsageDTO?
+    @Published private(set) var networks: [ThrallNetworkDTO] = []
+    @Published private(set) var isLoading = false
+    @Published private(set) var error: String?
+    @Published private(set) var loadedAt: Date?
     /// The last reclaim outcome, shown as a toast.
     @Published var lastReclaim: ThrallNotice?
 
     // Reclaim opt-ins, all defaulting **off** for volumes.
-    @Published public var includeImages = true
-    @Published public var includeBuildCache = true
+    @Published var includeImages = true
+    @Published var includeBuildCache = true
     /// **Off by default, deliberately.** Volumes are the only irreversible
     /// part of a reclaim, so including them is an explicit act.
-    @Published public var includeVolumes = false
+    @Published var includeVolumes = false
 
     /// Targets the user has deselected. Absence means selected, so a newly
     /// appearing target is included rather than silently skipped.
-    @Published public var excluded: Set<String> = []
+    @Published var excluded: Set<String> = []
 
-    public init() {}
+    init() {}
 
     /// Injects a snapshot without a daemon. Test-only, and named so it cannot
     /// be mistaken for a real load path.
@@ -37,7 +37,7 @@ public final class ThrallStorageModel: ObservableObject {
         loadedAt = Date()
     }
 
-    public var plan: ThrallReclaimPlan {
+    var plan: ThrallReclaimPlan {
         guard let usage else { return ThrallReclaimPlan(targets: []) }
         let full = ThrallReclaimPlan.make(
             from: usage,
@@ -54,7 +54,7 @@ public final class ThrallStorageModel: ObservableObject {
     /// collapsed disclosure groups is what keeps the area openable, and the
     /// `UNOWNED` group is the interesting one: 93 of the 135 volumes here have
     /// no owner and account for 7.3 GB.
-    public var volumeGroups: [(owner: String, volumes: [ThrallVolumeDTO], bytes: Int64)] {
+    var volumeGroups: [(owner: String, volumes: [ThrallVolumeDTO], bytes: Int64)] {
         guard let usage else { return [] }
         var buckets: [String: [ThrallVolumeDTO]] = [:]
         for volume in usage.volumes {
@@ -79,9 +79,9 @@ public final class ThrallStorageModel: ObservableObject {
             }
     }
 
-    public static let unownedGroup = "UNOWNED / DANGLING"
+    static let unownedGroup = "UNOWNED / DANGLING"
 
-    public var images: [ThrallImageDTO] { usage?.images ?? [] }
+    var images: [ThrallImageDTO] { usage?.images ?? [] }
 
     /// One df read at a time, shared by every caller. Run in its own `Task` so
     /// a view's `.task` being cancelled (the user clicking to another area
@@ -89,7 +89,7 @@ public final class ThrallStorageModel: ObservableObject {
     /// surfaced as a "closed" error and raced the next area's own load.
     private var inflight: Task<Void, Never>?
 
-    public func load(client: ThrallEngineClient?, force: Bool = false) async {
+    func load(client: ThrallEngineClient?, force: Bool = false) async {
         guard let client else { return }
         if let inflight {
             await inflight.value
@@ -135,7 +135,7 @@ public final class ThrallStorageModel: ObservableObject {
     /// Never a prune with an empty filter. One failure does not abandon the
     /// rest — a half-finished reclaim is worse than either outcome — and the
     /// summary reports what actually happened rather than what was planned.
-    public func reclaim(_ plan: ThrallReclaimPlan, client: ThrallEngineClient?) async {
+    func reclaim(_ plan: ThrallReclaimPlan, client: ThrallEngineClient?) async {
         guard let client, !plan.isEmpty else { return }
         isLoading = true
         var removed = 0

@@ -6,7 +6,7 @@ import Foundation
 /// state Thrall does not recognise must still render as itself, because
 /// showing `dead` as `exited` would hide the one state that needs manual
 /// intervention.
-public enum ThrallContainerState: Hashable, Sendable {
+enum ThrallContainerState: Hashable, Sendable {
     case created
     case running
     case restarting
@@ -16,7 +16,7 @@ public enum ThrallContainerState: Hashable, Sendable {
     case removing
     case unknown(String)
 
-    public init(engineState raw: String) {
+    init(engineState raw: String) {
         switch raw.lowercased() {
         case "created": self = .created
         case "running": self = .running
@@ -29,7 +29,7 @@ public enum ThrallContainerState: Hashable, Sendable {
         }
     }
 
-    public var isLive: Bool {
+    var isLive: Bool {
         switch self {
         case .running, .restarting, .paused: return true
         default: return false
@@ -37,7 +37,7 @@ public enum ThrallContainerState: Hashable, Sendable {
     }
 
     /// Ordering for the worst-state roll-up. Higher wins.
-    public var severity: Int {
+    var severity: Int {
         switch self {
         case .dead: return 5
         case .restarting: return 4
@@ -50,7 +50,7 @@ public enum ThrallContainerState: Hashable, Sendable {
         }
     }
 
-    public var label: String {
+    var label: String {
         switch self {
         case .created: return "Created"
         case .running: return "Running"
@@ -70,14 +70,14 @@ public enum ThrallContainerState: Hashable, Sendable {
 /// lets triage say "`api` depends_on `db`; `db` is exited (1)" for a stack
 /// whose compose file is gone. Wire shape:
 /// `redis:service_started:false,mysql:service_healthy:false`.
-public struct ThrallDependency: Hashable, Sendable {
-    public let service: String
+struct ThrallDependency: Hashable, Sendable {
+    let service: String
     /// `service_started`, `service_healthy`, `service_completed_successfully`.
-    public let condition: String
+    let condition: String
     /// The third field: compose's `restart` flag for the dependency.
-    public let restartsDependents: Bool
+    let restartsDependents: Bool
 
-    public init(service: String, condition: String, restartsDependents: Bool) {
+    init(service: String, condition: String, restartsDependents: Bool) {
         self.service = service
         self.condition = condition
         self.restartsDependents = restartsDependents
@@ -85,7 +85,7 @@ public struct ThrallDependency: Hashable, Sendable {
 
     /// Parses the whole label. Malformed clauses are dropped rather than
     /// failing the stack: a bad label must never cost the user a row.
-    public static func parse(label: String?) -> [ThrallDependency] {
+    static func parse(label: String?) -> [ThrallDependency] {
         guard let label, !label.isEmpty else { return [] }
         return label.split(separator: ",").compactMap { clause in
             let parts = clause.split(separator: ":", omittingEmptySubsequences: false)
@@ -98,19 +98,19 @@ public struct ThrallDependency: Hashable, Sendable {
     }
 }
 
-public struct ThrallContainer: Hashable, Sendable, Identifiable {
-    public let id: String
-    public let name: String
-    public let image: String
-    public let state: ThrallContainerState
+struct ThrallContainer: Hashable, Sendable, Identifiable {
+    let id: String
+    let name: String
+    let image: String
+    let state: ThrallContainerState
     /// The engine's prose, e.g. `Exited (137) 3 hours ago`. Display only.
-    public let statusText: String
-    public let created: Date
+    let statusText: String
+    let created: Date
     /// `com.docker.compose.container-number`, which is what orders replicas.
-    public let replicaNumber: Int?
-    public let isOneOff: Bool
+    let replicaNumber: Int?
+    let isOneOff: Bool
 
-    public init(
+    init(
         id: String, name: String, image: String, state: ThrallContainerState,
         statusText: String, created: Date, replicaNumber: Int?, isOneOff: Bool
     ) {
@@ -125,22 +125,22 @@ public struct ThrallContainer: Hashable, Sendable, Identifiable {
     }
 }
 
-public struct ThrallService: Hashable, Sendable, Identifiable {
-    public let name: String
-    public let containers: [ThrallContainer]
-    public let dependsOn: [ThrallDependency]
+struct ThrallService: Hashable, Sendable, Identifiable {
+    let name: String
+    let containers: [ThrallContainer]
+    let dependsOn: [ThrallDependency]
     /// Declared in the compose config with no container to show for it. **This
     /// is how a fully-down stack gets rows** rather than appearing empty.
-    public let isDeclaredButAbsent: Bool
+    let isDeclaredButAbsent: Bool
 
-    public var id: String { name }
+    var id: String { name }
 
     /// Worst state among its containers, or nil when there are none.
-    public var worstState: ThrallContainerState? {
+    var worstState: ThrallContainerState? {
         containers.max { $0.state.severity < $1.state.severity }?.state
     }
 
-    public init(
+    init(
         name: String, containers: [ThrallContainer],
         dependsOn: [ThrallDependency], isDeclaredButAbsent: Bool
     ) {
@@ -153,18 +153,18 @@ public struct ThrallService: Hashable, Sendable, Identifiable {
 
 /// Per-state counts for the stack row's ribbon. A struct rather than a
 /// dictionary so the ribbon cannot be handed a state it has no colour for.
-public struct ThrallStateBreakdown: Hashable, Sendable {
-    public var running = 0
-    public var restarting = 0
-    public var exited = 0
-    public var paused = 0
-    public var created = 0
-    public var dead = 0
-    public var other = 0
+struct ThrallStateBreakdown: Hashable, Sendable {
+    var running = 0
+    var restarting = 0
+    var exited = 0
+    var paused = 0
+    var created = 0
+    var dead = 0
+    var other = 0
 
-    public var total: Int { running + restarting + exited + paused + created + dead + other }
+    var total: Int { running + restarting + exited + paused + created + dead + other }
 
-    public mutating func add(_ state: ThrallContainerState) {
+    mutating func add(_ state: ThrallContainerState) {
         switch state {
         case .running: running += 1
         case .restarting: restarting += 1
@@ -178,7 +178,7 @@ public struct ThrallStateBreakdown: Hashable, Sendable {
 }
 
 /// How a stack row reads at a glance.
-public enum ThrallStackHealth: Int, Hashable, Sendable, Comparable {
+enum ThrallStackHealth: Int, Hashable, Sendable, Comparable {
     /// Declared on disk with nothing running.
     case down = 0
     case allRunning = 1
@@ -188,29 +188,29 @@ public enum ThrallStackHealth: Int, Hashable, Sendable, Comparable {
     /// is only the state roll-up.
     case unhealthy = 4
 
-    public static func < (lhs: ThrallStackHealth, rhs: ThrallStackHealth) -> Bool {
+    static func < (lhs: ThrallStackHealth, rhs: ThrallStackHealth) -> Bool {
         lhs.rawValue < rhs.rawValue
     }
 }
 
-public struct ThrallStack: Hashable, Sendable, Identifiable {
-    public let id: ThrallStackID
+struct ThrallStack: Hashable, Sendable, Identifiable {
+    let id: ThrallStackID
     /// The project name, or a fixed label for the loose pseudo-stack.
-    public let displayName: String
+    let displayName: String
     /// The working directory **as the engine spelled it** — not the folded
     /// key. `althaqeel` reports both `/Run` and `/run`; the key merges them and
     /// this shows the one the user will recognise.
-    public let workingDirectoryDisplay: String?
+    let workingDirectoryDisplay: String?
     /// Adopted config files, comma-split from the label.
-    public let configFiles: [String]
+    let configFiles: [String]
     /// The subset of `configFiles` that is not on disk.
-    public let absentConfigFiles: [String]
-    public let services: [ThrallService]
-    public let breakdown: ThrallStateBreakdown
-    public let health: ThrallStackHealth
+    let absentConfigFiles: [String]
+    let services: [ThrallService]
+    let breakdown: ThrallStateBreakdown
+    let health: ThrallStackHealth
     /// A config file changed after its containers were created, so what is
     /// running is not what is declared. Docker Desktop has no equivalent.
-    public let isStaleRelativeToConfig: Bool
+    let isStaleRelativeToConfig: Bool
 
     /// **Every declared config file is gone from disk.**
     ///
@@ -223,13 +223,13 @@ public struct ThrallStack: Hashable, Sendable, Identifiable {
     /// Keyed on the **files**, never on the working directory: `aai1058`'s
     /// working directory still exists while both of its compose files do not,
     /// so a directory check would report it healthy.
-    public var isConfigMissing: Bool {
+    var isConfigMissing: Bool {
         !configFiles.isEmpty && absentConfigFiles.count == configFiles.count
     }
 
-    public var containerCount: Int { breakdown.total }
+    var containerCount: Int { breakdown.total }
 
-    public init(
+    init(
         id: ThrallStackID, displayName: String, workingDirectoryDisplay: String?,
         configFiles: [String], absentConfigFiles: [String], services: [ThrallService],
         breakdown: ThrallStateBreakdown, health: ThrallStackHealth,
@@ -248,27 +248,27 @@ public struct ThrallStack: Hashable, Sendable, Identifiable {
 }
 
 /// Everything Thrall believes about one engine at one instant.
-public struct ThrallWorld: Hashable, Sendable {
-    public let engineKey: String
-    public let stacks: [ThrallStack]
-    public let generatedAt: Date
+struct ThrallWorld: Hashable, Sendable {
+    let engineKey: String
+    let stacks: [ThrallStack]
+    let generatedAt: Date
 
-    public init(engineKey: String, stacks: [ThrallStack], generatedAt: Date) {
+    init(engineKey: String, stacks: [ThrallStack], generatedAt: Date) {
         self.engineKey = engineKey
         self.stacks = stacks
         self.generatedAt = generatedAt
     }
 
-    public static func empty(engineKey: String, at date: Date = Date()) -> ThrallWorld {
+    static func empty(engineKey: String, at date: Date = Date()) -> ThrallWorld {
         ThrallWorld(engineKey: engineKey, stacks: [], generatedAt: date)
     }
 
-    public func stack(_ id: ThrallStackID) -> ThrallStack? {
+    func stack(_ id: ThrallStackID) -> ThrallStack? {
         stacks.first { $0.id == id }
     }
 
     /// Running containers across every stack.
-    public var runningCount: Int { stacks.reduce(0) { $0 + $1.breakdown.running } }
+    var runningCount: Int { stacks.reduce(0) { $0 + $1.breakdown.running } }
     /// All containers across every stack.
-    public var containerCount: Int { stacks.reduce(0) { $0 + $1.containerCount } }
+    var containerCount: Int { stacks.reduce(0) { $0 + $1.containerCount } }
 }

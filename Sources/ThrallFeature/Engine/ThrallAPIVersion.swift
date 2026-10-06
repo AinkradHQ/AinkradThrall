@@ -7,11 +7,11 @@ import Foundation
 /// matters: `"1.9" > "1.54"` lexicographically, so a Podman compat layer
 /// reporting `1.9` would look *newer* than the version Thrall targets and the
 /// negotiation would pin a path the server cannot serve.
-public struct ThrallAPIVersion: Comparable, Hashable, Sendable, CustomStringConvertible {
-    public let major: Int
-    public let minor: Int
+struct ThrallAPIVersion: Comparable, Hashable, Sendable, CustomStringConvertible {
+    let major: Int
+    let minor: Int
 
-    public init(major: Int, minor: Int) {
+    init(major: Int, minor: Int) {
         self.major = major
         self.minor = minor
     }
@@ -21,7 +21,7 @@ public struct ThrallAPIVersion: Comparable, Hashable, Sendable, CustomStringConv
     /// The engine sends two components; Podman's compat layer has been seen to
     /// send three. Anything else is refused rather than coerced, because this
     /// value chooses the URL prefix for every subsequent request.
-    public init?(_ text: String) {
+    init?(_ text: String) {
         let parts = text.trimmingCharacters(in: .whitespaces).split(
             separator: ".",
             omittingEmptySubsequences: false)
@@ -39,12 +39,12 @@ public struct ThrallAPIVersion: Comparable, Hashable, Sendable, CustomStringConv
         return Int(text)
     }
 
-    public var description: String { "\(major).\(minor)" }
+    var description: String { "\(major).\(minor)" }
 
     /// The path prefix the engine expects, e.g. `/v1.51`.
-    public var pathPrefix: String { "/v\(description)" }
+    var pathPrefix: String { "/v\(description)" }
 
-    public static func < (lhs: ThrallAPIVersion, rhs: ThrallAPIVersion) -> Bool {
+    static func < (lhs: ThrallAPIVersion, rhs: ThrallAPIVersion) -> Bool {
         (lhs.major, lhs.minor) < (rhs.major, rhs.minor)
     }
 }

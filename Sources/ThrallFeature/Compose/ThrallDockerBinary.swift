@@ -11,11 +11,11 @@ import Foundation
 /// Follows `Ainkrad`'s own `DockerBackend`: a primary path plus ordered
 /// fallbacks, with tests injecting a nonexistent primary and `fallbackPaths:
 /// []` to force the failure deterministically.
-public struct ThrallDockerBinary: Sendable {
-    public var primaryPath: String
-    public var fallbackPaths: [String]
+struct ThrallDockerBinary: Sendable {
+    var primaryPath: String
+    var fallbackPaths: [String]
 
-    public init(
+    init(
         primaryPath: String = "/usr/local/bin/docker",
         fallbackPaths: [String] = [
             "/opt/homebrew/bin/docker",
@@ -33,7 +33,7 @@ public struct ThrallDockerBinary: Sendable {
     /// whatever `launchd` handed it, not the user's shell — so resolving
     /// through it gives a different answer depending on how the app was
     /// started, which is the least debuggable class of bug there is.
-    public func resolve() -> String? {
+    func resolve() -> String? {
         let manager = FileManager.default
         if manager.isExecutableFile(atPath: primaryPath) { return primaryPath }
         return fallbackPaths.first { manager.isExecutableFile(atPath: $0) }
@@ -41,7 +41,7 @@ public struct ThrallDockerBinary: Sendable {
 
     /// The sentence shown when nothing resolved. Names the paths that were
     /// tried, because "docker not found" with no list is unactionable.
-    public var notFoundMessage: String {
+    var notFoundMessage: String {
         let tried = ([primaryPath] + fallbackPaths).uniqued()
         return "No docker binary found. Looked in \(tried.joined(separator: ", ")). "
             + "Thrall needs the CLI for compose commands even though it reads the engine directly."

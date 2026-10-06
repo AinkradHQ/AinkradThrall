@@ -7,19 +7,19 @@ import Foundation
 /// anyway. Two checks of the same thing is the point: the builder is where
 /// correctness lives, the guard is where it is *enforced* regardless of what
 /// the builder does.
-public struct ThrallComposeCommand: Equatable, Sendable {
-    public enum Verb: String, Equatable, Sendable, CaseIterable {
+struct ThrallComposeCommand: Equatable, Sendable {
+    enum Verb: String, Equatable, Sendable, CaseIterable {
         case up, down, start, stop, restart, pull, config, ps
     }
 
-    public let verb: Verb
-    public let projectName: String
-    public let projectDirectory: String
-    public let configFiles: [String]
+    let verb: Verb
+    let projectName: String
+    let projectDirectory: String
+    let configFiles: [String]
     /// Empty means the whole stack.
-    public let services: [String]
+    let services: [String]
 
-    public init(
+    init(
         verb: Verb, projectName: String, projectDirectory: String,
         configFiles: [String], services: [String] = []
     ) {
@@ -36,7 +36,7 @@ public struct ThrallComposeCommand: Equatable, Sendable {
     /// setting `DOCKER_HOST` from the endpoint Thrall already reads. A context
     /// name is a second lookup that can disagree with the transport, and the
     /// failure is bringing a stack up on one daemon while the UI shows another.
-    public func arguments() throws -> [String] {
+    func arguments() throws -> [String] {
         guard ThrallComposeArgumentGuard.isValidIdentifier(projectName) else {
             throw ThrallComposeArgumentGuard.Rejection.identifier(projectName)
         }

@@ -24,10 +24,10 @@ import Foundation
 /// case — a real stack that really does need merging — and the alternative of
 /// a volume-capability probe per path, folding always is the better trade. If
 /// a case-sensitive volume ever turns up, this is the one place to fix.
-public struct ThrallPathKey: Hashable, Sendable, CustomStringConvertible {
-    public let value: String
+struct ThrallPathKey: Hashable, Sendable, CustomStringConvertible {
+    let value: String
 
-    public init(_ raw: String) {
+    init(_ raw: String) {
         var path = (raw as NSString).expandingTildeInPath
         // Resolves `..` and `.`, then follows symlinks. Both are no-ops for a
         // path that no longer exists — which is the `compose` case, and it
@@ -41,5 +41,5 @@ public struct ThrallPathKey: Hashable, Sendable, CustomStringConvertible {
         value = path.precomposedStringWithCanonicalMapping.lowercased()
     }
 
-    public var description: String { value }
+    var description: String { value }
 }

@@ -22,13 +22,13 @@ import Foundation
 /// **The zero time is a sentinel, not a date.** A running container reports
 /// `FinishedAt: "0001-01-01T00:00:00Z"`, which parses perfectly and renders as
 /// "exited 2025 years ago". It maps to nil here so no view has to know.
-public enum ThrallEngineTimestamp {
+enum ThrallEngineTimestamp {
     private static let style = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
 
     /// The Go zero time, which the engine sends for "this never happened".
     static let zeroTimePrefix = "0001-01-01T00:00:00"
 
-    public static func parse(_ raw: String?) -> Date? {
+    static func parse(_ raw: String?) -> Date? {
         guard let raw, !raw.isEmpty else { return nil }
         guard !raw.hasPrefix(zeroTimePrefix) else { return nil }
         return try? style.parse(raw)

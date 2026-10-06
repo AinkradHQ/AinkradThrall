@@ -14,13 +14,13 @@ import Foundation
 /// 93 of the 135 volumes on that machine were unreferenced — exactly the
 /// population where a stray removal does damage. Volume deletion stays
 /// human-in-UI on its own explicit path.
-public struct ThrallOrphanTeardown: Sendable {
-    public struct Outcome: Equatable, Sendable {
-        public let stopped: [String]
-        public let removed: [String]
-        public let failures: [String]
+struct ThrallOrphanTeardown: Sendable {
+    struct Outcome: Equatable, Sendable {
+        let stopped: [String]
+        let removed: [String]
+        let failures: [String]
 
-        public var summary: String {
+        var summary: String {
             var parts = ["removed \(removed.count)"]
             if !failures.isEmpty { parts.append("\(failures.count) failed") }
             return parts.joined(separator: ", ")
@@ -33,7 +33,7 @@ public struct ThrallOrphanTeardown: Sendable {
     /// container needs `force`, and `force` is a SIGKILL. A database that
     /// would have flushed on SIGTERM loses its last writes, which is a data
     /// loss this app has no business causing while tidying up.
-    public static func run(
+    static func run(
         stack: ThrallStack,
         using client: ThrallEngineClient
     ) async -> Outcome {
@@ -66,7 +66,7 @@ extension ThrallEngineClient {
     /// `v` removes its anonymous volumes — which is the unrecoverable
     /// mistake. The caller stops the container first; a container that is
     /// still running here is a bug, and failing is the right answer to it.
-    public func remove(containerID: String) async throws {
+    func remove(containerID: String) async throws {
         try await delete(
             path: "/containers/\(try Self.identifier(containerID))",
             query: [("v", "0"), ("force", "0")],
@@ -80,7 +80,7 @@ extension ThrallEngineClient {
     /// reference by tag, which breaks a stack that was working. If the engine
     /// refuses because something depends on it, that refusal is correct and is
     /// surfaced rather than overridden.
-    public func removeImage(id: String) async throws {
+    func removeImage(id: String) async throws {
         try await delete(
             path: "/images/\(try Self.imageReference(id))",
             query: [("force", "0"), ("noprune", "0")],
@@ -93,7 +93,7 @@ extension ThrallEngineClient {
     /// all rather than a prune: the caller has already shown the user this
     /// exact name. `force=0`, so a volume that turns out to be in use is
     /// refused by the engine instead of destroyed.
-    public func removeVolume(name: String) async throws {
+    func removeVolume(name: String) async throws {
         try await delete(
             path: "/volumes/\(try Self.identifier(name))",
             query: [("force", "0")],
@@ -107,7 +107,7 @@ extension ThrallEngineClient {
     /// as an `id` filter, which keeps the "remove what was shown" contract
     /// even though the endpoint is named prune. It is never called with an
     /// empty filter, which is what a bare prune would be.
-    public func pruneBuildCache(ids: [String]) async throws -> Int64 {
+    func pruneBuildCache(ids: [String]) async throws -> Int64 {
         guard !ids.isEmpty else { return 0 }
         let filters = ["id": ids]
         guard let data = try? JSONSerialization.data(withJSONObject: filters) else {

@@ -35,12 +35,12 @@ struct ThrallVersionDTO: Decodable {
 /// The version prefix is **negotiated once, lazily, then reused.** Every read
 /// pays for the handshake the first time and nothing after, and no path in
 /// this file contains a hardcoded `/v1.xx`.
-public actor ThrallEngineClient {
+actor ThrallEngineClient {
     /// Produces a fresh byte stream per request. Injected so the whole client
     /// is testable against `ScriptedByteStream` with no daemon.
-    public typealias StreamFactory = @Sendable () -> any ThrallByteStream
+    typealias StreamFactory = @Sendable () -> any ThrallByteStream
 
-    public let endpoint: ThrallEngineEndpoint
+    let endpoint: ThrallEngineEndpoint
     /// `internal` rather than `private` so the log read in
     /// `ThrallEngineClient+Logs` can open its own connection — a log tail is
     /// framed differently from every other response and needs the raw
@@ -53,7 +53,7 @@ public actor ThrallEngineClient {
     let diskUsageTimeout: Duration
     private var cachedVersion: ThrallEngineVersion?
 
-    public init(
+    init(
         endpoint: ThrallEngineEndpoint,
         requestTimeout: Duration = .seconds(30),
         diskUsageTimeout: Duration = .seconds(180),
@@ -75,7 +75,7 @@ public actor ThrallEngineClient {
 
     /// Probes and negotiates, caching the result.
     @discardableResult
-    public func version() async throws -> ThrallEngineVersion {
+    func version() async throws -> ThrallEngineVersion {
         if let cachedVersion { return cachedVersion }
         // Unversioned: a version probe that needs a version is a bootstrap
         // problem.
@@ -105,26 +105,26 @@ public actor ThrallEngineClient {
     /// `all: true` is the default because a stack whose containers have all
     /// exited must still have a row — that is 28 of the 48 containers here,
     /// and the entire `aai1058` stack.
-    public func containers(all: Bool = true) async throws -> [ThrallContainerDTO] {
+    func containers(all: Bool = true) async throws -> [ThrallContainerDTO] {
         try await versioned(path: "/containers/json", query: all ? [("all", "1")] : [])
     }
 
-    public func inspect(containerID: String) async throws -> ThrallContainerInspectDTO {
+    func inspect(containerID: String) async throws -> ThrallContainerInspectDTO {
         try await versioned(path: "/containers/\(try Self.identifier(containerID))/json")
     }
 
     /// `shared-size` is left off: it costs a full layer walk, and
     /// `ThrallImageDTO.computedSharedSize` reports the `-1` sentinel as nil so
     /// nothing sums it by accident.
-    public func images() async throws -> [ThrallImageDTO] {
+    func images() async throws -> [ThrallImageDTO] {
         try await versioned(path: "/images/json", query: [("all", "0")])
     }
 
-    public func volumes() async throws -> ThrallVolumeListDTO {
+    func volumes() async throws -> ThrallVolumeListDTO {
         try await versioned(path: "/volumes")
     }
 
-    public func networks() async throws -> [ThrallNetworkDTO] {
+    func networks() async throws -> [ThrallNetworkDTO] {
         try await versioned(path: "/networks")
     }
 
@@ -137,7 +137,7 @@ public actor ThrallEngineClient {
     /// there. So this must never sit on the 10 s reconcile poll or on a view's
     /// `.task` — it is an explicit, on-demand call for the storage area, with
     /// the result cached above this layer.
-    public func diskUsage() async throws -> ThrallDiskUsageDTO {
+    func diskUsage() async throws -> ThrallDiskUsageDTO {
         try await versioned(path: "/system/df", timeout: diskUsageTimeout)
     }
 
@@ -153,7 +153,7 @@ public actor ThrallEngineClient {
     ///
     /// Deliberately absent: any form of *remove*. Container removal is on its
     /// own explicit path, never a side effect of a lifecycle verb.
-    public func start(containerID: String) async throws {
+    func start(containerID: String) async throws {
         try await post(
             path: "/containers/\(try Self.identifier(containerID))/start",
             // 304 means "already started", which is success from the
@@ -161,14 +161,14 @@ public actor ThrallEngineClient {
             accepting: [204, 304])
     }
 
-    public func stop(containerID: String, timeoutSeconds: Int = 10) async throws {
+    func stop(containerID: String, timeoutSeconds: Int = 10) async throws {
         try await post(
             path: "/containers/\(try Self.identifier(containerID))/stop",
             query: [("t", String(timeoutSeconds))],
             accepting: [204, 304])
     }
 
-    public func restart(containerID: String, timeoutSeconds: Int = 10) async throws {
+    func restart(containerID: String, timeoutSeconds: Int = 10) async throws {
         try await post(
             path: "/containers/\(try Self.identifier(containerID))/restart",
             query: [("t", String(timeoutSeconds))],

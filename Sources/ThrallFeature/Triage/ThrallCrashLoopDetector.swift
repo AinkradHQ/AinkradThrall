@@ -1,7 +1,7 @@
 import Foundation
 
 /// Why a service is considered to be crash-looping.
-public enum ThrallCrashLoopEvidence: Equatable, Sendable {
+enum ThrallCrashLoopEvidence: Equatable, Sendable {
     /// Counted from `/events` this session: N deaths with the same nonzero
     /// exit code inside the window. The good signal — it can say
     /// "restarting x7, exit 1".
@@ -11,14 +11,14 @@ public enum ThrallCrashLoopEvidence: Equatable, Sendable {
     case restartCount(Int, since: Date)
 }
 
-public struct ThrallCrashLoop: Equatable, Sendable {
-    public let stack: ThrallStackID
-    public let service: String
-    public let evidence: ThrallCrashLoopEvidence
-    public let exitCode: Int?
-    public let containerIDs: [String]
+struct ThrallCrashLoop: Equatable, Sendable {
+    let stack: ThrallStackID
+    let service: String
+    let evidence: ThrallCrashLoopEvidence
+    let exitCode: Int?
+    let containerIDs: [String]
 
-    public var restartCount: Int {
+    var restartCount: Int {
         switch evidence {
         case .observedDeaths(let count, _, _): return count
         case .restartCount(let count, _): return count
@@ -46,30 +46,30 @@ public struct ThrallCrashLoop: Equatable, Sendable {
 /// once. Without this check, every one-shot migration job that exits nonzero
 /// (`laravel-migrate`, `desking-migrate` on this machine) is reported as a
 /// crash loop forever.
-public enum ThrallCrashLoopDetector {
+enum ThrallCrashLoopDetector {
     /// Deaths needed inside the window. Below 3, an ordinary restart or a
     /// `compose up` recreate would qualify.
-    public static let deathThreshold = 3
-    public static let window: TimeInterval = 120
+    static let deathThreshold = 3
+    static let window: TimeInterval = 120
     /// How recently a container must have died for `RestartCount` to mean
     /// anything. Generous, because a cold start may be hours after the fact,
     /// but finite, because that is the whole point of the clause.
-    public static let restartCountRecency: TimeInterval = 15 * 60
+    static let restartCountRecency: TimeInterval = 15 * 60
     /// A cumulative count below this is normal operation over a long uptime.
-    public static let restartCountThreshold = 3
+    static let restartCountThreshold = 3
 
     /// One service's inputs. Kept as a struct so the detector stays a pure
     /// function over data a test can state.
-    public struct Candidate: Equatable, Sendable {
-        public let stack: ThrallStackID
-        public let service: String
-        public let containers: [ThrallContainer]
+    struct Candidate: Equatable, Sendable {
+        let stack: ThrallStackID
+        let service: String
+        let containers: [ThrallContainer]
         /// From `inspect`, per container id.
-        public let restartCounts: [String: Int]
-        public let restartPolicies: [String: Bool]
-        public let finishedAt: [String: Date]
+        let restartCounts: [String: Int]
+        let restartPolicies: [String: Bool]
+        let finishedAt: [String: Date]
 
-        public init(
+        init(
             stack: ThrallStackID, service: String, containers: [ThrallContainer],
             restartCounts: [String: Int] = [:],
             restartPolicies: [String: Bool] = [:],
@@ -84,7 +84,7 @@ public enum ThrallCrashLoopDetector {
         }
     }
 
-    public static func detect(
+    static func detect(
         candidate: Candidate,
         history: ThrallEventHistory,
         now: Date
@@ -141,7 +141,7 @@ public enum ThrallCrashLoopDetector {
     }
 
     /// Runs the detector over a whole world.
-    public static func detectAll(
+    static func detectAll(
         candidates: [Candidate],
         history: ThrallEventHistory,
         now: Date

@@ -10,8 +10,8 @@ import Foundation
 /// **Confirmation is only for what destroys state.** Restarting an already
 /// broken service is idempotent and does not confirm — gating the action that
 /// *fixes* the problem is what makes people stop using the tool.
-public struct ThrallRemedy: Equatable, Sendable, Identifiable {
-    public enum Kind: Equatable, Sendable {
+struct ThrallRemedy: Equatable, Sendable, Identifiable {
+    enum Kind: Equatable, Sendable {
         /// Restart the failing dependency, then the services waiting on it.
         /// The highest-confidence remedy whenever there is a verdict, because
         /// the dependency being down *is* the diagnosis.
@@ -29,19 +29,19 @@ public struct ThrallRemedy: Equatable, Sendable, Identifiable {
         case teardownByLabel
     }
 
-    public let kind: Kind
+    let kind: Kind
     /// Higher is more confident. Only used for ordering.
-    public let confidence: Int
-    public let title: String
+    let confidence: Int
+    let title: String
     /// The literal command, shown before it runs. A remedy the user cannot
     /// read is a remedy they cannot trust.
-    public let commandPreview: String
-    public let destroysState: Bool
+    let commandPreview: String
+    let destroysState: Bool
 
-    public var id: String { title }
+    var id: String { title }
 
     /// Builds the remedy list for an incident.
-    public static func remedies(
+    static func remedies(
         for incident: ThrallIncident,
         stack: ThrallStack?
     ) -> [ThrallRemedy] {

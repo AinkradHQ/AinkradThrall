@@ -9,7 +9,7 @@ import Foundation
 /// pid, a container id, an ephemeral port, a hex hash. Leave any of them in
 /// and 12 workers dying on `connection refused` fingerprint as 12 distinct
 /// incidents — which is precisely the failure the grouping exists to prevent.
-public enum ThrallLogFingerprint {
+enum ThrallLogFingerprint {
     /// Order matters: the long, specific patterns run before the general
     /// number sweep, or a timestamp becomes three separate `<n>` tokens and
     /// stops being recognisable.
@@ -37,7 +37,7 @@ public enum ThrallLogFingerprint {
     }
 
     /// The fingerprintable form of a log line.
-    public static func normalise(_ line: String) -> String {
+    static func normalise(_ line: String) -> String {
         var text = line.trimmingCharacters(in: .whitespacesAndNewlines)
         // ANSI colour is noise, and a container that colours its errors would
         // otherwise fingerprint differently from one that does not.
@@ -67,7 +67,7 @@ public enum ThrallLogFingerprint {
 
     /// The last line with anything on it — which is where a dying process puts
     /// its reason.
-    public static func lastMeaningfulLine(of log: String) -> String? {
+    static func lastMeaningfulLine(of log: String) -> String? {
         log.split(separator: "\n", omittingEmptySubsequences: false)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .last { !$0.isEmpty }
@@ -81,36 +81,36 @@ public enum ThrallLogFingerprint {
 /// `connection refused` — one incident with 12 members. Docker Desktop shows
 /// 15 red dots and no thesis; Thrall says "Postgres is refusing connections —
 /// 12 containers affected".
-public struct ThrallIncident: Equatable, Sendable, Identifiable {
+struct ThrallIncident: Equatable, Sendable, Identifiable {
     /// `(stack, fingerprint)`. Stack is part of the key because the same error
     /// in two projects is two problems with two different fixes.
-    public struct Key: Hashable, Sendable {
-        public let stack: ThrallStackID
-        public let fingerprint: String
+    struct Key: Hashable, Sendable {
+        let stack: ThrallStackID
+        let fingerprint: String
     }
 
-    public let key: Key
-    public let stackName: String
+    let key: Key
+    let stackName: String
     /// Services showing this problem, ordered by name.
-    public let services: [String]
-    public let containerIDs: [String]
-    public let exitCode: Int?
+    let services: [String]
+    let containerIDs: [String]
+    let exitCode: Int?
     /// **The actual error text, never a paraphrase.** The un-normalised line,
     /// because the normalised one is a grouping key and unreadable.
-    public let evidence: String?
-    public let imageDigest: String?
-    public let firstSeen: Date
-    public let lastSeen: Date
-    public let restartTotal: Int
+    let evidence: String?
+    let imageDigest: String?
+    let firstSeen: Date
+    let lastSeen: Date
+    let restartTotal: Int
     /// `depends_on` targets that are not running — the free verdict.
-    public let brokenDependencies: [ThrallDependencyVerdict]
+    let brokenDependencies: [ThrallDependencyVerdict]
 
-    public var id: String { "\(key.stack.description)#\(key.fingerprint)" }
-    public var memberCount: Int { containerIDs.count }
+    var id: String { "\(key.stack.description)#\(key.fingerprint)" }
+    var memberCount: Int { containerIDs.count }
 
     /// The one-line headline. Names the dependency when there is one, because
     /// "db is exited (1)" is the answer and "12 things are red" is not.
-    public var headline: String {
+    var headline: String {
         if let verdict = brokenDependencies.first {
             return "\(verdict.dependency) is \(verdict.stateLabel) — "
                 + "\(services.count) service\(services.count == 1 ? "" : "s") blocked"
@@ -124,13 +124,13 @@ public struct ThrallIncident: Equatable, Sendable, Identifiable {
 
 /// "`api` depends_on `db`; `db` is `exited (1)`" — comes free from the labels,
 /// so it works even for a stack whose compose file is gone.
-public struct ThrallDependencyVerdict: Equatable, Sendable {
-    public let dependent: String
-    public let dependency: String
-    public let condition: String
-    public let stateLabel: String
+struct ThrallDependencyVerdict: Equatable, Sendable {
+    let dependent: String
+    let dependency: String
+    let condition: String
+    let stateLabel: String
 
-    public init(dependent: String, dependency: String, condition: String, stateLabel: String) {
+    init(dependent: String, dependency: String, condition: String, stateLabel: String) {
         self.dependent = dependent
         self.dependency = dependency
         self.condition = condition
@@ -139,19 +139,19 @@ public struct ThrallDependencyVerdict: Equatable, Sendable {
 }
 
 /// Groups crash loops into incidents.
-public enum ThrallIncidentGrouper {
+enum ThrallIncidentGrouper {
     /// What the grouper needs per crash-looping service.
-    public struct Input: Equatable, Sendable {
-        public let loop: ThrallCrashLoop
+    struct Input: Equatable, Sendable {
+        let loop: ThrallCrashLoop
         /// The tail of the service's log, if it has been read. Nil is fine —
         /// the fingerprint then rests on exit code and image alone, which
         /// still collapses a fleet of identical workers.
-        public let logTail: String?
-        public let imageDigest: String?
-        public let firstSeen: Date
-        public let lastSeen: Date
+        let logTail: String?
+        let imageDigest: String?
+        let firstSeen: Date
+        let lastSeen: Date
 
-        public init(
+        init(
             loop: ThrallCrashLoop, logTail: String?, imageDigest: String?,
             firstSeen: Date, lastSeen: Date
         ) {
@@ -167,7 +167,7 @@ public enum ThrallIncidentGrouper {
     ///
     /// The image digest is in there because two services running *different*
     /// images that happen to print the same message are not one problem.
-    public static func fingerprint(exitCode: Int?, logTail: String?, imageDigest: String?) -> String {
+    static func fingerprint(exitCode: Int?, logTail: String?, imageDigest: String?) -> String {
         let line =
             logTail.flatMap(ThrallLogFingerprint.lastMeaningfulLine)
             .map(ThrallLogFingerprint.normalise) ?? ""
@@ -175,7 +175,7 @@ public enum ThrallIncidentGrouper {
             .joined(separator: "|")
     }
 
-    public static func group(
+    static func group(
         _ inputs: [Input],
         world: ThrallWorld
     ) -> [ThrallIncident] {

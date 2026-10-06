@@ -16,8 +16,8 @@ import Foundation
 /// character class away from `die`. Both hazards are handled here, once:
 /// everything before the first `:` is the action, and `exec_*` is a distinct
 /// case rather than something that can be mistaken for a container dying.
-public struct ThrallEvent: Equatable, Sendable {
-    public enum Action: Equatable, Sendable {
+struct ThrallEvent: Equatable, Sendable {
+    enum Action: Equatable, Sendable {
         case start
         case die
         case stop
@@ -32,22 +32,22 @@ public struct ThrallEvent: Equatable, Sendable {
         case other(String)
     }
 
-    public let type: String
-    public let action: Action
-    public let containerID: String
-    public let time: Date
-    public let attributes: [String: String]
+    let type: String
+    let action: Action
+    let containerID: String
+    let time: Date
+    let attributes: [String: String]
 
-    public var isContainer: Bool { type == "container" }
-    public var composeProject: String? { attributes["com.docker.compose.project"] }
-    public var composeService: String? { attributes["com.docker.compose.service"] }
-    public var composeWorkingDirectory: String? {
+    var isContainer: Bool { type == "container" }
+    var composeProject: String? { attributes["com.docker.compose.project"] }
+    var composeService: String? { attributes["com.docker.compose.service"] }
+    var composeWorkingDirectory: String? {
         attributes["com.docker.compose.project.working_dir"]
     }
     /// Present on a `die`. The reason a crash loop can be fingerprinted at all.
-    public var exitCode: Int? { attributes["exitCode"].flatMap(Int.init) }
+    var exitCode: Int? { attributes["exitCode"].flatMap(Int.init) }
 
-    public init(
+    init(
         type: String, action: Action, containerID: String, time: Date,
         attributes: [String: String]
     ) {
@@ -60,7 +60,7 @@ public struct ThrallEvent: Equatable, Sendable {
 
     /// Splits the raw action string. Everything before the first `:` is the
     /// verb; the rest is its argument.
-    public static func parseAction(_ raw: String) -> Action {
+    static func parseAction(_ raw: String) -> Action {
         let parts = raw.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
         let verb = parts[0].trimmingCharacters(in: .whitespaces)
         let argument =
