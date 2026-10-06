@@ -141,38 +141,21 @@ struct RunCommandCard: View {
     private func run() async {
         problem = nil
         result = nil
-        guard let client = model.engineClient else {
-            problem = "No engine is selected."
-            return
-        }
-        let target = containerID ?? candidates.first?.id
-        guard let target else {
-            problem = "Choose a container."
-            return
-        }
-        do {
-            let command = try ThrallExecRunner.parse(commandLine: commandLine)
+        let prepared = ThrallRunCommand.prepare(
+            commandLine: commandLine,
+            containerID: containerID ?? candidates.first?.id,
+            client: model.engineClient)
+        switch prepared {
+        case .failure(let failure):
+            problem = failure.message
+        case .success(let invocation):
             isRunning = true
-            result = try await ThrallExecRunner(client: client)
-                .run(containerID: target, command: command)
+            let outcome = await invocation.execute()
             isRunning = false
-        } catch let error as ThrallExecError {
-            isRunning = false
-            problem = Self.describe(error)
-        } catch {
-            isRunning = false
-            problem = "\(error)"
-        }
-    }
-
-    static func describe(_ error: ThrallExecError) -> String {
-        switch error {
-        case .emptyCommand: return "Type a command."
-        case .invalidArgument(let message): return message
-        case .tooManyArguments(let count):
-            return "\(count) arguments is more than a diagnostic command needs "
-                + "(the limit is \(ThrallExecRunner.maximumArguments))."
-        case .engine(let message): return message
+            switch outcome {
+            case .success(let output): result = output
+            case .failure(let failure): problem = failure.message
+            }
         }
     }
 }

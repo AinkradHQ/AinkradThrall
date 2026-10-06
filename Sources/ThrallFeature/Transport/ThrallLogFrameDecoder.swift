@@ -71,7 +71,7 @@ public struct ThrallLogFrameDecoder {
     /// hex number in the hundreds of megabytes; the cap turns that into an
     /// error instead of an allocation.
     public let maximumFrameLength: Int
-    private var carry = Data()
+    private(set) var carry = Data()
 
     public init(framing: Framing, maximumFrameLength: Int = 16 * 1024 * 1024) {
         self.framing = framing
@@ -125,15 +125,5 @@ public struct ThrallLogFrameDecoder {
         }
         carry = offset == carry.endIndex ? Data() : Data(carry[offset...])
         return frames
-    }
-
-    /// Bytes left over when the stream ended: a truncated frame. Returned
-    /// rather than emitted, because a partial frame's payload length is
-    /// unknown and guessing it would put a fragment of the next frame's header
-    /// on screen.
-    public mutating func finish() -> Data {
-        let remainder = carry
-        carry = Data()
-        return remainder
     }
 }

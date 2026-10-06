@@ -17,7 +17,7 @@ struct ThrallNDJSONSplitterTests {
         var splitter = ThrallNDJSONSplitter()
         let lines = try splitter.feed(Data("{\"a\":1}\n{\"b\":2}\n".utf8))
         #expect(text(lines) == ["{\"a\":1}", "{\"b\":2}"])
-        #expect(splitter.finish().isEmpty)
+        #expect(splitter.carry.isEmpty)
     }
 
     @Test("a record split across reads is held until its newline arrives")
@@ -67,7 +67,7 @@ struct ThrallNDJSONSplitterTests {
             lines += try splitter.feed(Data(stream[index..<end]))
             index = end
         }
-        #expect(splitter.finish().isEmpty)
+        #expect(splitter.carry.isEmpty)
         #expect(text(lines) == records)
         // And each line is independently decodable — the actual contract.
         for line in lines {
@@ -85,13 +85,13 @@ struct ThrallNDJSONSplitterTests {
         }
     }
 
-    /// Returned rather than flushed as a line: a record cut mid-object is
+    /// Held rather than flushed as a line: a record cut mid-object is
     /// invalid JSON, and a caller that is handed it as a line will try.
-    @Test("a partial record at end-of-stream is reported by finish")
+    @Test("a partial record at end-of-stream is held, not emitted as a line")
     func partialRecordAtEnd() throws {
         var splitter = ThrallNDJSONSplitter()
-        _ = try splitter.feed(Data("{\"a\":1}\n{\"b\":".utf8))
-        #expect(String(decoding: splitter.finish(), as: UTF8.self) == "{\"b\":")
-        #expect(splitter.finish().isEmpty, "finish must not hand the same remainder out twice")
+        let lines = try splitter.feed(Data("{\"a\":1}\n{\"b\":".utf8))
+        #expect(text(lines) == ["{\"a\":1}"])
+        #expect(String(decoding: splitter.carry, as: UTF8.self) == "{\"b\":")
     }
 }

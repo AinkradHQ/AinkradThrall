@@ -84,17 +84,4 @@ public struct ThrallComposeCommand: Equatable, Sendable {
             return []
         }
     }
-
-    /// Whether this verb can run at all for the stack it targets.
-    ///
-    /// `up`, `pull` and `config` read the compose file, so an orphaned stack —
-    /// whose files are gone — cannot use them. `docker compose down` needs the
-    /// file too, which is why orphan teardown goes by **label** through the
-    /// Engine API instead (M2).
-    public var requiresConfigFiles: Bool {
-        switch verb {
-        case .up, .pull, .config, .down, .ps: return true
-        case .start, .stop, .restart: return false
-        }
-    }
 }

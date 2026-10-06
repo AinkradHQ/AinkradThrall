@@ -23,22 +23,6 @@ public enum ThrallRow: Identifiable, Hashable, Sendable {
             return "c:\(stack.description)/\(service)/\(container.id)"
         }
     }
-
-    public var indentLevel: Int {
-        switch self {
-        case .stack: return 0
-        case .service: return 1
-        case .container: return 2
-        }
-    }
-
-    public var stackID: ThrallStackID {
-        switch self {
-        case .stack(let stack): return stack.id
-        case .service(let stack, _): return stack
-        case .container(let stack, _, _): return stack
-        }
-    }
 }
 
 /// Flattens the world into rows, honouring what is expanded.

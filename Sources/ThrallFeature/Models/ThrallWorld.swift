@@ -266,4 +266,9 @@ public struct ThrallWorld: Hashable, Sendable {
     public func stack(_ id: ThrallStackID) -> ThrallStack? {
         stacks.first { $0.id == id }
     }
+
+    /// Running containers across every stack.
+    public var runningCount: Int { stacks.reduce(0) { $0 + $1.breakdown.running } }
+    /// All containers across every stack.
+    public var containerCount: Int { stacks.reduce(0) { $0 + $1.containerCount } }
 }

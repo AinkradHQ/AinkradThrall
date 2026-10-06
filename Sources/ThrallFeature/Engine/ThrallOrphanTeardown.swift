@@ -67,33 +67,13 @@ extension ThrallEngineClient {
     /// mistake. The caller stops the container first; a container that is
     /// still running here is a bug, and failing is the right answer to it.
     public func remove(containerID: String) async throws {
-        try await deleteContainer(id: try Self.identifier(containerID))
+        try await delete(
+            path: "/containers/\(try Self.identifier(containerID))",
+            query: [("v", "0"), ("force", "0")],
+            // 404 means it is already gone, which is the outcome the caller wanted.
+            accepting: [204, 404])
     }
 
-    private func deleteContainer(id: String) async throws {
-        let prefix = try await version().pathPrefix
-        let response = try await ThrallHTTPExchange.perform(
-            ThrallHTTPRequest(
-                method: "DELETE",
-                target: Self.target(
-                    prefix + "/containers/\(id)",
-                    query: [("v", "0"), ("force", "0")])),
-            over: makeStream(),
-            timeout: requestTimeout)
-        // 404 means it is already gone, which is the outcome the caller wanted.
-        guard response.head.statusCode == 204 || response.head.statusCode == 404 else {
-            let message =
-                (try? JSONDecoder().decode(
-                    ThrallEngineMessageDTO.self,
-                    from: response.body))?.message
-            throw ThrallEngineError.http(
-                status: response.head.statusCode,
-                message: message ?? response.head.reasonPhrase)
-        }
-    }
-}
-
-extension ThrallEngineClient {
     /// Removes one image by **exact id**.
     ///
     /// No `force`: a force-remove untags an image other containers may still
@@ -117,13 +97,6 @@ extension ThrallEngineClient {
         try await delete(
             path: "/volumes/\(try Self.identifier(name))",
             query: [("force", "0")],
-            accepting: [204, 404])
-    }
-
-    public func removeNetwork(id: String) async throws {
-        try await delete(
-            path: "/networks/\(try Self.identifier(id))",
-            query: [],
             accepting: [204, 404])
     }
 
@@ -178,13 +151,7 @@ extension ThrallEngineClient {
             over: makeStream(),
             timeout: requestTimeout)
         guard accepting.contains(response.head.statusCode) else {
-            let message =
-                (try? JSONDecoder().decode(
-                    ThrallEngineMessageDTO.self,
-                    from: response.body))?.message
-            throw ThrallEngineError.http(
-                status: response.head.statusCode,
-                message: message ?? response.head.reasonPhrase)
+            throw Self.httpError(response)
         }
     }
 
@@ -207,8 +174,6 @@ extension ThrallEngineClient {
                 detail: "\(raw.debugDescription) is not an image id")
         }
         // Percent-encoded because a tag's `:` and `/` are path-significant.
-        var allowedSet = CharacterSet.alphanumerics
-        allowedSet.insert(charactersIn: "-._~")
-        return raw.addingPercentEncoding(withAllowedCharacters: allowedSet) ?? raw
+        return raw.addingPercentEncoding(withAllowedCharacters: unreserved) ?? raw
     }
 }

@@ -52,9 +52,4 @@ public enum ThrallStackAction: String, Equatable, Sendable, CaseIterable, Identi
         case .down, .engineStop: return "stop.fill"
         }
     }
-
-    /// Only `down` destroys state. **`restart` is deliberately unconfirmed**:
-    /// the service is already broken and restart is idempotent, so gating it
-    /// destroys the whole value proposition.
-    public var destroysState: Bool { self == .down }
 }

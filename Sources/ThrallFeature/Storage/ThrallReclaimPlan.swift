@@ -3,7 +3,7 @@ import Foundation
 /// Something reclaimable, named.
 public struct ThrallReclaimTarget: Equatable, Sendable, Identifiable {
     public enum Kind: String, Equatable, Sendable {
-        case image, volume, buildCache, network
+        case image, volume, buildCache
     }
 
     public let kind: Kind
@@ -57,10 +57,6 @@ public struct ThrallReclaimPlan: Equatable, Sendable {
 
     public func targets(of kind: ThrallReclaimTarget.Kind) -> [ThrallReclaimTarget] {
         targets.filter { $0.kind == kind }
-    }
-
-    public func bytes(of kind: ThrallReclaimTarget.Kind) -> Int64 {
-        targets(of: kind).reduce(0) { $0 + $1.bytes }
     }
 
     /// Builds the plan from a `/system/df` snapshot.

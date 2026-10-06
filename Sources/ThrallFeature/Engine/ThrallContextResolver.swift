@@ -25,8 +25,6 @@ public struct ThrallContextResolver: Sendable {
     public struct Resolution: Equatable, Sendable {
         /// Every context found, `default` first and the rest alphabetical.
         public let contexts: [ThrallEngineContext]
-        /// The name the precedence rules selected, whether or not it resolved.
-        public let activeName: String
         /// The selected context, or nil when the name names nothing usable.
         public let active: ThrallEngineContext?
         /// Human-readable reasons anything was skipped or overridden. Surfaced
@@ -71,13 +69,11 @@ public struct ThrallContextResolver: Sendable {
 
         let environmentHost = environment["DOCKER_HOST"].flatMap { $0.isEmpty ? nil : $0 }
         var defaultEndpoint = ThrallEngineEndpoint.unixSocket(path: platformSocketPath)
-        var defaultSource = ThrallEngineContext.Source.platformDefault
         var environmentWins = false
 
         if let environmentHost {
             if let parsed = ThrallEngineEndpoint.parse(environmentHost) {
                 defaultEndpoint = parsed
-                defaultSource = .environment
                 environmentWins = true
                 notes.append(
                     "DOCKER_HOST is set to \(environmentHost), which overrides the "
@@ -92,8 +88,7 @@ public struct ThrallContextResolver: Sendable {
         let defaultContext = ThrallEngineContext(
             name: "default",
             description: environmentWins ? "From DOCKER_HOST" : "Platform default",
-            endpoint: defaultEndpoint,
-            source: defaultSource)
+            endpoint: defaultEndpoint)
 
         let contexts = [defaultContext] + stored.sorted { $0.name < $1.name }
 
@@ -120,7 +115,6 @@ public struct ThrallContextResolver: Sendable {
 
         return Resolution(
             contexts: contexts,
-            activeName: activeName,
             active: active,
             notes: notes)
     }
@@ -175,8 +169,7 @@ public struct ThrallContextResolver: Sendable {
                 ThrallEngineContext(
                     name: name,
                     description: metadata?["Description"] as? String,
-                    endpoint: endpoint,
-                    source: .contextStore))
+                    endpoint: endpoint))
         }
         return found
     }

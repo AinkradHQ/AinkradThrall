@@ -207,16 +207,19 @@ enum ThrallMCPWriteTools {
         guard let identifier = arguments["stack"] as? String, !identifier.isEmpty else {
             return AgentActionResult(text: "`stack` is required.", isError: true)
         }
-        let matches = model.world.stacks.filter {
-            $0.displayName == identifier || $0.id.description == identifier
-        }
-        guard let stack = matches.first else {
+        let stack: ThrallStack
+        switch ThrallMCPServer.match(
+            model.world.stacks,
+            where: { $0.displayName == identifier || $0.id.description == identifier })
+        {
+        case .one(let found):
+            stack = found
+        case .noMatch:
             return AgentActionResult(
                 text: "No stack matches \(identifier). Known: "
                     + model.world.stacks.map(\.displayName).joined(separator: ", "),
                 isError: true)
-        }
-        guard matches.count == 1 else {
+        case .several(let matches):
             return AgentActionResult(
                 text: "\(matches.count) stacks are named \(identifier); pass an id instead: "
                     + matches.map(\.id.description).joined(separator: ", "),

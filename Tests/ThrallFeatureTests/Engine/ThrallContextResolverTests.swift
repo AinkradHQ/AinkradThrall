@@ -70,16 +70,15 @@ struct ThrallContextResolverTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let resolution = ThrallContextResolver(configDirectory: root, environment: [:]).resolve()
 
-        #expect(resolution.activeName == "orbstack")
+        #expect(resolution.active?.name == "orbstack")
         #expect(
             resolution.active?.endpoint
                 == .unixSocket(path: "/Users/me/.orbstack/run/docker.sock"))
-        #expect(resolution.active?.source == .contextStore)
         #expect(resolution.active?.description == "OrbStack")
         // The three contexts this machine has: the two stored plus the
         // implicit default, which is never in the store.
         #expect(resolution.contexts.map(\.name) == ["default", "desktop-linux", "orbstack"])
-        #expect(resolution.contexts.first?.source == .platformDefault)
+        #expect(resolution.contexts.first?.description == "Platform default")
     }
 
     /// The CLI ignores the context store entirely when `DOCKER_HOST` is set, so
@@ -94,9 +93,9 @@ struct ThrallContextResolverTests {
             environment: ["DOCKER_HOST": "unix:///tmp/other.sock"]
         ).resolve()
 
-        #expect(resolution.activeName == "default")
+        #expect(resolution.active?.name == "default")
         #expect(resolution.active?.endpoint == .unixSocket(path: "/tmp/other.sock"))
-        #expect(resolution.active?.source == .environment)
+        #expect(resolution.active?.description == "From DOCKER_HOST")
         #expect(resolution.notes.contains { $0.contains("DOCKER_HOST") && $0.contains("overrides") })
         // orbstack is still listed — it exists, it just is not current.
         #expect(resolution.contexts.contains { $0.name == "orbstack" })
@@ -109,7 +108,7 @@ struct ThrallContextResolverTests {
         let resolver = ThrallContextResolver(
             configDirectory: root,
             environment: ["DOCKER_CONTEXT": "desktop-linux"])
-        #expect(resolver.resolve().activeName == "desktop-linux")
+        #expect(resolver.resolve().active?.name == "desktop-linux")
 
         let both = ThrallContextResolver(
             configDirectory: root,
@@ -117,7 +116,7 @@ struct ThrallContextResolverTests {
                 "DOCKER_CONTEXT": "desktop-linux",
                 "DOCKER_HOST": "unix:///tmp/other.sock",
             ])
-        #expect(both.resolve().activeName == "default")
+        #expect(both.resolve().active?.name == "default")
     }
 
     /// **The important negative.** Falling back to `default` here would drive a
@@ -133,7 +132,6 @@ struct ThrallContextResolverTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let resolution = ThrallContextResolver(configDirectory: root, environment: [:]).resolve()
 
-        #expect(resolution.activeName == "colima")
         #expect(resolution.active == nil)
         #expect(resolution.notes.contains { $0.contains("colima") })
     }
@@ -147,7 +145,7 @@ struct ThrallContextResolverTests {
             environment: [:],
             platformSocketPath: "/var/run/docker.sock"
         ).resolve()
-        #expect(resolution.activeName == "default")
+        #expect(resolution.active?.name == "default")
         #expect(resolution.active?.endpoint == .unixSocket(path: "/var/run/docker.sock"))
     }
 
@@ -205,7 +203,7 @@ struct ThrallContextResolverTests {
             configDirectory: root,
             environment: ["DOCKER_HOST": "not-a-host"]
         ).resolve()
-        #expect(resolution.activeName == "orbstack")
+        #expect(resolution.active?.name == "orbstack")
         #expect(resolution.notes.contains { $0.contains("not-a-host") })
     }
 
@@ -215,7 +213,7 @@ struct ThrallContextResolverTests {
             configDirectory: URL(fileURLWithPath: "/nonexistent/thrall-docker"),
             environment: [:]
         ).resolve()
-        #expect(resolution.activeName == "default")
+        #expect(resolution.active?.name == "default")
         #expect(resolution.contexts.map(\.name) == ["default"])
     }
 

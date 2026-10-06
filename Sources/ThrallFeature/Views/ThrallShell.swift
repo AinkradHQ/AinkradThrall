@@ -40,28 +40,7 @@ public struct ThrallShell: View {
         .background(tokens.background)
         .foregroundStyle(tokens.foreground)
         .ainkradHostTheme(host.theme)
-        .task {
-            model.bootstrap()
-            model.startPolling()
-        }
-        // Registered once by the runtime; this only says which model is live,
-        // so a closed window stops contributing context instead of publishing
-        // a stale machine.
-        .onAppear { ThrallRuntime.contextBridge(for: host).setSource(model) }
-        .onDisappear { ThrallRuntime.contextBridge(for: host).clearSource(model) }
-        // Down is the only verb that destroys state, so it is the only one
-        // that asks. Restart is unconfirmed on purpose: the service is already
-        // broken and restart is idempotent.
-        .ainkradConfirmDialog(
-            isPresented: Binding(
-                get: { model.pendingDown != nil },
-                set: { if !$0 { model.pendingDown = nil } }),
-            title: "Take \(model.pendingDown?.displayName ?? "") down?",
-            message: downMessage,
-            confirmTitle: "Down",
-            isDestructive: true,
-            onConfirm: { model.confirmPendingDown() }
-        )
+        .thrallSession(model: model, host: host)
         // The kit's toast host is mounted once at the root, and messages are
         // pushed into `\.ainkradToastCenter` — the shared queue every Ainkrad
         // surface uses, rather than a local banner of Thrall's own.
@@ -70,7 +49,7 @@ public struct ThrallShell: View {
                 get: { model.pendingTeardown != nil },
                 set: { if !$0 { model.pendingTeardown = nil } }),
             title: "Tear down \(model.pendingTeardown?.displayName ?? "") by label?",
-            message: teardownMessage,
+            message: model.pendingTeardown.map(ThrallConfirmations.teardown) ?? "",
             confirmTitle: "Tear down",
             isDestructive: true,
             onConfirm: { model.confirmPendingTeardown() }
@@ -89,26 +68,6 @@ public struct ThrallShell: View {
                     || message.contains("Refused") ? .danger : .success)
             model.lastActionMessage = nil
         }
-    }
-
-    /// Names the containers, and says explicitly what is **not** removed.
-    /// `down` without `--volumes` keeps the data; saying so is what stops the
-    /// user hesitating over the one verb they will use most.
-    private var downMessage: String {
-        guard let stack = model.pendingDown else { return "" }
-        return ThrallConfirmations.down(stack)
-    }
-
-    /// Says out loud that volumes survive. This is the remedy for a stack that
-    /// cannot be reached any other way, so the user needs to know exactly how
-    /// far it goes.
-    private var teardownMessage: String {
-        guard let stack = model.pendingTeardown else { return "" }
-        let count = stack.containerCount
-        return "\(stack.displayName)'s compose file is gone, so `docker compose down` cannot "
-            + "reach it. Thrall will stop and remove its \(count) container"
-            + "\(count == 1 ? "" : "s") by matching the compose project label. "
-            + "**Volumes are not touched.**"
     }
 
     // MARK: - Top bar
@@ -216,10 +175,8 @@ public struct ThrallShell: View {
     /// Counts for the whole machine. Monospaced digits so the numbers changing
     /// cannot nudge anything beside them.
     private var summary: some View {
-        let stacks = model.world.stacks
-        let running = stacks.reduce(0) { $0 + $1.breakdown.running }
-        let total = stacks.reduce(0) { $0 + $1.containerCount }
-        return Text("\(stacks.count) stacks · \(running)/\(total) running")
+        let world = model.world
+        return Text("\(world.stacks.count) stacks · \(world.runningCount)/\(world.containerCount) running")
             .font(.system(size: 11).monospacedDigit())
             .foregroundStyle(tokens.foreground.opacity(0.55))
     }
@@ -262,6 +219,43 @@ public struct ThrallShell: View {
         case .containers:
             ContainersView(model: model, storage: model.storage)
         }
+    }
+}
+
+extension View {
+    /// What every Thrall root view wraps its content in: start the model, say
+    /// which model is live, and confirm Down.
+    ///
+    /// The context bridge is registered once by the runtime; this only says
+    /// which model is live, so a closed window stops contributing context
+    /// instead of publishing a stale machine. Down is the only verb that
+    /// destroys state, so it is the only one that asks — in basic mode too.
+    /// Restart is unconfirmed on purpose: the service is already broken and
+    /// restart is idempotent. The Down message names the containers and says
+    /// what is **not** removed, which is what stops the user hesitating over
+    /// the one verb they will use most.
+    ///
+    /// `skipsIncidentScan` is basic mode's: it has no triage area and no
+    /// badge, so it turns the scan off before the first refresh.
+    func thrallSession(
+        model: ThrallViewModel, host: HostServices, skipsIncidentScan: Bool = false
+    ) -> some View {
+        task {
+            if skipsIncidentScan { model.scansForIncidents = false }
+            model.bootstrap()
+            model.startPolling()
+        }
+        .onAppear { ThrallRuntime.contextBridge(for: host).setSource(model) }
+        .onDisappear { ThrallRuntime.contextBridge(for: host).clearSource(model) }
+        .ainkradConfirmDialog(
+            isPresented: Binding(
+                get: { model.pendingDown != nil },
+                set: { if !$0 { model.pendingDown = nil } }),
+            title: "Take \(model.pendingDown?.displayName ?? "") down?",
+            message: model.pendingDown.map(ThrallConfirmations.down) ?? "",
+            confirmTitle: "Down",
+            isDestructive: true,
+            onConfirm: { model.confirmPendingDown() })
     }
 }
 

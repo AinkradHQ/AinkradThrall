@@ -21,16 +21,9 @@ public struct ThrallApp: AinkradApp, AinkradAppTeardown, AinkradAppMCP {
         ThrallSettingsCatalog.page(store: ThrallRuntime.settingsStore(for: host))
     }
 
-    public static func makeSettingsView(host: HostServices) -> AnyView {
-        AnyView(
-            ThrallSettingsView(
-                presentation: host.presentation,
-                modeControl: host.mode,
-                store: ThrallRuntime.settingsStore(for: host)
-            )
-            .ainkradHostTheme(host.theme)
-        )
-    }
+    /// Empty: the host draws Thrall's settings from `settingsCatalog`, and
+    /// only falls back to this view when there is no catalog.
+    public static func makeSettingsView(host: HostServices) -> AnyView { AnyView(EmptyView()) }
 
     /// **MCP is the only front door the assistant has.** No
     /// `AgentActionProvider` actions are registered: GitMage deleted its

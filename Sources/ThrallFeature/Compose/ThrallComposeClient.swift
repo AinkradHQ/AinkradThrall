@@ -43,12 +43,6 @@ public actor ThrallComposeClient {
         return try await runner.run(arguments, workingDirectory: command.projectDirectory)
     }
 
-    /// True while a verb is running against `stack` — drives the row's spinner
-    /// without the view having to track it.
-    public func isBusy(_ stack: ThrallStackID) -> Bool {
-        busy.contains(stack.description)
-    }
-
     // MARK: - Lanes
 
     private func acquire(_ lane: String) async {

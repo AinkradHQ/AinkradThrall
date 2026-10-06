@@ -90,8 +90,6 @@ public actor ThrallStreamSupervisor {
         task = nil
     }
 
-    public var isRunning: Bool { task != nil }
-
     private static func consume(
         apiVersion: ThrallAPIVersion,
         stream: any ThrallByteStream,
