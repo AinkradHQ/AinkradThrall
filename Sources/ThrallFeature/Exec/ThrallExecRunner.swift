@@ -200,6 +200,18 @@ extension ThrallEngineClient {
             // Always multiplexed, because we sent `Tty: false` — see
             // `ThrallExecRunner`'s note on the raw-stream header.
             var decoder = ThrallLogFrameDecoder(framing: .multiplexed)
+            /// Demuxes one chunk into stdout/stderr. False once the byte cap
+            /// is hit, and the caller stops reading.
+            func take(_ chunk: Data) throws -> Bool {
+                for frame in try decoder.feed(chunk) {
+                    if out.count + err.count + frame.payload.count > maximumBytes {
+                        truncated = true
+                        return false
+                    }
+                    if frame.stream == .stderr { err.append(frame.payload) } else { out.append(frame.payload) }
+                }
+                return true
+            }
             let reader = ThrallHTTPResponseReader(stream: stream)
             loop: while let event = try await reader.next(timeout: .seconds(60)) {
                 switch event {
@@ -208,13 +220,7 @@ extension ThrallEngineClient {
                         throw ThrallExecError.engine("exec start returned \(head.statusCode)")
                     }
                 case .body(let chunk):
-                    for frame in try decoder.feed(chunk) {
-                        if out.count + err.count + frame.payload.count > maximumBytes {
-                            truncated = true
-                            break loop
-                        }
-                        if frame.stream == .stderr { err.append(frame.payload) } else { out.append(frame.payload) }
-                    }
+                    if try !take(chunk) { break loop }
                 case .upgraded(let residual):
                     // The other spelling of a hijack. The residual is already
                     // output, which is exactly what `ThrallHijackedStream` exists
@@ -222,14 +228,7 @@ extension ThrallEngineClient {
                     let hijacked = ThrallHijackedStream(upstream: stream, residual: residual)
                     while true {
                         guard let chunk = try? await hijacked.read(timeout: .seconds(60)) else { break }
-                        for frame in try decoder.feed(chunk) {
-                            if out.count + err.count + frame.payload.count > maximumBytes {
-                                truncated = true
-                                break
-                            }
-                            if frame.stream == .stderr { err.append(frame.payload) } else { out.append(frame.payload) }
-                        }
-                        if truncated { break }
+                        if try !take(chunk) { break }
                     }
                     break loop
                 case .end, .trailers:
@@ -260,11 +259,7 @@ extension ThrallEngineClient {
             over: makeStream(),
             timeout: requestTimeout)
         guard response.head.isSuccess else {
-            let message =
-                (try? JSONDecoder().decode(
-                    ThrallEngineMessageDTO.self,
-                    from: response.body))?.message
-            throw ThrallExecError.engine(message ?? response.head.reasonPhrase)
+            throw ThrallExecError.engine(Self.errorMessage(in: response))
         }
         return response.body
     }

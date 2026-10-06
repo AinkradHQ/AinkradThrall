@@ -188,13 +188,7 @@ public actor ThrallEngineClient {
             over: makeStream(),
             timeout: requestTimeout)
         guard accepting.contains(response.head.statusCode) else {
-            let message =
-                (try? JSONDecoder().decode(
-                    ThrallEngineMessageDTO.self,
-                    from: response.body))?.message
-            throw ThrallEngineError.http(
-                status: response.head.statusCode,
-                message: message ?? response.head.reasonPhrase)
+            throw Self.httpError(response)
         }
     }
 
@@ -217,18 +211,7 @@ public actor ThrallEngineClient {
             over: makeStream(),
             timeout: timeout ?? requestTimeout)
 
-        guard response.head.isSuccess else {
-            // The engine puts a usable sentence in `{"message": ...}`. Falling
-            // back to the reason phrase keeps the error readable when it does
-            // not (a proxy 502, say).
-            let message =
-                (try? JSONDecoder().decode(
-                    ThrallEngineMessageDTO.self,
-                    from: response.body))?.message
-            throw ThrallEngineError.http(
-                status: response.head.statusCode,
-                message: message ?? response.head.reasonPhrase)
-        }
+        guard response.head.isSuccess else { throw Self.httpError(response) }
         do {
             return try JSONDecoder().decode(Value.self, from: response.body)
         } catch {
@@ -243,27 +226,40 @@ public actor ThrallEngineClient {
     /// unencoded target rather than encoding it for us.
     static func target(_ path: String, query: [(String, String)]) -> String {
         guard !query.isEmpty else { return path }
-        var allowed = CharacterSet.alphanumerics
-        allowed.insert(charactersIn: "-._~")
         let pairs = query.map { item in
-            item.0.addingPercentEncoding(withAllowedCharacters: allowed)!
-                + "=" + item.1.addingPercentEncoding(withAllowedCharacters: allowed)!
+            item.0.addingPercentEncoding(withAllowedCharacters: unreserved)!
+                + "=" + item.1.addingPercentEncoding(withAllowedCharacters: unreserved)!
         }
         return path + "?" + pairs.joined(separator: "&")
+    }
+
+    /// RFC 3986 unreserved characters: everything else in a path segment or
+    /// query value is percent-encoded.
+    static let unreserved: CharacterSet = {
+        var allowed = CharacterSet.alphanumerics
+        allowed.insert(charactersIn: "-._~")
+        return allowed
+    }()
+
+    /// The engine's error for a response it refused.
+    ///
+    /// The engine puts a usable sentence in `{"message": ...}`. Falling back to
+    /// the reason phrase keeps the error readable when it does not (a proxy
+    /// 502, say).
+    static func httpError(_ response: ThrallHTTPResponse) -> ThrallEngineError {
+        .http(status: response.head.statusCode, message: errorMessage(in: response))
+    }
+
+    static func errorMessage(in response: ThrallHTTPResponse) -> String {
+        (try? JSONDecoder().decode(ThrallEngineMessageDTO.self, from: response.body))?.message
+            ?? response.head.reasonPhrase
     }
 
     /// Container and image identifiers go straight into a path, so they are
     /// checked against compose's own identifier rule. Without this, a name
     /// containing `../` would address a different endpoint entirely.
     static func identifier(_ raw: String) throws -> String {
-        let allowed = { (character: Character) -> Bool in
-            character.isASCII
-                && (character.isLetter || character.isNumber
-                    || character == "_" || character == "." || character == "-")
-        }
-        guard !raw.isEmpty, raw.count <= 255, raw.allSatisfy(allowed),
-            let first = raw.first, first.isASCII, first.isLetter || first.isNumber
-        else {
+        guard ThrallComposeArgumentGuard.isValidIdentifier(raw) else {
             throw ThrallEngineError.decoding(
                 type: "identifier",
                 detail: "\(raw.debugDescription) is not a container id or name")

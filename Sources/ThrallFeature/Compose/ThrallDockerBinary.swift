@@ -42,17 +42,8 @@ public struct ThrallDockerBinary: Sendable {
     /// The sentence shown when nothing resolved. Names the paths that were
     /// tried, because "docker not found" with no list is unactionable.
     public var notFoundMessage: String {
-        let tried = ([primaryPath] + fallbackPaths).reduced()
+        let tried = ([primaryPath] + fallbackPaths).uniqued()
         return "No docker binary found. Looked in \(tried.joined(separator: ", ")). "
             + "Thrall needs the CLI for compose commands even though it reads the engine directly."
-    }
-}
-
-extension Array where Element == String {
-    /// Order-preserving dedupe, so a primary that repeats in the fallbacks is
-    /// listed once.
-    fileprivate func reduced() -> [String] {
-        var seen = Set<String>()
-        return filter { seen.insert($0).inserted }
     }
 }

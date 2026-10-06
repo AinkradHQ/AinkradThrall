@@ -1,3 +1,4 @@
+import AinkradAppKit
 import Foundation
 
 /// Normalises a log line so two containers failing the same way produce the
@@ -55,18 +56,12 @@ public enum ThrallLogFingerprint {
         return String(text.prefix(200)).lowercased()
     }
 
+    /// The plain text of a line, through the kit's ANSI parser — the same one
+    /// the log view renders with, so the two never disagree on what an escape
+    /// sequence is.
     static func stripANSI(_ text: String) -> String {
-        // `\x{1B}`, not `\u{1B}`. Two reasons it has to be spelled this way:
-        // a Swift **raw** string performs no escape processing, so `\u{1B}`
-        // reaches ICU as six literal characters; and ICU's own codepoint
-        // escape is `\x{...}` regardless. Written the obvious way this regex
-        // silently matched nothing and every coloured log line fingerprinted
-        // differently from an uncoloured one — caught by the test below.
-        guard let expression = try? NSRegularExpression(pattern: #"\x{1B}\[[0-9;]*[A-Za-z]"#) else {
-            return text
-        }
-        return expression.stringByReplacingMatches(
-            in: text, range: NSRange(text.startIndex..., in: text), withTemplate: "")
+        var parser = AinkradANSIParser()
+        return parser.parse(text).map(\.text).joined()
     }
 
     /// The last line with anything on it — which is where a dying process puts

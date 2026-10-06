@@ -70,8 +70,8 @@ public final class ThrallContextBridge {
         let incidents = model.triage.incidents
         var lines: [String] = []
 
-        let running = world.stacks.reduce(0) { $0 + $1.breakdown.running }
-        let total = world.stacks.reduce(0) { $0 + $1.containerCount }
+        let running = world.runningCount
+        let total = world.containerCount
         lines.append(
             "Container engine: \(model.engineLabel)"
                 + (model.engineVersion.map { " (API \($0.negotiated))" } ?? ""))

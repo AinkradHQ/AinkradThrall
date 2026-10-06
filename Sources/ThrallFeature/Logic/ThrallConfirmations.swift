@@ -19,4 +19,14 @@ enum ThrallConfirmations {
             + "\(stack.displayName). Named volumes are kept — Thrall never removes a volume "
             + "as part of Down."
     }
+
+    /// Teardown by label: the remedy for a stack nothing else can reach, so it
+    /// says exactly how far it goes — and that volumes survive.
+    static func teardown(_ stack: ThrallStack) -> String {
+        let count = stack.containerCount
+        return "\(stack.displayName)'s compose file is gone, so `docker compose down` cannot "
+            + "reach it. Thrall will stop and remove its \(count) container"
+            + "\(count == 1 ? "" : "s") by matching the compose project label. "
+            + "**Volumes are not touched.**"
+    }
 }

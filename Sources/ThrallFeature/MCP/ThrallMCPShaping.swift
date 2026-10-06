@@ -87,6 +87,21 @@ extension ThrallMCPServer {
         return nil
     }
 
+    /// How a stack argument resolved. The project name is not unique — two
+    /// unrelated trees can both produce `compose` — so "several" is an answer
+    /// the caller must report, never one to resolve by picking the first.
+    enum StackMatch {
+        case one(ThrallStack)
+        case noMatch
+        case several([ThrallStack])
+    }
+
+    static func match(_ stacks: [ThrallStack], where predicate: (ThrallStack) -> Bool) -> StackMatch {
+        let matches = stacks.filter(predicate)
+        guard let first = matches.first else { return .noMatch }
+        return matches.count == 1 ? .one(first) : .several(matches)
+    }
+
     static func object(from json: String) -> [String: Any] {
         guard let data = json.data(using: .utf8),
             let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any]

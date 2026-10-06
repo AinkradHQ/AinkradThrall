@@ -9,8 +9,8 @@ extension ThrallMCPServer {
         guard model.activeContext != nil else { return noEngine(model) }
         let world = model.world
         let incidents = model.triage.incidents
-        let running = world.stacks.reduce(0) { $0 + $1.breakdown.running }
-        let containers = world.stacks.reduce(0) { $0 + $1.containerCount }
+        let running = world.runningCount
+        let containers = world.containerCount
 
         let payload = ThrallMCPPayloads.Diagnosis(
             engine: model.engineLabel,
@@ -55,19 +55,22 @@ extension ThrallMCPServer {
         guard identifier != nil || name != nil else {
             return AgentActionResult(text: "Pass either `name` or `id`.", isError: true)
         }
-        let matches = model.world.stacks.filter { stack in
-            if let identifier { return stack.id.description == identifier }
-            return stack.displayName == name
-        }
-        guard let found = matches.first else {
+        let found: ThrallStack
+        switch match(
+            model.world.stacks,
+            where: { stack in
+                if let identifier { return stack.id.description == identifier }
+                return stack.displayName == name
+            })
+        {
+        case .one(let stack):
+            found = stack
+        case .noMatch:
             return AgentActionResult(
                 text: "No stack matches \(identifier ?? name ?? ""). "
                     + "Known stacks: \(model.world.stacks.map(\.displayName).joined(separator: ", "))",
                 isError: true)
-        }
-        // The project name genuinely is not unique — two unrelated trees can
-        // both produce `compose`. Saying so is better than silently picking one.
-        guard matches.count == 1 else {
+        case .several(let matches):
             return AgentActionResult(
                 text: "\(matches.count) stacks are named \(name ?? ""). Pass one of these ids "
                     + "instead: \(matches.map(\.id.description).joined(separator: ", "))",

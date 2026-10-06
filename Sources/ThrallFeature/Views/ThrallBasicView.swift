@@ -34,26 +34,7 @@ struct ThrallBasicView: View {
         .background(tokens.background)
         .foregroundStyle(tokens.foreground)
         .ainkradHostTheme(host.theme)
-        .task {
-            model.scansForIncidents = false
-            model.bootstrap()
-            model.startPolling()
-        }
-        // Says which model is live, so a closed window stops contributing
-        // context instead of publishing a stale machine.
-        .onAppear { ThrallRuntime.contextBridge(for: host).setSource(model) }
-        .onDisappear { ThrallRuntime.contextBridge(for: host).clearSource(model) }
-        // Down is the only verb that destroys state, so it is the only one that
-        // asks — unchanged from advanced, deliberately.
-        .ainkradConfirmDialog(
-            isPresented: Binding(
-                get: { model.pendingDown != nil },
-                set: { if !$0 { model.pendingDown = nil } }),
-            title: "Take \(model.pendingDown?.displayName ?? "") down?",
-            message: model.pendingDown.map(ThrallConfirmations.down) ?? "",
-            confirmTitle: "Down",
-            isDestructive: true,
-            onConfirm: { model.confirmPendingDown() })
+        .thrallSession(model: model, host: host, skipsIncidentScan: true)
     }
 
     private var subtitle: String {
