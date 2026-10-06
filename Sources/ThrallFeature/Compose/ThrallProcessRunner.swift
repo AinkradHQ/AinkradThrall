@@ -146,6 +146,7 @@ public struct ThrallProcessRunner: Sendable {
 }
 
 /// Lets the cancellation handler reach a process the spawn queue owns.
+// @unchecked Sendable: `process` and `cancelled` are read and written only under `lock`.
 private final class ProcessHandle: @unchecked Sendable {
     private let lock = NSLock()
     private var process: Process?
@@ -188,6 +189,7 @@ private final class ProcessHandle: @unchecked Sendable {
 /// `limit` bounds what is retained; bytes past it are read and **discarded**,
 /// not left in the pipe — the deadlock returns the moment anything stops
 /// reading.
+// @unchecked Sendable: `data` and `truncated` are guarded by `lock`; the drain runs on its own queue.
 private final class PipeDrain: @unchecked Sendable {
     private let handle: FileHandle
     private let limit: Int

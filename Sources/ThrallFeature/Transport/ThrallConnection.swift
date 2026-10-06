@@ -33,6 +33,7 @@ import Network
 ///     all fail it. A `read(timeout: nil)` on a quiet `/events` stream that
 ///     could not be failed would hang plugin teardown forever, with no timeout
 ///     able to break it.
+// @unchecked Sendable: all mutable state is confined to one private serial queue.
 public final class ThrallConnection: ThrallByteStream, @unchecked Sendable {
     /// One suspended call. Identity is the object, so a completed call removes
     /// exactly its own entry. `@unchecked Sendable` because every field is
