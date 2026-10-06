@@ -176,7 +176,7 @@ struct ThrallEngineClientTests {
     /// for us, so this has to be right here.
     @Test("query values are percent-encoded, including JSON filters")
     func queryEncoding() throws {
-        let target = ThrallEngineClient.target(
+        let target = try ThrallEngineClient.target(
             "/v1.51/events",
             query: [("filters", #"{"type":["container"]}"#), ("since", "0")])
         #expect(target == "/v1.51/events?filters=%7B%22type%22%3A%5B%22container%22%5D%7D&since=0")
@@ -185,8 +185,8 @@ struct ThrallEngineClientTests {
     }
 
     @Test("an empty query adds no question mark")
-    func emptyQuery() {
-        #expect(ThrallEngineClient.target("/v1.51/volumes", query: []) == "/v1.51/volumes")
+    func emptyQuery() throws {
+        #expect(try ThrallEngineClient.target("/v1.51/volumes", query: []) == "/v1.51/volumes")
     }
 
     // MARK: - Against the real engine, when there is one

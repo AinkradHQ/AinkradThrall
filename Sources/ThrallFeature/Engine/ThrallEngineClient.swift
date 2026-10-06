@@ -184,7 +184,7 @@ public actor ThrallEngineClient {
         let response = try await ThrallHTTPExchange.perform(
             ThrallHTTPRequest(
                 method: "POST",
-                target: Self.target(prefix + path, query: query)),
+                target: try Self.target(prefix + path, query: query)),
             over: makeStream(),
             timeout: requestTimeout)
         guard accepting.contains(response.head.statusCode) else {
@@ -200,7 +200,7 @@ public actor ThrallEngineClient {
         timeout: Duration? = nil
     ) async throws -> Value {
         let prefix = try await version().pathPrefix
-        return try await get(target: Self.target(prefix + path, query: query), timeout: timeout)
+        return try await get(target: try Self.target(prefix + path, query: query), timeout: timeout)
     }
 
     private func get<Value: Decodable>(target: String, timeout: Duration? = nil) async throws
@@ -224,11 +224,16 @@ public actor ThrallEngineClient {
     /// `/events`' `filters` parameter is JSON — braces, quotes, brackets — so
     /// the encoding cannot be skipped, and `ThrallHTTPRequest` refuses an
     /// unencoded target rather than encoding it for us.
-    static func target(_ path: String, query: [(String, String)]) -> String {
+    static func target(_ path: String, query: [(String, String)]) throws -> String {
         guard !query.isEmpty else { return path }
-        let pairs = query.map { item in
-            item.0.addingPercentEncoding(withAllowedCharacters: unreserved)!
-                + "=" + item.1.addingPercentEncoding(withAllowedCharacters: unreserved)!
+        let pairs = try query.map { item in
+            guard
+                let name = item.0.addingPercentEncoding(withAllowedCharacters: unreserved),
+                let value = item.1.addingPercentEncoding(withAllowedCharacters: unreserved)
+            else {
+                throw ThrallTransportError.invalidRequest("query item \(item.0) cannot be percent-encoded")
+            }
+            return name + "=" + value
         }
         return path + "?" + pairs.joined(separator: "&")
     }

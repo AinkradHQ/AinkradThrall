@@ -117,7 +117,7 @@ extension ThrallEngineClient {
         let response = try await ThrallHTTPExchange.perform(
             ThrallHTTPRequest(
                 method: "POST",
-                target: Self.target(
+                target: try Self.target(
                     prefix + "/build/prune",
                     query: [
                         (
@@ -147,7 +147,7 @@ extension ThrallEngineClient {
         let response = try await ThrallHTTPExchange.perform(
             ThrallHTTPRequest(
                 method: "DELETE",
-                target: Self.target(prefix + path, query: query)),
+                target: try Self.target(prefix + path, query: query)),
             over: makeStream(),
             timeout: requestTimeout)
         guard accepting.contains(response.head.statusCode) else {

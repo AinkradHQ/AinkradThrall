@@ -96,7 +96,7 @@ public actor ThrallStreamSupervisor {
         onEvent: @escaping EventHandler,
         onConnected: @escaping StateHandler
     ) async throws {
-        let target = ThrallEngineClient.target(
+        let target = try ThrallEngineClient.target(
             apiVersion.pathPrefix + "/events",
             query: [("filters", eventFilters)])
         try await stream.connect()

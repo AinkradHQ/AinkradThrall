@@ -22,7 +22,7 @@ extension ThrallEngineClient {
     ) async throws -> [ThrallLogFrame] {
         let prefix = try await version().pathPrefix
         let identifier = try Self.identifier(containerID)
-        let target = Self.target(
+        let target = try Self.target(
             prefix + "/containers/\(identifier)/logs",
             query: [
                 ("stdout", includeStdout ? "1" : "0"),
@@ -58,10 +58,10 @@ extension ThrallEngineClient {
                     }
                     decoder = ThrallLogFrameDecoder(framing: framing)
                 case .body(let chunk):
-                    guard decoder != nil else {
+                    guard let fed = try decoder?.feed(chunk) else {
                         throw ThrallTransportError.malformedResponse("log body before the head")
                     }
-                    for frame in try decoder!.feed(chunk) {
+                    for frame in fed {
                         kept += frame.payload.count
                         guard kept <= maximumBytes else { return frames }
                         frames.append(frame)

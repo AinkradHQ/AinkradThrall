@@ -172,7 +172,7 @@ extension ThrallEngineClient {
             "Tty": false, "Cmd": command,
         ]
         let created = try await postJSON(
-            target: Self.target(
+            target: try Self.target(
                 prefix + "/containers/\(identifier)/exec", query: []), body: createBody)
         guard
             let execID = (try? JSONSerialization.jsonObject(with: created) as? [String: Any])?["Id"]
@@ -192,7 +192,7 @@ extension ThrallEngineClient {
             try await stream.send(
                 ThrallHTTPRequest(
                     method: "POST",
-                    target: Self.target(prefix + "/exec/\(try Self.identifier(execID))/start", query: []),
+                    target: try Self.target(prefix + "/exec/\(try Self.identifier(execID))/start", query: []),
                     headers: [(name: "Content-Type", value: "application/json")],
                     body: startBody
                 ).encoded())
@@ -239,7 +239,7 @@ extension ThrallEngineClient {
 
         // Exit code comes from a separate inspect — the stream carries none.
         let inspected: [String: Any]? = try? await getJSONObject(
-            target: Self.target(prefix + "/exec/\(try Self.identifier(execID))/json", query: []))
+            target: try Self.target(prefix + "/exec/\(try Self.identifier(execID))/json", query: []))
         return ThrallExecResult(
             stdout: String(decoding: out, as: UTF8.self),
             stderr: String(decoding: err, as: UTF8.self),
