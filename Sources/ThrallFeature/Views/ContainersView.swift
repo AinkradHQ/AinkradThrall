@@ -109,14 +109,10 @@ struct ContainersView: View {
                 // the same daemon, and saying so stops a false "my container
                 // vanished".
                 if let duplicate = duplicateEngineNote {
-                    Text(duplicate)
-                        .font(.system(size: 10))
-                        .foregroundStyle(theme.foreground.opacity(0.5))
+                    AinkradCaption(duplicate)
                 }
                 ForEach(model.contextNotes, id: \.self) { note in
-                    Text(note)
-                        .font(.system(size: 10))
-                        .foregroundStyle(theme.foreground.opacity(0.5))
+                    AinkradCaption(note)
                 }
             }
         }

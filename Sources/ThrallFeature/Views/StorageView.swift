@@ -95,12 +95,9 @@ struct StorageView: View {
             VStack(alignment: .leading, spacing: AinkradSpacing.md) {
                 Text("Reclaim")
                     .font(.system(size: 13, weight: .semibold))
-                Text(
+                AinkradCaption(
                     "Thrall never runs `prune`. It lists exactly what it will remove, then "
-                        + "removes each item by its own id."
-                )
-                .font(.system(size: 11))
-                .foregroundStyle(theme.foreground.opacity(0.6))
+                        + "removes each item by its own id.")
 
                 AinkradCheckbox(
                     isOn: $storage.includeImages,
@@ -115,9 +112,7 @@ struct StorageView: View {
 
                 let plan = storage.plan
                 if plan.isEmpty {
-                    Text("Nothing selected.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(theme.foreground.opacity(0.45))
+                    AinkradCaption("Nothing selected.")
                 } else {
                     Text(
                         "\(plan.targets.count) items · "
@@ -148,12 +143,9 @@ struct StorageView: View {
                         }
                     }
                     if plan.targets.count > 12 {
-                        Text(
+                        AinkradCaption(
                             "… and \(plan.targets.count - 12) more, all listed in the "
-                                + "confirmation before anything is removed."
-                        )
-                        .font(.system(size: 10))
-                        .foregroundStyle(theme.foreground.opacity(0.45))
+                                + "confirmation before anything is removed.")
                     }
                     AinkradButton(title: "Remove these", style: .danger) {
                         confirmingReclaim = true

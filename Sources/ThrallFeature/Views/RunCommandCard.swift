@@ -38,17 +38,12 @@ struct RunCommandCard: View {
             VStack(alignment: .leading, spacing: AinkradSpacing.md) {
                 Text("Run a command")
                     .font(.system(size: 13, weight: .semibold))
-                Text(
+                AinkradCaption(
                     "Runs directly in the container — no shell, so no pipes, redirects or "
-                        + "variable expansion. Rune handles interactive sessions."
-                )
-                .font(.system(size: 11))
-                .foregroundStyle(theme.foreground.opacity(0.6))
+                        + "variable expansion. Rune handles interactive sessions.")
 
                 if candidates.isEmpty {
-                    Text("Nothing is running on \(model.engineLabel).")
-                        .font(.system(size: 11))
-                        .foregroundStyle(theme.foreground.opacity(0.45))
+                    AinkradCaption("Nothing is running on \(model.engineLabel).")
                 } else {
                     HStack(spacing: AinkradSpacing.sm) {
                         AinkradMenuButton(
@@ -131,9 +126,7 @@ struct RunCommandCard: View {
                 AinkradCodeBlock(result.stderr)
             }
             if result.stdout.isEmpty && result.stderr.isEmpty {
-                Text("No output.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(theme.foreground.opacity(0.45))
+                AinkradCaption("No output.")
             }
         }
     }
