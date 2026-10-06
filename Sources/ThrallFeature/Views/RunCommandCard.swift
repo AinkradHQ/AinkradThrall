@@ -12,6 +12,7 @@ struct RunCommandCard: View {
     @ObservedObject var model: ThrallViewModel
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     @Environment(\.ainkradStatusColors) private var statusColors
     @State private var containerID: String?
     @State private var commandLine = "env"
@@ -37,18 +38,13 @@ struct RunCommandCard: View {
         AinkradCard {
             VStack(alignment: .leading, spacing: AinkradSpacing.md) {
                 Text("Run a command")
-                    .font(.system(size: 13, weight: .semibold))
-                Text(
+                    .font(skin.font(AinkradFontToken(sizeKey: "t13", weight: "semibold")))
+                AinkradCaption(
                     "Runs directly in the container — no shell, so no pipes, redirects or "
-                        + "variable expansion. Rune handles interactive sessions."
-                )
-                .font(.system(size: 11))
-                .foregroundStyle(theme.foreground.opacity(0.6))
+                        + "variable expansion. Rune handles interactive sessions.")
 
                 if candidates.isEmpty {
-                    Text("Nothing is running on \(model.engineLabel).")
-                        .font(.system(size: 11))
-                        .foregroundStyle(theme.foreground.opacity(0.45))
+                    AinkradCaption("Nothing is running on \(model.engineLabel).")
                 } else {
                     HStack(spacing: AinkradSpacing.sm) {
                         AinkradMenuButton(
@@ -58,21 +54,10 @@ struct RunCommandCard: View {
                                 }
                             }
                         ) {
-                            HStack(spacing: AinkradSpacing.xs) {
+                            ThrallPullDownLabel {
                                 Text(selectedLabel)
-                                    .font(.system(size: 11, weight: .medium))
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 8, weight: .semibold))
-                                    .foregroundStyle(theme.foreground.opacity(0.4))
+                                    .font(skin.font(AinkradFontToken(sizeKey: "t11", weight: "medium")))
                             }
-                            .padding(.horizontal, AinkradSpacing.sm)
-                            .padding(.vertical, 3)
-                            .background(
-                                RoundedRectangle(
-                                    cornerRadius: AinkradRadius.sm,
-                                    style: .continuous
-                                )
-                                .fill(theme.foreground.opacity(0.06)))
                         }
                         .fixedSize()
 
@@ -86,7 +71,7 @@ struct RunCommandCard: View {
                         // The parser's own sentence, which already explains
                         // what to do instead.
                         Text(problem)
-                            .font(.system(size: 11))
+                            .font(skin.font(AinkradFontToken(sizeKey: "t11")))
                             .foregroundStyle(
                                 AinkradStatus.warning
                                     .color(in: theme, statusColors: statusColors))
@@ -126,14 +111,12 @@ struct RunCommandCard: View {
                 // Kept separate, which is the whole reason the exec stream is
                 // demultiplexed rather than concatenated.
                 Text("stderr")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(theme.foreground.opacity(0.5))
+                    .font(skin.font(AinkradFontToken(sizeKey: "t10", weight: "medium")))
+                    .foregroundStyle(theme.foreground.opacity(skin.opacity.o50))
                 AinkradCodeBlock(result.stderr)
             }
             if result.stdout.isEmpty && result.stderr.isEmpty {
-                Text("No output.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(theme.foreground.opacity(0.45))
+                AinkradCaption("No output.")
             }
         }
     }

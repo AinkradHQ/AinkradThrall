@@ -17,6 +17,7 @@ struct ThrallShell: View {
     @State private var area: NavArea = .stacks
     @Environment(\.ainkradReduceMotion) private var reduceMotion
     @Environment(\.ainkradToastCenter) private var toasts
+    @Environment(\.ainkradSkin) private var skin
 
     init(host: HostServices) {
         self.host = host
@@ -77,8 +78,8 @@ struct ThrallShell: View {
     private var topBar: some View {
         HStack(spacing: AinkradSpacing.md) {
             Text("Thrall")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(tokens.foreground.opacity(0.85))
+                .font(skin.font(AinkradFontToken(sizeKey: "t13", weight: "semibold")))
+                .foregroundStyle(tokens.foreground.opacity(skin.opacity.o85))
 
             engineChip
 
@@ -94,7 +95,7 @@ struct ThrallShell: View {
 
             if !triage.incidents.isEmpty {
                 AinkradIconButton(
-                    systemName: "sparkles", size: 24,
+                    systemName: "sparkles", size: skin.size.s24,
                     tooltip: "Ask Sage about this"
                 ) {
                     let message = ThrallRuntime.contextBridge(for: host)
@@ -102,7 +103,7 @@ struct ThrallShell: View {
                     toasts.show(message, status: .neutral)
                 }
             }
-            AinkradIconButton(systemName: "arrow.clockwise", size: 24, tooltip: "Refresh") {
+            AinkradIconButton(systemName: "arrow.clockwise", size: skin.size.s24, tooltip: "Refresh") {
                 Task { await model.refresh() }
             }
         }
@@ -135,28 +136,19 @@ struct ThrallShell: View {
                 }
             }
         ) {
-            HStack(spacing: AinkradSpacing.xs) {
+            ThrallPullDownLabel {
                 Circle()
                     .fill(engineIndicator)
-                    .frame(width: 6, height: 6)
+                    .frame(width: skin.size.s6, height: skin.size.s6)
                 Text(model.engineLabel)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(tokens.foreground.opacity(0.85))
+                    .font(skin.font(AinkradFontToken(sizeKey: "t11", weight: "medium")))
+                    .foregroundStyle(tokens.foreground.opacity(skin.opacity.o85))
                 if let version = model.engineVersion {
                     Text("API \(version.negotiated.description)")
-                        .font(.system(size: 10).monospacedDigit())
-                        .foregroundStyle(tokens.foreground.opacity(0.45))
+                        .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
+                        .foregroundStyle(skin.color(skin.text.faint))
                 }
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(tokens.foreground.opacity(0.4))
             }
-            .padding(.horizontal, AinkradSpacing.sm)
-            .padding(.vertical, 3)
-            .background(
-                RoundedRectangle(cornerRadius: AinkradRadius.sm, style: .continuous)
-                    .fill(tokens.foreground.opacity(0.06))
-            )
         }
         .fixedSize()
     }
@@ -164,8 +156,8 @@ struct ThrallShell: View {
     private var engineIndicator: Color {
         switch model.state {
         case .loaded: return tokens.accentPrimary
-        case .failed: return .orange
-        case .idle, .loading: return tokens.foreground.opacity(0.35)
+        case .failed: return skin.color(skin.palette.warning)
+        case .idle, .loading: return tokens.foreground.opacity(skin.opacity.o35)
         }
     }
 
@@ -174,8 +166,8 @@ struct ThrallShell: View {
     private var summary: some View {
         let world = model.world
         return Text("\(world.stacks.count) stacks · \(world.runningCount)/\(world.containerCount) running")
-            .font(.system(size: 11).monospacedDigit())
-            .foregroundStyle(tokens.foreground.opacity(0.55))
+            .font(skin.font(AinkradFontToken(sizeKey: "t11", monospacedDigits: true)))
+            .foregroundStyle(skin.color(skin.text.muted))
     }
 
     // MARK: - Rail
@@ -183,21 +175,21 @@ struct ThrallShell: View {
     private var rail: some View {
         VStack(spacing: AinkradSpacing.xs) {
             ForEach(NavArea.built) { item in
-                RailItem(
-                    area: item,
+                AinkradRailItem(
+                    systemName: item.icon,
+                    help: item.title,
                     isSelected: item == area,
-                    tokens: tokens,
                     // Triage is the only area that carries a badge.
-                    badge: item == .triage ? triage.incidents.count : nil,
-                    onTap: { area = item })
+                    unread: item == .triage ? triage.incidents.count : 0,
+                    action: { area = item })
             }
             Spacer(minLength: 0)
         }
         .padding(.vertical, AinkradSpacing.md)
         .padding(.horizontal, AinkradSpacing.sm)
-        .frame(width: 56)
+        .frame(width: skin.size.s56)
         // Fill, not a rule.
-        .background(tokens.surface.opacity(0.35))
+        .background(tokens.surface.opacity(skin.opacity.o35))
     }
 
     @ViewBuilder
@@ -253,57 +245,5 @@ extension View {
             confirmTitle: "Down",
             isDestructive: true,
             onConfirm: { model.confirmPendingDown() })
-    }
-}
-
-/// A rail item. Hover changes **fill and opacity only, never geometry** — a
-/// rail that grows on hover pushes every item below it.
-private struct RailItem: View {
-    let area: NavArea
-    let isSelected: Bool
-    let tokens: HostThemeTokens
-    let badge: Int?
-    let onTap: () -> Void
-
-    @Environment(\.ainkradReduceMotion) private var reduceMotion
-    @State private var hovering = false
-
-    var body: some View {
-        Button(action: onTap) {
-            Image(systemName: area.icon)
-                .font(.system(size: 16, weight: .regular))
-                .frame(width: 40, height: 34)
-                .foregroundStyle(
-                    isSelected
-                        ? tokens.accentPrimary
-                        : tokens.foreground.opacity(hovering ? 0.9 : 0.55)
-                )
-                .background(
-                    RoundedRectangle(cornerRadius: AinkradRadius.sm, style: .continuous)
-                        .fill(
-                            tokens.foreground.opacity(
-                                isSelected
-                                    ? 0.10
-                                    : (hovering ? 0.06 : 0)))
-                )
-                // Inside the fixed 40x34 frame, so a count appearing or
-                // changing width cannot move the rail or the items below it.
-                .overlay(alignment: .topTrailing) {
-                    if let badge, badge > 0 {
-                        Text(badge > 99 ? "99+" : "\(badge)")
-                            .font(.system(size: 9, weight: .bold).monospacedDigit())
-                            .foregroundStyle(.black)
-                            .padding(.horizontal, 3)
-                            .padding(.vertical, 1)
-                            .background(Capsule().fill(Color.orange))
-                            .offset(x: -1, y: 1)
-                    }
-                }
-        }
-        .buttonStyle(.plain)
-        .help(area.title)
-        .onHover { hovering = $0 }
-        .animation(reduceMotion ? nil : AinkradMotion.hover, value: hovering)
-        .animation(reduceMotion ? nil : AinkradMotion.hover, value: isSelected)
     }
 }

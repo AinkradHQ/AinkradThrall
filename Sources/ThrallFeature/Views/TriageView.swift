@@ -7,6 +7,7 @@ struct TriageView: View {
     @ObservedObject var triage: ThrallTriageModel
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     @Environment(\.ainkradReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -45,8 +46,8 @@ struct TriageView: View {
                     : "Reading restart counts and recent deaths.")
             if let scan = triage.lastScan, triage.hasBaseline {
                 Text("Last checked \(scan.formatted(date: .omitted, time: .standard))")
-                    .font(.system(size: 10).monospacedDigit())
-                    .foregroundStyle(theme.foreground.opacity(0.4))
+                    .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
+                    .foregroundStyle(theme.foreground.opacity(skin.opacity.o40))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -60,6 +61,7 @@ private struct IncidentCard: View {
     let onRemedy: (ThrallRemedy) -> Void
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     @Environment(\.ainkradStatusColors) private var statusColors
     @Environment(\.ainkradReduceMotion) private var reduceMotion
     @State private var showsAllRemedies = false
@@ -87,20 +89,25 @@ private struct IncidentCard: View {
             BudgetedTimelineView { date in
                 Circle()
                     .fill(AinkradStatus.danger.color(in: theme, statusColors: statusColors))
-                    .frame(width: 8, height: 8)
-                    .opacity(reduceMotion ? 1 : spinnerPulseOpacity(date: date, period: 1.4))
+                    .frame(width: skin.size.s8, height: skin.size.s8)
+                    .opacity(
+                        reduceMotion
+                            ? 1
+                            : spinnerPulseOpacity(
+                                date: date,
+                                period: 1.4))  // design-lint: allow motion-literal token-gap motion.durations.d1_4
             }
-            .frame(width: 8, height: 8)
+            .frame(width: skin.size.s8, height: skin.size.s8)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: skin.size.s2) {
                 Text(incident.headline)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(skin.font(AinkradFontToken(sizeKey: "t13", weight: "semibold")))
                 Text("\(incident.stackName)  ·  \(incident.restartTotal) restarts")
-                    .font(.system(size: 11).monospacedDigit())
-                    .foregroundStyle(theme.foreground.opacity(0.55))
+                    .font(skin.font(AinkradFontToken(sizeKey: "t11", monospacedDigits: true)))
+                    .foregroundStyle(skin.color(skin.text.muted))
             }
             Spacer(minLength: 0)
-            if isBusy { AinkradSpinner(size: 14) }
+            if isBusy { AinkradSpinner(size: skin.size.s14) }
             if let exitCode = incident.exitCode {
                 AinkradBadge(text: "exit \(exitCode)", status: .danger)
             }
@@ -111,23 +118,10 @@ private struct IncidentCard: View {
     /// "`api` depends_on `db`; `db` is `exited`" — the answer, stated as a
     /// banner rather than left for the user to infer from a list of red rows.
     private func verdictBanner(_ verdict: ThrallDependencyVerdict) -> some View {
-        HStack(spacing: AinkradSpacing.sm) {
-            Image(systemName: "arrow.triangle.branch")
-                .font(.system(size: 11))
-            Text(
-                "\(verdict.dependent) depends_on \(verdict.dependency) "
-                    + "(\(verdict.condition)) — \(verdict.dependency) is \(verdict.stateLabel)"
-            )
-            .font(.system(size: 11))
-        }
-        .foregroundStyle(AinkradStatus.warning.color(in: theme, statusColors: statusColors))
-        .padding(.horizontal, AinkradSpacing.sm)
-        .padding(.vertical, AinkradSpacing.xs)
-        .background(
-            RoundedRectangle(cornerRadius: AinkradRadius.sm, style: .continuous)
-                .fill(
-                    AinkradStatus.warning.color(in: theme, statusColors: statusColors)
-                        .opacity(0.10)))
+        AinkradBanner(
+            message: "\(verdict.dependent) depends_on \(verdict.dependency) "
+                + "(\(verdict.condition)) — \(verdict.dependency) is \(verdict.stateLabel)",
+            status: .warning)
     }
 
     /// **The actual error text, never a paraphrase.** A summary the user
@@ -138,8 +132,8 @@ private struct IncidentCard: View {
 
     private var members: some View {
         Text(incident.services.joined(separator: ", "))
-            .font(.system(size: 11).monospaced())
-            .foregroundStyle(theme.foreground.opacity(0.6))
+            .font(skin.font(AinkradFontToken(sizeKey: "t11", mono: "system")))
+            .foregroundStyle(theme.foreground.opacity(skin.opacity.o60))
             .lineLimit(2)
             .truncationMode(.tail)
     }
@@ -157,18 +151,16 @@ private struct IncidentCard: View {
                     onRun: { onRemedy(remedy) })
             }
             if all.count > 1 {
-                Button(
-                    showsAllRemedies
+                AinkradButton(
+                    title: showsAllRemedies
                         ? "Fewer options"
-                        : "\(all.count - 1) other option\(all.count == 2 ? "" : "s")"
+                        : "\(all.count - 1) other option\(all.count == 2 ? "" : "s")",
+                    style: .ghost
                 ) {
                     withAnimation(reduceMotion ? nil : AinkradMotion.present) {
                         showsAllRemedies.toggle()
                     }
                 }
-                .buttonStyle(.plain)
-                .font(.system(size: 11))
-                .foregroundStyle(theme.accentPrimary)
             }
         }
     }
@@ -179,7 +171,6 @@ private struct RemedyRow: View {
     let isPrimary: Bool
     let onRun: () -> Void
 
-    @Environment(\.ainkradTheme) private var theme
     @State private var showsCommand = false
 
     var body: some View {
@@ -189,12 +180,9 @@ private struct RemedyRow: View {
                     title: remedy.title,
                     style: isPrimary ? .primary : .secondary,
                     action: onRun)
-                Button(showsCommand ? "Hide command" : "Show command") {
+                AinkradButton(title: showsCommand ? "Hide command" : "Show command", style: .ghost) {
                     showsCommand.toggle()
                 }
-                .buttonStyle(.plain)
-                .font(.system(size: 10))
-                .foregroundStyle(theme.foreground.opacity(0.5))
                 if remedy.destroysState {
                     AinkradBadge(text: "Destroys state", status: .danger)
                 }

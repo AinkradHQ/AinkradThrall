@@ -15,10 +15,7 @@ struct StacksView: View {
                 .loading where model.world.stacks.isEmpty:
                 AinkradLoadingState(label: "Reading the engine…")
             case .failed(let message) where model.world.stacks.isEmpty:
-                AinkradEmptyState(
-                    icon: "bolt.horizontal.circle",
-                    title: "No engine",
-                    message: message)
+                AinkradErrorState(message: "No engine\n\(message)")
             default:
                 if model.world.stacks.isEmpty {
                     AinkradEmptyState(
@@ -86,6 +83,7 @@ private struct StackRow: View {
     let onTap: () -> Void
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     @Environment(\.ainkradReduceMotion) private var reduceMotion
     @State private var hovering = false
 
@@ -98,11 +96,11 @@ private struct StackRow: View {
                     // Rotation only — a chevron that swaps glyphs changes
                     // metrics and nudges the title.
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(skin.font(AinkradFontToken(sizeKey: "t10", weight: "semibold")))
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                         .animation(reduceMotion ? nil : AinkradMotion.hover, value: isExpanded)
-                        .frame(width: 10)
-                        .foregroundStyle(theme.foreground.opacity(0.55))
+                        .frame(width: skin.size.s10)
+                        .foregroundStyle(skin.color(skin.text.muted))
                     AinkradIconGlyph(
                         systemName: stack.isConfigMissing
                             ? "square.stack.3d.up.trianglebadge.exclamationmark"
@@ -131,11 +129,11 @@ private struct StackRow: View {
                             .fixedSize()
                     }
                     AinkradStackedStatusBar(runs: statusRuns(for: stack.breakdown))
-                        .frame(width: 64)  // design-lint: allow frame-literal token-gap stackedStatusBar.width
+                        .frame(width: skin.size.s64)
                     Text("\(stack.containerCount)")
-                        .font(.system(size: 11, weight: .medium).monospacedDigit())
-                        .foregroundStyle(theme.foreground.opacity(0.6))
-                        .frame(width: 22, alignment: .trailing)
+                        .font(skin.font(AinkradFontToken(sizeKey: "t11", weight: "medium", monospacedDigits: true)))
+                        .foregroundStyle(theme.foreground.opacity(skin.opacity.o60))
+                        .frame(width: skin.size.s22, alignment: .trailing)
                     actionCluster
                 }
                 .layoutPriority(1)
@@ -153,15 +151,15 @@ private struct StackRow: View {
     private var actionCluster: some View {
         HStack(spacing: AinkradSpacing.xs) {
             if isBusy {
-                AinkradSpinner(size: 14)
+                AinkradSpinner(size: skin.size.s14)
                     .frame(
-                        width: 22 * CGFloat(actions.count)
+                        width: skin.size.s22 * CGFloat(actions.count)
                             + AinkradSpacing.xs * CGFloat(max(0, actions.count - 1)),
-                        height: 22)
+                        height: skin.size.s22)
             } else {
                 ForEach(actions) { action in
                     AinkradIconButton(
-                        systemName: action.icon, size: 22,
+                        systemName: action.icon, size: skin.size.s22,
                         tooltip: action.title
                     ) {
                         onAction(action)
@@ -199,6 +197,7 @@ private struct ServiceRow: View {
     let onTap: () -> Void
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     @Environment(\.ainkradStatusColors) private var statusColors
     @Environment(\.ainkradReduceMotion) private var reduceMotion
 
@@ -208,14 +207,16 @@ private struct ServiceRow: View {
             leading: {
                 HStack(spacing: AinkradSpacing.sm) {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(skin.font(AinkradFontToken(sizeKey: "t9", weight: "semibold")))
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                         .animation(reduceMotion ? nil : AinkradMotion.hover, value: isExpanded)
-                        .frame(width: 9)
+                        .frame(width: skin.size.s9)
                         .foregroundStyle(
                             theme.foreground
-                                .opacity(service.containers.isEmpty ? 0 : 0.45))
-                    AinkradIconGlyph(systemName: "shippingbox", size: 13)
+                                .opacity(service.containers.isEmpty ? 0 : skin.opacity.o45))
+                    AinkradIconGlyph(
+                        systemName: "shippingbox",
+                        size: 13)  // design-lint: allow frame-literal token-gap size.s13
                 }
                 .padding(.leading, AinkradSpacing.lg)
             },
@@ -240,12 +241,12 @@ private struct ServiceRow: View {
 private struct ContainerRow: View {
     let container: ThrallContainer
 
-    @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
 
     var body: some View {
         AinkradListRow(
             leading: {
-                AinkradIconGlyph(systemName: "cube", size: 12)
+                AinkradIconGlyph(systemName: "cube", size: skin.size.s12)
                     .padding(.leading, AinkradSpacing.xl + AinkradSpacing.sm)
             },
             title: container.name,
@@ -254,11 +255,11 @@ private struct ContainerRow: View {
             subtitle: container.statusText,
             trailing: {
                 Text(container.image)
-                    .font(.system(size: 10).monospaced())
-                    .foregroundStyle(theme.foreground.opacity(0.45))
+                    .font(skin.font(AinkradFontToken(sizeKey: "t10", mono: "system")))
+                    .foregroundStyle(skin.color(skin.text.faint))
                     .lineLimit(1)
                     .truncationMode(.middle)
-                    .frame(maxWidth: 220, alignment: .trailing)
+                    .frame(maxWidth: skin.size.s220, alignment: .trailing)
             })
     }
 }

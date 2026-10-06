@@ -11,6 +11,7 @@ struct LogsView: View {
     @ObservedObject var logs: ThrallLogsModel
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     @Environment(\.ainkradStatusColors) private var statusColors
 
     /// Selection is by stack; the pane tails every container in it. A
@@ -42,49 +43,39 @@ struct LogsView: View {
                     }
                 }
             ) {
-                HStack(spacing: AinkradSpacing.xs) {
+                ThrallPullDownLabel {
                     Text(selectedStack?.displayName ?? "Choose a stack")
-                        .font(.system(size: 11, weight: .medium))
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 8, weight: .semibold))
-                        .foregroundStyle(theme.foreground.opacity(0.4))
+                        .font(skin.font(AinkradFontToken(sizeKey: "t11", weight: "medium")))
                 }
-                .padding(.horizontal, AinkradSpacing.sm)
-                .padding(.vertical, 3)
-                .background(
-                    RoundedRectangle(cornerRadius: AinkradRadius.sm, style: .continuous)
-                        .fill(theme.foreground.opacity(0.06)))
             }
             .fixedSize()
 
             AinkradSearchField(text: $logs.filter, placeholder: "Filter lines")
-                .frame(maxWidth: 260)
+                .frame(maxWidth: skin.size.s260)
 
             Spacer(minLength: 0)
 
             Text(lineSummary)
-                .font(.system(size: 10).monospacedDigit())
-                .foregroundStyle(theme.foreground.opacity(0.45))
+                .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
+                .foregroundStyle(skin.color(skin.text.faint))
 
             AinkradToggleButton(
                 isOn: $logs.isFollowing, systemName: "arrow.down.to.line",
                 title: "Follow")
-            AinkradIconButton(systemName: "trash", size: 24, tooltip: "Clear") { logs.clear() }
-            AinkradIconButton(systemName: "arrow.clockwise", size: 24, tooltip: "Reload") {
+            AinkradIconButton(systemName: "trash", size: skin.size.s24, tooltip: "Clear") { logs.clear() }
+            AinkradIconButton(systemName: "arrow.clockwise", size: skin.size.s24, tooltip: "Reload") {
                 Task { await load() }
             }
         }
         .padding(.horizontal, AinkradSpacing.lg)
         .padding(.vertical, AinkradSpacing.sm)
-        .background(theme.surface.opacity(0.25))
+        .background(theme.surface.opacity(skin.opacity.o25))
     }
 
     @ViewBuilder
     private var content: some View {
         if let error = logs.error {
-            AinkradEmptyState(
-                icon: "exclamationmark.triangle", title: "Could not read logs",
-                message: error)
+            AinkradErrorState(message: "Could not read logs\n\(error)")
         } else if logs.isLoading && logs.buffer.count == 0 {
             AinkradLoadingState(label: "Reading logs…")
         } else if logs.buffer.count == 0 {

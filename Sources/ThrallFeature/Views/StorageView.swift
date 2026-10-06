@@ -10,6 +10,7 @@ struct StorageView: View {
     @ObservedObject var storage: ThrallStorageModel
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     @State private var expandedGroups: Set<String> = []
     @State private var confirmingReclaim = false
 
@@ -17,9 +18,7 @@ struct StorageView: View {
         VStack(spacing: 0) {
             header
             if let error = storage.error {
-                AinkradEmptyState(
-                    icon: "exclamationmark.triangle",
-                    title: "Could not read storage", message: error)
+                AinkradErrorState(message: "Could not read storage\n\(error)")
             } else if storage.usage == nil {
                 AinkradLoadingState(label: "Reading storage… (system/df takes a moment)")
             } else {
@@ -49,16 +48,16 @@ struct StorageView: View {
 
     private var header: some View {
         HStack(spacing: AinkradSpacing.md) {
-            Text("Storage").font(.system(size: 11, weight: .medium))
+            AinkradSectionHeader(title: "Storage")
             Spacer(minLength: 0)
-            if storage.isLoading { AinkradSpinner(size: 14) }
-            AinkradIconButton(systemName: "arrow.clockwise", size: 24, tooltip: "Reload") {
+            if storage.isLoading { AinkradSpinner(size: skin.size.s14) }
+            AinkradIconButton(systemName: "arrow.clockwise", size: skin.size.s24, tooltip: "Reload") {
                 Task { await storage.load(client: model.engineClient, force: true) }
             }
         }
         .padding(.horizontal, AinkradSpacing.lg)
         .padding(.vertical, AinkradSpacing.sm)
-        .background(theme.surface.opacity(0.25))
+        .background(theme.surface.opacity(skin.opacity.o25))
     }
 
     private var totals: some View {
@@ -96,13 +95,10 @@ struct StorageView: View {
         AinkradCard {
             VStack(alignment: .leading, spacing: AinkradSpacing.md) {
                 Text("Reclaim")
-                    .font(.system(size: 13, weight: .semibold))
-                Text(
+                    .font(skin.font(AinkradFontToken(sizeKey: "t13", weight: "semibold")))
+                AinkradCaption(
                     "Thrall never runs `prune`. It lists exactly what it will remove, then "
-                        + "removes each item by its own id."
-                )
-                .font(.system(size: 11))
-                .foregroundStyle(theme.foreground.opacity(0.6))
+                        + "removes each item by its own id.")
 
                 AinkradCheckbox(
                     isOn: $storage.includeImages,
@@ -117,45 +113,41 @@ struct StorageView: View {
 
                 let plan = storage.plan
                 if plan.isEmpty {
-                    Text("Nothing selected.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(theme.foreground.opacity(0.45))
+                    AinkradCaption("Nothing selected.")
                 } else {
                     Text(
                         "\(plan.targets.count) items · "
                             + ThrallReclaimPlan.humanBytes(plan.totalBytes)
                     )
-                    .font(.system(size: 11, weight: .medium).monospacedDigit())
+                    .font(skin.font(AinkradFontToken(sizeKey: "t11", weight: "medium", monospacedDigits: true)))
                     // Enumerated by name. The list is the safety mechanism, so
                     // it is not collapsed behind a disclosure.
                     ForEach(plan.targets.prefix(12)) { target in
-                        HStack(spacing: AinkradSpacing.sm) {
-                            AinkradBadge(
-                                text: target.kind.rawValue,
-                                status: target.kind == .volume ? .danger : .neutral)
-                            Text(target.displayName)
-                                .font(.system(size: 10).monospaced())
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            Spacer(minLength: 0)
-                            Text(ThrallReclaimPlan.humanBytes(target.bytes))
-                                .font(.system(size: 10).monospacedDigit())
-                                .foregroundStyle(theme.foreground.opacity(0.5))
-                            AinkradIconButton(
-                                systemName: "minus.circle", size: 20,
-                                tooltip: "Leave this one alone"
-                            ) {
-                                storage.excluded.insert(target.id)
-                            }
-                        }
+                        AinkradListRow(
+                            leading: {
+                                AinkradBadge(
+                                    text: target.kind.rawValue,
+                                    status: target.kind == .volume ? .danger : .neutral)
+                            },
+                            title: target.displayName,
+                            trailing: {
+                                HStack(spacing: AinkradSpacing.sm) {
+                                    Text(ThrallReclaimPlan.humanBytes(target.bytes))
+                                        .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
+                                        .foregroundStyle(theme.foreground.opacity(skin.opacity.o50))
+                                    AinkradIconButton(
+                                        systemName: "minus.circle", size: skin.size.s20,
+                                        tooltip: "Leave this one alone"
+                                    ) {
+                                        storage.excluded.insert(target.id)
+                                    }
+                                }
+                            })
                     }
                     if plan.targets.count > 12 {
-                        Text(
+                        AinkradCaption(
                             "… and \(plan.targets.count - 12) more, all listed in the "
-                                + "confirmation before anything is removed."
-                        )
-                        .font(.system(size: 10))
-                        .foregroundStyle(theme.foreground.opacity(0.45))
+                                + "confirmation before anything is removed.")
                     }
                     AinkradButton(title: "Remove these", style: .danger) {
                         confirmingReclaim = true
@@ -171,7 +163,7 @@ struct StorageView: View {
     private var volumeGroups: some View {
         VStack(alignment: .leading, spacing: AinkradSpacing.sm) {
             Text("Volumes by owner")
-                .font(.system(size: 12, weight: .semibold))
+                .font(skin.font(AinkradFontToken(sizeKey: "t12", weight: "semibold")))
             ForEach(storage.volumeGroups, id: \.owner) { group in
                 AinkradDisclosureGroup(
                     title: "\(group.owner) — \(group.volumes.count) · "
@@ -189,25 +181,24 @@ struct StorageView: View {
                 ) {
                     // Only the expanded group's rows are built, which is the
                     // whole point of the grouping.
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: skin.size.s2) {
                         ForEach(group.volumes, id: \.name) { volume in
-                            HStack(spacing: AinkradSpacing.sm) {
-                                Text(volume.name)
-                                    .font(.system(size: 10).monospaced())
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                                if (volume.usage?.refCount ?? -1) == 0 {
-                                    AinkradBadge(text: "unused", status: .warning)
-                                }
-                                Spacer(minLength: 0)
-                                Text(
-                                    ThrallReclaimPlan.humanBytes(
-                                        max(0, volume.usage?.size ?? 0))
-                                )
-                                .font(.system(size: 10).monospacedDigit())
-                                .foregroundStyle(theme.foreground.opacity(0.5))
-                            }
-                            .padding(.vertical, 1)
+                            AinkradListRow(
+                                leading: { EmptyView() },
+                                title: volume.name,
+                                trailing: {
+                                    HStack(spacing: AinkradSpacing.sm) {
+                                        if (volume.usage?.refCount ?? -1) == 0 {
+                                            AinkradBadge(text: "unused", status: .warning)
+                                        }
+                                        Text(
+                                            ThrallReclaimPlan.humanBytes(
+                                                max(0, volume.usage?.size ?? 0))
+                                        )
+                                        .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
+                                        .foregroundStyle(theme.foreground.opacity(skin.opacity.o50))
+                                    }
+                                })
                         }
                     }
                 }

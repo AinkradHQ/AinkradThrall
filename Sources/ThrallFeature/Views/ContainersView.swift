@@ -12,6 +12,7 @@ struct ContainersView: View {
     @ObservedObject var storage: ThrallStorageModel
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradSkin) private var skin
     @State private var filter = ""
 
     private struct Row: Identifiable {
@@ -62,15 +63,15 @@ struct ContainersView: View {
     private var header: some View {
         HStack(spacing: AinkradSpacing.md) {
             AinkradSearchField(text: $filter, placeholder: "Filter containers")
-                .frame(maxWidth: 280)
+                .frame(maxWidth: skin.size.s280)
             Spacer(minLength: 0)
             Text("\(rows.count) containers")
-                .font(.system(size: 11).monospacedDigit())
-                .foregroundStyle(theme.foreground.opacity(0.5))
+                .font(skin.font(AinkradFontToken(sizeKey: "t11", monospacedDigits: true)))
+                .foregroundStyle(theme.foreground.opacity(skin.opacity.o50))
         }
         .padding(.horizontal, AinkradSpacing.lg)
         .padding(.vertical, AinkradSpacing.sm)
-        .background(theme.surface.opacity(0.25))
+        .background(theme.surface.opacity(skin.opacity.o25))
     }
 
     /// Task R's engine panel. **Reachability is shown per context, live**,
@@ -80,43 +81,43 @@ struct ContainersView: View {
     private var enginePanel: some View {
         AinkradCard {
             VStack(alignment: .leading, spacing: AinkradSpacing.sm) {
-                Text("Engines").font(.system(size: 13, weight: .semibold))
+                Text("Engines").font(skin.font(AinkradFontToken(sizeKey: "t13", weight: "semibold")))
                 ForEach(model.contexts) { context in
-                    HStack(spacing: AinkradSpacing.sm) {
-                        Circle()
-                            .fill(indicator(for: context))
-                            .frame(width: 6, height: 6)
-                        Text(context.name).font(.system(size: 11, weight: .medium))
-                        if context.name == model.activeContext?.name {
-                            AinkradBadge(text: "active", status: .success)
-                        }
-                        if !context.isSupported {
-                            AinkradBadge(text: "unsupported", status: .neutral)
-                        } else if !isReachable(context) {
-                            AinkradBadge(text: "not running", status: .warning)
-                        }
-                        Spacer(minLength: 0)
-                        Text(
-                            ThrallPathDisplay.abbreviate(
-                                context.endpoint.displayString,
-                                maxLength: 40)
-                        )
-                        .font(.system(size: 10).monospaced())
-                        .foregroundStyle(theme.foreground.opacity(0.45))
-                    }
+                    AinkradListRow(
+                        leading: {
+                            Circle()
+                                .fill(indicator(for: context))
+                                .frame(width: skin.size.s6, height: skin.size.s6)
+                        },
+                        title: context.name,
+                        trailing: {
+                            HStack(spacing: AinkradSpacing.sm) {
+                                if context.name == model.activeContext?.name {
+                                    AinkradBadge(text: "active", status: .success)
+                                }
+                                if !context.isSupported {
+                                    AinkradBadge(text: "unsupported", status: .neutral)
+                                } else if !isReachable(context) {
+                                    AinkradBadge(text: "not running", status: .warning)
+                                }
+                                Text(
+                                    ThrallPathDisplay.abbreviate(
+                                        context.endpoint.displayString,
+                                        maxLength: 40)
+                                )
+                                .font(skin.font(AinkradFontToken(sizeKey: "t10", mono: "system")))
+                                .foregroundStyle(skin.color(skin.text.faint))
+                            }
+                        })
                 }
                 // The finding that made `engineKey` exist: two contexts can be
                 // the same daemon, and saying so stops a false "my container
                 // vanished".
                 if let duplicate = duplicateEngineNote {
-                    Text(duplicate)
-                        .font(.system(size: 10))
-                        .foregroundStyle(theme.foreground.opacity(0.5))
+                    AinkradCaption(duplicate)
                 }
                 ForEach(model.contextNotes, id: \.self) { note in
-                    Text(note)
-                        .font(.system(size: 10))
-                        .foregroundStyle(theme.foreground.opacity(0.5))
+                    AinkradCaption(note)
                 }
             }
         }
@@ -142,30 +143,33 @@ struct ContainersView: View {
     }
 
     private func indicator(for context: ThrallEngineContext) -> Color {
-        if !context.isSupported { return theme.foreground.opacity(0.25) }
+        if !context.isSupported { return theme.foreground.opacity(skin.opacity.o25) }
         if context.name == model.activeContext?.name { return theme.accentPrimary }
-        return isReachable(context) ? theme.foreground.opacity(0.5) : .orange
+        return isReachable(context) ? theme.foreground.opacity(skin.opacity.o50) : skin.color(skin.palette.warning)
     }
 
     private var networksCard: some View {
         AinkradCard {
             VStack(alignment: .leading, spacing: AinkradSpacing.sm) {
                 Text("Networks — \(storage.networks.count)")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(skin.font(AinkradFontToken(sizeKey: "t13", weight: "semibold")))
                 ForEach(storage.networks, id: \.id) { network in
-                    HStack(spacing: AinkradSpacing.sm) {
-                        Text(network.name).font(.system(size: 11))
-                        if let project = network.composeProject {
-                            AinkradBadge(text: project, status: .neutral)
-                        }
-                        if network.internalOnly {
-                            AinkradBadge(text: "internal", status: .neutral)
-                        }
-                        Spacer(minLength: 0)
-                        Text(network.driver)
-                            .font(.system(size: 10).monospaced())
-                            .foregroundStyle(theme.foreground.opacity(0.45))
-                    }
+                    AinkradListRow(
+                        leading: { EmptyView() },
+                        title: network.name,
+                        trailing: {
+                            HStack(spacing: AinkradSpacing.sm) {
+                                if let project = network.composeProject {
+                                    AinkradBadge(text: project, status: .neutral)
+                                }
+                                if network.internalOnly {
+                                    AinkradBadge(text: "internal", status: .neutral)
+                                }
+                                Text(network.driver)
+                                    .font(skin.font(AinkradFontToken(sizeKey: "t10", mono: "system")))
+                                    .foregroundStyle(skin.color(skin.text.faint))
+                            }
+                        })
                 }
             }
         }
@@ -174,13 +178,13 @@ struct ContainersView: View {
     private var containerTable: some View {
         VStack(alignment: .leading, spacing: AinkradSpacing.sm) {
             Text("Every container")
-                .font(.system(size: 12, weight: .semibold))
+                .font(skin.font(AinkradFontToken(sizeKey: "t12", weight: "semibold")))
             // Lazy, and one row per container: 48 rows is fine here where 135
             // volume rows were not, and the filter keeps it smaller in practice.
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(rows) { row in
                     AinkradListRow(
-                        leading: { AinkradIconGlyph(systemName: "cube", size: 12) },
+                        leading: { AinkradIconGlyph(systemName: "cube", size: skin.size.s12) },
                         title: row.name,
                         subtitle: "\(row.stack) · \(row.service) · \(row.image)",
                         trailing: {
