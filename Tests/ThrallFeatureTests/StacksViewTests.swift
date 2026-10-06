@@ -21,4 +21,17 @@ struct StacksViewTests {
                 AinkradStatusRun(count: 1, status: .danger),
             ])
     }
+
+    @Test("statusRuns keeps the breakdown's fixed state order and drops empty states")
+    func statusRunsOrder() {
+        var breakdown = ThrallStateBreakdown()
+        for state in [.dead, .restarting, .exited, .removing, .paused, .created, .running] as [ThrallContainerState] {
+            breakdown.add(state)
+        }
+        #expect(
+            statusRuns(for: breakdown).map(\.status) == [
+                ThrallContainerState.running, .created, .paused, .removing, .exited, .restarting, .dead,
+            ].map(\.status))
+        #expect(statusRuns(for: ThrallStateBreakdown()).isEmpty)
+    }
 }
