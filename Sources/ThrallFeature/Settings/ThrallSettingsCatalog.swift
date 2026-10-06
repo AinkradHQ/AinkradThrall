@@ -3,7 +3,6 @@ import SwiftUI
 
 /// Thrall's settings as DECLARED fields, so the host draws them in the shared
 /// settings style — and puts its Appearance tab (Open as, Open in, Blur) first.
-/// `ThrallSettingsView` stays as the page for hosts that predate this.
 @MainActor
 enum ThrallSettingsCatalog {
     static func page(store: ThrallSettingsStore) -> SettingsPage {
