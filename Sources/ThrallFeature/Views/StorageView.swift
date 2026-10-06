@@ -47,7 +47,7 @@ struct StorageView: View {
 
     private var header: some View {
         HStack(spacing: AinkradSpacing.md) {
-            Text("Storage").font(.system(size: 11, weight: .medium))
+            AinkradSectionHeader(title: "Storage")
             Spacer(minLength: 0)
             if storage.isLoading { AinkradSpinner(size: 14) }
             AinkradIconButton(systemName: "arrow.clockwise", size: 24, tooltip: "Reload") {

@@ -91,8 +91,7 @@ struct ImagesView: View {
 
     private var header: some View {
         HStack(spacing: AinkradSpacing.md) {
-            Text("\(rows.count) images")
-                .font(.system(size: 11, weight: .medium))
+            AinkradSectionHeader(title: "\(rows.count) images")
             let unused = rows.filter { $0.containers == 0 }
             if !unused.isEmpty {
                 AinkradBadge(
