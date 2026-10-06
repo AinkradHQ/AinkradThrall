@@ -57,7 +57,7 @@ struct LogsView: View {
 
             Text(lineSummary)
                 .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
-                .foregroundStyle(theme.foreground.opacity(0.45))
+                .foregroundStyle(skin.color(skin.text.faint))
 
             AinkradToggleButton(
                 isOn: $logs.isFollowing, systemName: "arrow.down.to.line",
@@ -69,7 +69,7 @@ struct LogsView: View {
         }
         .padding(.horizontal, AinkradSpacing.lg)
         .padding(.vertical, AinkradSpacing.sm)
-        .background(theme.surface.opacity(0.25))
+        .background(theme.surface.opacity(skin.opacity.o25))
     }
 
     @ViewBuilder

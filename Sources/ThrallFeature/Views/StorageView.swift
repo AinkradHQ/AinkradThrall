@@ -57,7 +57,7 @@ struct StorageView: View {
         }
         .padding(.horizontal, AinkradSpacing.lg)
         .padding(.vertical, AinkradSpacing.sm)
-        .background(theme.surface.opacity(0.25))
+        .background(theme.surface.opacity(skin.opacity.o25))
     }
 
     private var totals: some View {
@@ -134,7 +134,7 @@ struct StorageView: View {
                                 HStack(spacing: AinkradSpacing.sm) {
                                     Text(ThrallReclaimPlan.humanBytes(target.bytes))
                                         .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
-                                        .foregroundStyle(theme.foreground.opacity(0.5))
+                                        .foregroundStyle(theme.foreground.opacity(skin.opacity.o50))
                                     AinkradIconButton(
                                         systemName: "minus.circle", size: 20,
                                         tooltip: "Leave this one alone"
@@ -196,7 +196,7 @@ struct StorageView: View {
                                                 max(0, volume.usage?.size ?? 0))
                                         )
                                         .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
-                                        .foregroundStyle(theme.foreground.opacity(0.5))
+                                        .foregroundStyle(theme.foreground.opacity(skin.opacity.o50))
                                     }
                                 })
                         }

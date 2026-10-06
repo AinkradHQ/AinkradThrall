@@ -104,7 +104,7 @@ struct ImagesView: View {
             if let loadedAt = storage.loadedAt {
                 Text("read \(loadedAt.formatted(date: .omitted, time: .standard))")
                     .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
-                    .foregroundStyle(theme.foreground.opacity(0.4))
+                    .foregroundStyle(theme.foreground.opacity(skin.opacity.o40))
             }
             AinkradIconButton(systemName: "arrow.clockwise", size: 24, tooltip: "Reload") {
                 Task { await storage.load(client: model.engineClient, force: true) }
@@ -112,6 +112,6 @@ struct ImagesView: View {
         }
         .padding(.horizontal, AinkradSpacing.lg)
         .padding(.vertical, AinkradSpacing.sm)
-        .background(theme.surface.opacity(0.25))
+        .background(theme.surface.opacity(skin.opacity.o25))
     }
 }

@@ -112,7 +112,7 @@ struct RunCommandCard: View {
                 // demultiplexed rather than concatenated.
                 Text("stderr")
                     .font(skin.font(AinkradFontToken(sizeKey: "t10", weight: "medium")))
-                    .foregroundStyle(theme.foreground.opacity(0.5))
+                    .foregroundStyle(theme.foreground.opacity(skin.opacity.o50))
                 AinkradCodeBlock(result.stderr)
             }
             if result.stdout.isEmpty && result.stderr.isEmpty {

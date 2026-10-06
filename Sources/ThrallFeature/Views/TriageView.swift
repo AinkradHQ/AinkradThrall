@@ -47,7 +47,7 @@ struct TriageView: View {
             if let scan = triage.lastScan, triage.hasBaseline {
                 Text("Last checked \(scan.formatted(date: .omitted, time: .standard))")
                     .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
-                    .foregroundStyle(theme.foreground.opacity(0.4))
+                    .foregroundStyle(theme.foreground.opacity(skin.opacity.o40))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -99,7 +99,7 @@ private struct IncidentCard: View {
                     .font(skin.font(AinkradFontToken(sizeKey: "t13", weight: "semibold")))
                 Text("\(incident.stackName)  ·  \(incident.restartTotal) restarts")
                     .font(skin.font(AinkradFontToken(sizeKey: "t11", monospacedDigits: true)))
-                    .foregroundStyle(theme.foreground.opacity(0.55))
+                    .foregroundStyle(skin.color(skin.text.muted))
             }
             Spacer(minLength: 0)
             if isBusy { AinkradSpinner(size: 14) }
@@ -128,7 +128,7 @@ private struct IncidentCard: View {
     private var members: some View {
         Text(incident.services.joined(separator: ", "))
             .font(skin.font(AinkradFontToken(sizeKey: "t11", mono: "system")))
-            .foregroundStyle(theme.foreground.opacity(0.6))
+            .foregroundStyle(theme.foreground.opacity(skin.opacity.o60))
             .lineLimit(2)
             .truncationMode(.tail)
     }

@@ -79,7 +79,7 @@ struct ThrallShell: View {
         HStack(spacing: AinkradSpacing.md) {
             Text("Thrall")
                 .font(skin.font(AinkradFontToken(sizeKey: "t13", weight: "semibold")))
-                .foregroundStyle(tokens.foreground.opacity(0.85))
+                .foregroundStyle(tokens.foreground.opacity(skin.opacity.o85))
 
             engineChip
 
@@ -142,11 +142,11 @@ struct ThrallShell: View {
                     .frame(width: 6, height: 6)
                 Text(model.engineLabel)
                     .font(skin.font(AinkradFontToken(sizeKey: "t11", weight: "medium")))
-                    .foregroundStyle(tokens.foreground.opacity(0.85))
+                    .foregroundStyle(tokens.foreground.opacity(skin.opacity.o85))
                 if let version = model.engineVersion {
                     Text("API \(version.negotiated.description)")
                         .font(skin.font(AinkradFontToken(sizeKey: "t10", monospacedDigits: true)))
-                        .foregroundStyle(tokens.foreground.opacity(0.45))
+                        .foregroundStyle(skin.color(skin.text.faint))
                 }
             }
         }
@@ -157,7 +157,7 @@ struct ThrallShell: View {
         switch model.state {
         case .loaded: return tokens.accentPrimary
         case .failed: return .orange
-        case .idle, .loading: return tokens.foreground.opacity(0.35)
+        case .idle, .loading: return tokens.foreground.opacity(skin.opacity.o35)
         }
     }
 
@@ -167,7 +167,7 @@ struct ThrallShell: View {
         let world = model.world
         return Text("\(world.stacks.count) stacks · \(world.runningCount)/\(world.containerCount) running")
             .font(skin.font(AinkradFontToken(sizeKey: "t11", monospacedDigits: true)))
-            .foregroundStyle(tokens.foreground.opacity(0.55))
+            .foregroundStyle(skin.color(skin.text.muted))
     }
 
     // MARK: - Rail
@@ -189,7 +189,7 @@ struct ThrallShell: View {
         .padding(.horizontal, AinkradSpacing.sm)
         .frame(width: 56)
         // Fill, not a rule.
-        .background(tokens.surface.opacity(0.35))
+        .background(tokens.surface.opacity(skin.opacity.o35))
     }
 
     @ViewBuilder

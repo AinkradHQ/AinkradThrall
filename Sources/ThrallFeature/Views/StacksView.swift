@@ -101,7 +101,7 @@ private struct StackRow: View {
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                         .animation(reduceMotion ? nil : AinkradMotion.hover, value: isExpanded)
                         .frame(width: 10)
-                        .foregroundStyle(theme.foreground.opacity(0.55))
+                        .foregroundStyle(skin.color(skin.text.muted))
                     AinkradIconGlyph(
                         systemName: stack.isConfigMissing
                             ? "square.stack.3d.up.trianglebadge.exclamationmark"
@@ -133,7 +133,7 @@ private struct StackRow: View {
                         .frame(width: 64)  // design-lint: allow frame-literal token-gap stackedStatusBar.width
                     Text("\(stack.containerCount)")
                         .font(skin.font(AinkradFontToken(sizeKey: "t11", weight: "medium", monospacedDigits: true)))
-                        .foregroundStyle(theme.foreground.opacity(0.6))
+                        .foregroundStyle(theme.foreground.opacity(skin.opacity.o60))
                         .frame(width: 22, alignment: .trailing)
                     actionCluster
                 }
@@ -214,7 +214,7 @@ private struct ServiceRow: View {
                         .frame(width: 9)
                         .foregroundStyle(
                             theme.foreground
-                                .opacity(service.containers.isEmpty ? 0 : 0.45))
+                                .opacity(service.containers.isEmpty ? 0 : skin.opacity.o45))
                     AinkradIconGlyph(systemName: "shippingbox", size: 13)
                 }
                 .padding(.leading, AinkradSpacing.lg)
@@ -256,7 +256,7 @@ private struct ContainerRow: View {
             trailing: {
                 Text(container.image)
                     .font(skin.font(AinkradFontToken(sizeKey: "t10", mono: "system")))
-                    .foregroundStyle(theme.foreground.opacity(0.45))
+                    .foregroundStyle(skin.color(skin.text.faint))
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .frame(maxWidth: 220, alignment: .trailing)

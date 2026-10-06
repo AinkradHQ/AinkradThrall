@@ -67,11 +67,11 @@ struct ContainersView: View {
             Spacer(minLength: 0)
             Text("\(rows.count) containers")
                 .font(skin.font(AinkradFontToken(sizeKey: "t11", monospacedDigits: true)))
-                .foregroundStyle(theme.foreground.opacity(0.5))
+                .foregroundStyle(theme.foreground.opacity(skin.opacity.o50))
         }
         .padding(.horizontal, AinkradSpacing.lg)
         .padding(.vertical, AinkradSpacing.sm)
-        .background(theme.surface.opacity(0.25))
+        .background(theme.surface.opacity(skin.opacity.o25))
     }
 
     /// Task R's engine panel. **Reachability is shown per context, live**,
@@ -106,7 +106,7 @@ struct ContainersView: View {
                                         maxLength: 40)
                                 )
                                 .font(skin.font(AinkradFontToken(sizeKey: "t10", mono: "system")))
-                                .foregroundStyle(theme.foreground.opacity(0.45))
+                                .foregroundStyle(skin.color(skin.text.faint))
                             }
                         })
                 }
@@ -143,9 +143,9 @@ struct ContainersView: View {
     }
 
     private func indicator(for context: ThrallEngineContext) -> Color {
-        if !context.isSupported { return theme.foreground.opacity(0.25) }
+        if !context.isSupported { return theme.foreground.opacity(skin.opacity.o25) }
         if context.name == model.activeContext?.name { return theme.accentPrimary }
-        return isReachable(context) ? theme.foreground.opacity(0.5) : .orange
+        return isReachable(context) ? theme.foreground.opacity(skin.opacity.o50) : .orange
     }
 
     private var networksCard: some View {
@@ -167,7 +167,7 @@ struct ContainersView: View {
                                 }
                                 Text(network.driver)
                                     .font(skin.font(AinkradFontToken(sizeKey: "t10", mono: "system")))
-                                    .foregroundStyle(theme.foreground.opacity(0.45))
+                                    .foregroundStyle(skin.color(skin.text.faint))
                             }
                         })
                 }
