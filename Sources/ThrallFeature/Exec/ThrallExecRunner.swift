@@ -227,7 +227,17 @@ extension ThrallEngineClient {
                     // for.
                     let hijacked = ThrallHijackedStream(upstream: stream, residual: residual)
                     while true {
-                        guard let chunk = try? await hijacked.read(timeout: .seconds(60)) else { break }
+                        let chunk: Data
+                        do {
+                            chunk = try await hijacked.read(timeout: .seconds(60))
+                        } catch ThrallTransportError.closed {
+                            break
+                        } catch {
+                            // Anything but the peer closing means output was lost.
+                            Log.exec.error("exec read failed: \(String(describing: error))")
+                            truncated = true
+                            break
+                        }
                         if try !take(chunk) { break }
                     }
                     break loop

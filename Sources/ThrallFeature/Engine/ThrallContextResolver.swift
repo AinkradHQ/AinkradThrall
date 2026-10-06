@@ -143,12 +143,16 @@ public struct ThrallContextResolver: Sendable {
         var found: [ThrallEngineContext] = []
         for entry in entries.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
             let metaURL = entry.appendingPathComponent("meta.json")
-            guard let data = try? Data(contentsOf: metaURL),
-                let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                let name = root["Name"] as? String, !name.isEmpty
-            else {
+            let root: [String: Any]
+            do {
+                let data = try Data(contentsOf: metaURL)
+                root = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+            } catch {
+                Log.context.error(
+                    "context meta unreadable at \(metaURL.path): \(String(describing: error))")
                 continue
             }
+            guard let name = root["Name"] as? String, !name.isEmpty else { continue }
             // `default` is synthesised, never read from the store, so a stray
             // entry claiming that name cannot shadow it.
             guard name != "default" else { continue }

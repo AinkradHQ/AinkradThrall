@@ -67,6 +67,8 @@ public actor ThrallStreamSupervisor {
                     return
                 } catch {
                     attempt += 1
+                    Log.transport.error(
+                        "events stream dropped, retry \(attempt, privacy: .public): \(String(describing: error))")
                 }
                 await onConnected(false)
                 guard !Task.isCancelled else { return }

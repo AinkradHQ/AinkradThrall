@@ -125,9 +125,14 @@ public final class ThrallTriageModel: ObservableObject {
         async -> ThrallContainerInspectDTO?
     {
         if let cached = inspectCache[id] { return cached }
-        guard let detail = try? await inspect(id) else { return nil }
-        inspectCache[id] = detail
-        return detail
+        do {
+            let detail = try await inspect(id)
+            inspectCache[id] = detail
+            return detail
+        } catch {
+            Log.triage.error("inspect failed: \(String(describing: error))")
+            return nil
+        }
     }
 
     private func logTail(
@@ -135,8 +140,13 @@ public final class ThrallTriageModel: ObservableObject {
         using readLog: (String) async throws -> String
     ) async -> String? {
         if let cached = logCache[id] { return cached }
-        guard let tail = try? await readLog(id) else { return nil }
-        logCache[id] = tail
-        return tail
+        do {
+            let tail = try await readLog(id)
+            logCache[id] = tail
+            return tail
+        } catch {
+            Log.triage.error("log tail failed: \(String(describing: error))")
+            return nil
+        }
     }
 }

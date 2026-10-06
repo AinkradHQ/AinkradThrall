@@ -219,6 +219,7 @@ extension ThrallViewModel {
             state = .failed(Self.describe(error))
             host.log.error("Thrall: \(Self.describe(error))")
         } catch let error as ThrallTransportError {
+            Log.transport.error("refresh failed: \(String(describing: error))")
             state = .failed(Self.describe(error, endpoint: context.endpoint))
         } catch {
             state = .failed("\(error)")
