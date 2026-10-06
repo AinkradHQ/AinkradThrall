@@ -223,7 +223,7 @@ private struct ServiceRow: View {
             subtitle: subtitle,
             trailing: {
                 if let state = service.worstState {
-                    AinkradBadge(text: state.label, status: status(for: state))
+                    AinkradBadge(text: state.label, status: state.status)
                 } else {
                     // Declared on disk with no container: the row that makes a
                     // fully-down stack legible.
@@ -234,15 +234,6 @@ private struct ServiceRow: View {
 
     private var subtitle: String? {
         ThrallPathDisplay.dependencySummary(service.dependsOn)
-    }
-
-    private func status(for state: ThrallContainerState) -> AinkradStatus {
-        switch state {
-        case .running: return .success
-        case .restarting, .dead: return .danger
-        case .exited, .unknown: return .warning
-        default: return .neutral
-        }
     }
 }
 
@@ -275,12 +266,12 @@ private struct ContainerRow: View {
 /// Maps `ThrallStateBreakdown` counts to `[AinkradStatusRun]` for `AinkradStackedStatusBar`.
 func statusRuns(for breakdown: ThrallStateBreakdown) -> [AinkradStatusRun] {
     [
-        AinkradStatusRun(count: breakdown.running, status: .success),
-        AinkradStatusRun(count: breakdown.created, status: .neutral),
-        AinkradStatusRun(count: breakdown.paused, status: .neutral),
-        AinkradStatusRun(count: breakdown.other, status: .neutral),
-        AinkradStatusRun(count: breakdown.exited, status: .warning),
-        AinkradStatusRun(count: breakdown.restarting, status: .danger),
-        AinkradStatusRun(count: breakdown.dead, status: .danger),
+        AinkradStatusRun(count: breakdown.running, status: ThrallContainerState.running.status),
+        AinkradStatusRun(count: breakdown.created, status: ThrallContainerState.created.status),
+        AinkradStatusRun(count: breakdown.paused, status: ThrallContainerState.paused.status),
+        AinkradStatusRun(count: breakdown.other, status: ThrallContainerState.removing.status),
+        AinkradStatusRun(count: breakdown.exited, status: ThrallContainerState.exited.status),
+        AinkradStatusRun(count: breakdown.restarting, status: ThrallContainerState.restarting.status),
+        AinkradStatusRun(count: breakdown.dead, status: ThrallContainerState.dead.status),
     ].filter { $0.count > 0 }
 }

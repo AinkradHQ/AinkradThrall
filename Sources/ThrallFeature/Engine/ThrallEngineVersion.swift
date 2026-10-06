@@ -12,6 +12,10 @@ public struct ThrallEngineVersion: Equatable, Sendable {
     public let negotiated: ThrallAPIVersion
 
     public var pathPrefix: String { negotiated.pathPrefix }
+
+    /// "Docker 29.4.0 · API 1.51" — the engine line for a subtitle. The API is
+    /// the negotiated one, as in the advanced engine chip.
+    public var summary: String { "Docker \(engineVersion) · API \(negotiated)" }
 }
 
 /// The version handshake.

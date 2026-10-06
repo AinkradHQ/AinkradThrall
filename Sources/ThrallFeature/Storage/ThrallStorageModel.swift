@@ -83,24 +83,51 @@ public final class ThrallStorageModel: ObservableObject {
 
     public var images: [ThrallImageDTO] { usage?.images ?? [] }
 
+    /// One df read at a time, shared by every caller. Run in its own `Task` so
+    /// a view's `.task` being cancelled (the user clicking to another area
+    /// during a 54 s read) does not tear the connection down — that teardown
+    /// surfaced as a "closed" error and raced the next area's own load.
+    private var inflight: Task<Void, Never>?
+
     public func load(client: ThrallEngineClient?, force: Bool = false) async {
         guard let client else { return }
-        // The 1.86 s cost is why this guard exists.
+        if let inflight {
+            await inflight.value
+            return
+        }
+        // The slow df read is why this guard exists.
         if usage != nil, !force { return }
         isLoading = true
         error = nil
-        do {
-            usage = try await client.diskUsage()
-            networks = try await client.networks()
-            loadedAt = Date()
-        } catch let engineError as ThrallEngineError {
-            // Shadowing: the `catch`'s own binding is named `error` too, which
-            // is the published property's name.
-            self.error = ThrallViewModel.describe(engineError)
-        } catch {
-            self.error = "\(error)"
+        let task = Task { await fetch(client) }
+        inflight = task
+        await task.value
+    }
+
+    private func fetch(_ client: ThrallEngineClient) async {
+        defer {
+            inflight = nil
+            isLoading = false
         }
-        isLoading = false
+        do {
+            let fresh = try await client.diskUsage()
+            let nets = try await client.networks()
+            usage = fresh
+            networks = nets
+            loadedAt = Date()
+        } catch {
+            // Never keep an old snapshot beside an error: the views would show
+            // its counts above an error body.
+            usage = nil
+            loadedAt = nil
+            if let engineError = error as? ThrallEngineError {
+                self.error = ThrallViewModel.describe(engineError)
+            } else if let transport = error as? ThrallTransportError {
+                self.error = ThrallViewModel.describe(transport, endpoint: client.endpoint)
+            } else {
+                self.error = "\(error)"
+            }
+        }
     }
 
     /// Removes each target **by its exact id**, one call at a time.

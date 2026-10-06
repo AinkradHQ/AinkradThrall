@@ -12,6 +12,7 @@ struct RunCommandCard: View {
     @ObservedObject var model: ThrallViewModel
 
     @Environment(\.ainkradTheme) private var theme
+    @Environment(\.ainkradStatusColors) private var statusColors
     @State private var containerID: String?
     @State private var commandLine = "env"
     @State private var result: ThrallExecResult?
@@ -88,7 +89,7 @@ struct RunCommandCard: View {
                             .font(.system(size: 11))
                             .foregroundStyle(
                                 AinkradStatus.warning
-                                    .color(in: theme, statusColors: .init()))
+                                    .color(in: theme, statusColors: statusColors))
                     }
                     if let result {
                         output(result)

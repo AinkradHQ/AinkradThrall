@@ -273,3 +273,15 @@ struct ThrallEngineClientTests {
         #expect(await engine.closeCounts().last == 1)
     }
 }
+
+@Suite("ThrallEngineVersion.summary")
+struct ThrallEngineVersionSummaryTests {
+    @Test("reads as a plain engine line, not the raw struct")
+    func readable() async throws {
+        let engine = ScriptedEngine([ScriptedEngine.versionResponse])
+        let client = try ThrallEngineClient(
+            endpoint: .unixSocket(path: "/tmp/thrall-test.sock"), streamFactory: engine.factory)
+        let version = try await client.version()
+        #expect(version.summary == "Docker 29.4.0 · API 1.51")
+    }
+}
