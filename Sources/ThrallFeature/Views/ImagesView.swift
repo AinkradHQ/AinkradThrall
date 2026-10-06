@@ -52,9 +52,7 @@ struct ImagesView: View {
         VStack(spacing: 0) {
             header
             if let error = storage.error {
-                AinkradEmptyState(
-                    icon: "exclamationmark.triangle",
-                    title: "Could not read images", message: error)
+                AinkradErrorState(message: "Could not read images\n\(error)")
             } else if storage.isLoading && storage.usage == nil {
                 AinkradLoadingState(label: "Reading image sizes… (system/df is slow)")
             } else if rows.isEmpty {

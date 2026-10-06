@@ -82,9 +82,7 @@ struct LogsView: View {
     @ViewBuilder
     private var content: some View {
         if let error = logs.error {
-            AinkradEmptyState(
-                icon: "exclamationmark.triangle", title: "Could not read logs",
-                message: error)
+            AinkradErrorState(message: "Could not read logs\n\(error)")
         } else if logs.isLoading && logs.buffer.count == 0 {
             AinkradLoadingState(label: "Reading logs…")
         } else if logs.buffer.count == 0 {

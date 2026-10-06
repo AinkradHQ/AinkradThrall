@@ -15,10 +15,7 @@ struct StacksView: View {
                 .loading where model.world.stacks.isEmpty:
                 AinkradLoadingState(label: "Reading the engine…")
             case .failed(let message) where model.world.stacks.isEmpty:
-                AinkradEmptyState(
-                    icon: "bolt.horizontal.circle",
-                    title: "No engine",
-                    message: message)
+                AinkradErrorState(message: "No engine\n\(message)")
             default:
                 if model.world.stacks.isEmpty {
                     AinkradEmptyState(

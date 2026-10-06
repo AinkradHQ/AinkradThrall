@@ -17,9 +17,7 @@ struct StorageView: View {
         VStack(spacing: 0) {
             header
             if let error = storage.error {
-                AinkradEmptyState(
-                    icon: "exclamationmark.triangle",
-                    title: "Could not read storage", message: error)
+                AinkradErrorState(message: "Could not read storage\n\(error)")
             } else if storage.usage == nil {
                 AinkradLoadingState(label: "Reading storage… (system/df takes a moment)")
             } else {
