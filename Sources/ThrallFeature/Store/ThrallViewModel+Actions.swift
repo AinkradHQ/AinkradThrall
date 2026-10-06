@@ -71,10 +71,14 @@ extension ThrallViewModel {
             let outcome = await ThrallOrphanTeardown.run(stack: stack, using: client)
             guard let self else { return }
             self.busyStacks.remove(stack.id)
-            self.lastActionMessage =
+            self.lastActionNotice =
                 outcome.failures.isEmpty
-                ? "Tore down \(stack.displayName) by label — \(outcome.summary)."
-                : "Teardown of \(stack.displayName) partly failed: \(outcome.summary)"
+                ? ThrallNotice(
+                    message: "Tore down \(stack.displayName) by label — \(outcome.summary).",
+                    status: .success)
+                : ThrallNotice(
+                    message: "Teardown of \(stack.displayName) partly failed: \(outcome.summary)",
+                    status: .danger)
             await self.refresh()
         }
     }
@@ -106,30 +110,37 @@ extension ThrallViewModel {
                 guard
                     let command = Self.composeCommand(verb, on: stack, services: services)
                 else {
-                    lastActionMessage = "\(stack.displayName) has no project directory to run in."
+                    lastActionNotice = ThrallNotice(
+                        message: "\(stack.displayName) has no project directory to run in.",
+                        status: .danger)
                     return
                 }
                 let result = try await compose.run(
                     command, stack: stack.id,
                     dockerHost: dockerHostValue)
-                lastActionMessage =
+                lastActionNotice =
                     result.succeeded
-                    ? "\(action.title) finished on \(stack.displayName)."
-                    : "\(action.title) failed on \(stack.displayName): \(result.summary)"
+                    ? ThrallNotice(
+                        message: "\(action.title) finished on \(stack.displayName).", status: .success)
+                    : ThrallNotice(
+                        message: "\(action.title) failed on \(stack.displayName): \(result.summary)",
+                        status: .danger)
             } else if let engineVerb = action.engineVerb {
                 try await runEngineVerb(engineVerb, on: stack, services: services)
-                lastActionMessage = "\(action.title) finished on \(stack.displayName)."
+                lastActionNotice = ThrallNotice(
+                    message: "\(action.title) finished on \(stack.displayName).", status: .success)
             }
         } catch let error as ThrallProcessError {
-            lastActionMessage = Self.describe(error)
+            lastActionNotice = ThrallNotice(message: Self.describe(error), status: .danger)
         } catch let error as ThrallComposeArgumentGuard.Rejection {
-            lastActionMessage = "Refused: \(error.message)"
+            lastActionNotice = ThrallNotice(message: "Refused: \(error.message)", status: .danger)
         } catch let error as ThrallEngineError {
-            lastActionMessage = Self.describe(error)
+            lastActionNotice = ThrallNotice(message: Self.describe(error), status: .danger)
         } catch is CancellationError {
-            lastActionMessage = "\(action.title) on \(stack.displayName) was cancelled."
+            lastActionNotice = ThrallNotice(
+                message: "\(action.title) on \(stack.displayName) was cancelled.", status: .neutral)
         } catch {
-            lastActionMessage = error.localizedDescription
+            lastActionNotice = ThrallNotice(message: error.localizedDescription, status: .danger)
         }
         await refresh()
     }

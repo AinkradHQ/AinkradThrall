@@ -55,18 +55,15 @@ public struct ThrallShell: View {
             onConfirm: { model.confirmPendingTeardown() }
         )
         .ainkradToastHost()
-        .onChange(of: model.storage.lastReclaim) { _, message in
-            guard let message else { return }
-            toasts.show(message, status: message.contains("failed") ? .warning : .success)
+        .onChange(of: model.storage.lastReclaim) { _, notice in
+            guard let notice else { return }
+            toasts.show(notice.message, status: notice.status)
             model.storage.lastReclaim = nil
         }
-        .onChange(of: model.lastActionMessage) { _, message in
-            guard let message else { return }
-            toasts.show(
-                message,
-                status: message.contains("failed")
-                    || message.contains("Refused") ? .danger : .success)
-            model.lastActionMessage = nil
+        .onChange(of: model.lastActionNotice) { _, notice in
+            guard let notice else { return }
+            toasts.show(notice.message, status: notice.status)
+            model.lastActionNotice = nil
         }
     }
 

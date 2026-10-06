@@ -15,7 +15,7 @@ public final class ThrallStorageModel: ObservableObject {
     @Published public private(set) var error: String?
     @Published public private(set) var loadedAt: Date?
     /// The last reclaim outcome, shown as a toast.
-    @Published public var lastReclaim: String?
+    @Published var lastReclaim: ThrallNotice?
 
     // Reclaim opt-ins, all defaulting **off** for volumes.
     @Published public var includeImages = true
@@ -169,9 +169,13 @@ public final class ThrallStorageModel: ObservableObject {
 
         lastReclaim =
             failures.isEmpty
-            ? "Removed \(removed) items, freed \(ThrallReclaimPlan.humanBytes(freed))."
-            : "Removed \(removed), freed \(ThrallReclaimPlan.humanBytes(freed)); "
-                + "\(failures.count) failed. \(failures.prefix(2).joined(separator: "; "))"
+            ? ThrallNotice(
+                message: "Removed \(removed) items, freed \(ThrallReclaimPlan.humanBytes(freed)).",
+                status: .success)
+            : ThrallNotice(
+                message: "Removed \(removed), freed \(ThrallReclaimPlan.humanBytes(freed)); "
+                    + "\(failures.count) failed. \(failures.prefix(2).joined(separator: "; "))",
+                status: .warning)
         isLoading = false
         await load(client: client, force: true)
     }

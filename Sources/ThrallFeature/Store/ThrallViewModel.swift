@@ -27,7 +27,7 @@ public final class ThrallViewModel: ObservableObject {
     @Published public var expandedServices: Set<String> = []
 
     /// A finished action, shown as a toast and then dismissed.
-    @Published public var lastActionMessage: String?
+    @Published var lastActionNotice: ThrallNotice?
     /// Stacks with a compose verb in flight, so a row can show a spinner.
     @Published public internal(set) var busyStacks: Set<ThrallStackID> = []
     /// A pending Down awaiting confirmation. Down destroys state; Restart and
