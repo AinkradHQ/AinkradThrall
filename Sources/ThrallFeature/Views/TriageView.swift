@@ -171,7 +171,6 @@ private struct RemedyRow: View {
     let isPrimary: Bool
     let onRun: () -> Void
 
-    @Environment(\.ainkradTheme) private var theme
     @State private var showsCommand = false
 
     var body: some View {

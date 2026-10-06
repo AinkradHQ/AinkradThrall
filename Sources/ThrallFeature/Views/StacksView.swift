@@ -6,7 +6,6 @@ struct StacksView: View {
     @ObservedObject var model: ThrallViewModel
 
     @Environment(\.ainkradTheme) private var theme
-    @Environment(\.ainkradSkin) private var skin
     @Environment(\.ainkradReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -242,7 +241,6 @@ private struct ServiceRow: View {
 private struct ContainerRow: View {
     let container: ThrallContainer
 
-    @Environment(\.ainkradTheme) private var theme
     @Environment(\.ainkradSkin) private var skin
 
     var body: some View {
