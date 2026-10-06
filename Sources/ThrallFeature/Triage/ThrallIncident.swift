@@ -13,27 +13,28 @@ public enum ThrallLogFingerprint {
     /// Order matters: the long, specific patterns run before the general
     /// number sweep, or a timestamp becomes three separate `<n>` tokens and
     /// stops being recognisable.
-    private static let patterns: [(NSRegularExpression, String)] = {
-        let specs: [(String, String)] = [
-            // ISO-8601 and syslog timestamps.
-            (#"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?"#, "<ts>"),
-            (#"\d{2}:\d{2}:\d{2}(?:\.\d+)?"#, "<ts>"),
-            // A 64- or 12-char hex blob: container ids, digests, hashes.
-            (#"\b[0-9a-f]{12,64}\b"#, "<hex>"),
-            // `pid 12345`, `[pid: 123]`.
-            (#"(?i)\bpid[:= ]+\d+"#, "pid <n>"),
-            // `host:5432`, `0.0.0.0:8080`.
-            (#":\d{2,5}\b"#, ":<port>"),
-            // UUIDs.
-            (#"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"#, "<uuid>"),
-            // Anything else numeric, last.
-            (#"\d+"#, "<n>"),
-        ]
-        return specs.compactMap { pattern, replacement in
-            guard let expression = try? NSRegularExpression(pattern: pattern) else { return nil }
-            return (expression, replacement)
-        }
-    }()
+    static let specs: [(pattern: String, replacement: String)] = [
+        // ISO-8601 and syslog timestamps.
+        (#"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?"#, "<ts>"),
+        (#"\d{2}:\d{2}:\d{2}(?:\.\d+)?"#, "<ts>"),
+        // A 64- or 12-char hex blob: container ids, digests, hashes.
+        (#"\b[0-9a-f]{12,64}\b"#, "<hex>"),
+        // `pid 12345`, `[pid: 123]`.
+        (#"(?i)\bpid[:= ]+\d+"#, "pid <n>"),
+        // `host:5432`, `0.0.0.0:8080`.
+        (#":\d{2,5}\b"#, ":<port>"),
+        // UUIDs.
+        (#"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"#, "<uuid>"),
+        // Anything else numeric, last.
+        (#"\d+"#, "<n>"),
+    ]
+
+    /// `specs` compiled. A literal that failed to compile would be dropped
+    /// here without a sound, so `ThrallIncidentTests` pins that all of them do.
+    static let patterns: [(NSRegularExpression, String)] = specs.compactMap { pattern, replacement in
+        guard let expression = try? NSRegularExpression(pattern: pattern) else { return nil }
+        return (expression, replacement)
+    }
 
     /// The fingerprintable form of a log line.
     public static func normalise(_ line: String) -> String {
