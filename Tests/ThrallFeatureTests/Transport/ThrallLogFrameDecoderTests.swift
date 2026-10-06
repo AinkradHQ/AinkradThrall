@@ -34,7 +34,7 @@ struct ThrallLogFrameDecoderTests {
         let line = Data("  \u{2192} '/usr/local/bin/php' 'artisan' subscriptions:expire\n".utf8)
         let frames = try decoder.feed(RawResponses.logFrame(stream: 1, payload: line))
         #expect(frames == [ThrallLogFrame(stream: .stdout, payload: line)])
-        #expect(decoder.finish().isEmpty)
+        #expect(decoder.carry.isEmpty)
     }
 
     @Test("stderr and stdout are kept apart")
@@ -63,7 +63,7 @@ struct ThrallLogFrameDecoderTests {
             index = end
         }
         #expect(frames.map(\.payload) == [Data("first line\n".utf8), Data("second\n".utf8)])
-        #expect(decoder.finish().isEmpty)
+        #expect(decoder.carry.isEmpty)
     }
 
     @Test("a raw stream is passed through as stdout, unframed")
@@ -107,14 +107,14 @@ struct ThrallLogFrameDecoderTests {
         #expect(try decoder.feed(data).map(\.payload) == [Data("after\n".utf8)])
     }
 
-    /// A partial frame is returned, never emitted: its declared length is
+    /// A partial frame is held, never emitted: its declared length is
     /// unknown, so guessing would put a fragment of the next header on screen.
-    @Test("a truncated frame is reported by finish, not emitted")
+    @Test("a truncated frame is held, not emitted")
     func truncatedFrame() throws {
         var decoder = ThrallLogFrameDecoder(framing: .multiplexed)
         let full = RawResponses.logFrame(stream: 1, payload: Data("complete\n".utf8))
         #expect(try decoder.feed(Data(full[0..<(full.count - 3)])).isEmpty)
-        #expect(decoder.finish().count == full.count - 3)
+        #expect(decoder.carry.count == full.count - 3)
     }
 
     /// Both layers at once, which is the real arrangement: chunked HTTP on the

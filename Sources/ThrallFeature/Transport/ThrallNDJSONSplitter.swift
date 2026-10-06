@@ -18,7 +18,7 @@ public struct ThrallNDJSONSplitter {
     /// otherwise grow this without bound for as long as the stream is open,
     /// which on `/events` is the whole session.
     public let maximumLineLength: Int
-    private var carry = Data()
+    private(set) var carry = Data()
 
     public init(maximumLineLength: Int = 4 * 1024 * 1024) {
         self.maximumLineLength = maximumLineLength
@@ -44,15 +44,5 @@ public struct ThrallNDJSONSplitter {
                 "NDJSON line exceeded \(maximumLineLength) bytes without a newline")
         }
         return lines
-    }
-
-    /// Whatever is left when the stream ends. The engine terminates every
-    /// event with a newline, so a non-empty result here means the stream was
-    /// cut mid-record — a caller that parses it anyway gets invalid JSON,
-    /// which is why it is returned rather than silently flushed as a line.
-    public mutating func finish() -> Data {
-        let remainder = carry
-        carry = Data()
-        return remainder
     }
 }

@@ -18,13 +18,11 @@ struct ThrallReconcilerTests {
     }
 
     private func world(
-        diskCandidates: [ThrallDiskCandidate] = [],
         probe: ThrallFileProbe = .nothingExists
     ) throws -> ThrallWorld {
         ThrallReconciler.reconcile(
             engineKey: Self.engineKey,
             containers: try fixtureContainers(),
-            diskCandidates: diskCandidates,
             probe: probe,
             now: Date(timeIntervalSince1970: 1_789_000_000))
     }
@@ -185,124 +183,6 @@ struct ThrallReconcilerTests {
             .stacks.first { $0.displayName == "aai1058" })
         #expect(!stack.isConfigMissing)
         #expect(stack.absentConfigFiles.count == 1)
-    }
-
-    // MARK: - Disk as the source of what is declared
-
-    /// A fully-down stack has no containers at all, so it exists only because
-    /// disk says so. Without this it would not appear and could never be
-    /// brought up.
-    @Test("a stack with zero containers is listed from disk alone")
-    func zeroContainerStackFromDisk() throws {
-        let candidate = ThrallDiskCandidate(
-            projectName: "dormant",
-            workingDirectory: "/Users/me/Projects/Dormant",
-            configFiles: ["/Users/me/Projects/Dormant/compose.yml"],
-            declaredServices: ["api", "db"])
-        let stack = try #require(
-            try world(
-                diskCandidates: [candidate],
-                probe: .everythingExists
-            )
-            .stacks.first { $0.displayName == "dormant" })
-        #expect(stack.containerCount == 0)
-        #expect(stack.health == .down)
-        #expect(stack.services.map(\.name) == ["api", "db"])
-        #expect(stack.services.allSatisfy { $0.isDeclaredButAbsent })
-        #expect(!stack.isConfigMissing)
-    }
-
-    @Test("a declared service with no container joins a running stack as absent")
-    func declaredButAbsentServiceInRunningStack() throws {
-        let containers = try fixtureContainers()
-        let optimus = try #require(
-            containers.first {
-                $0.labels["com.docker.compose.project"] == "optimus"
-            })
-        let directory = try #require(
-            optimus.labels["com.docker.compose.project.working_dir"])
-        let running = Set(
-            containers
-                .filter { $0.labels["com.docker.compose.project"] == "optimus" }
-                .compactMap { $0.labels["com.docker.compose.service"] })
-
-        let candidate = ThrallDiskCandidate(
-            projectName: "optimus",
-            workingDirectory: directory,
-            configFiles: ThrallReconciler.configFiles(from: optimus.labels),
-            declaredServices: Array(running) + ["never-started"])
-        let stack = try #require(
-            ThrallReconciler.reconcile(
-                engineKey: Self.engineKey, containers: containers,
-                diskCandidates: [candidate], probe: .everythingExists
-            )
-            .stacks.first { $0.displayName == "optimus" })
-
-        let absent = stack.services.filter(\.isDeclaredButAbsent)
-        #expect(absent.map(\.name) == ["never-started"])
-        #expect(stack.services.count == running.count + 1)
-    }
-
-    /// The disk candidate is matched on the same folded key, so the `/Run`
-    /// spelling on disk still finds the `/run` containers.
-    @Test("a disk candidate matches a running stack through the folded key")
-    func diskCandidateMergesByFoldedKey() throws {
-        let containers = try fixtureContainers()
-        let directory = try #require(
-            containers
-                .first { $0.labels["com.docker.compose.project"] == "althaqeel" }?
-                .labels["com.docker.compose.project.working_dir"])
-        // Same directory, opposite case, and a trailing slash for good measure.
-        let flipped =
-            directory.hasSuffix("/Run")
-            ? directory.replacingOccurrences(of: "/Run", with: "/run") + "/"
-            : directory.replacingOccurrences(of: "/run", with: "/Run") + "/"
-        let candidate = ThrallDiskCandidate(
-            projectName: "althaqeel",
-            workingDirectory: flipped,
-            configFiles: [],
-            declaredServices: ["ghost"])
-        let stacks = ThrallReconciler.reconcile(
-            engineKey: Self.engineKey,
-            containers: containers,
-            diskCandidates: [candidate],
-            probe: .everythingExists
-        )
-        .stacks.filter { $0.displayName == "althaqeel" }
-        #expect(stacks.count == 1, "the candidate must not create a second althaqeel")
-        #expect(stacks[0].containerCount == 12)
-        #expect(stacks[0].services.contains { $0.name == "ghost" && $0.isDeclaredButAbsent })
-    }
-
-    /// A real feature Docker Desktop lacks: the config changed after the
-    /// containers were created, so what is running is not what is declared.
-    @Test("a config newer than its containers marks the stack stale")
-    func staleRelativeToConfig() throws {
-        let containers = try fixtureContainers()
-        let optimus = containers.filter { $0.labels["com.docker.compose.project"] == "optimus" }
-        let directory = try #require(
-            optimus.first?.labels["com.docker.compose.project.working_dir"])
-        let newest = try #require(optimus.map(\.created).max())
-
-        func stack(configModified: Date) throws -> ThrallStack {
-            let candidate = ThrallDiskCandidate(
-                projectName: "optimus",
-                workingDirectory: directory,
-                configFiles: [],
-                configModified: configModified)
-            return try #require(
-                ThrallReconciler.reconcile(
-                    engineKey: Self.engineKey, containers: containers,
-                    diskCandidates: [candidate], probe: .everythingExists
-                )
-                .stacks.first { $0.displayName == "optimus" })
-        }
-        let after = Date(timeIntervalSince1970: TimeInterval(newest) + 60)
-        let before = Date(timeIntervalSince1970: TimeInterval(newest) - 60)
-        let staleStack = try stack(configModified: after)
-        let freshStack = try stack(configModified: before)
-        #expect(staleStack.isStaleRelativeToConfig)
-        #expect(!freshStack.isStaleRelativeToConfig)
     }
 
     @Test("with no config mtime known, nothing is claimed to be stale")

@@ -8,7 +8,6 @@ import Foundation
 @MainActor
 public final class ThrallTriageModel: ObservableObject {
     @Published public private(set) var incidents: [ThrallIncident] = []
-    @Published public private(set) var isScanning = false
     @Published public private(set) var lastScan: Date?
     /// True until the first scan completes. The **first-scan suppression** gate
     /// reads this: the opening reconcile seeds a baseline and emits nothing,
@@ -39,9 +38,7 @@ public final class ThrallTriageModel: ObservableObject {
         inspect: (String) async throws -> ThrallContainerInspectDTO,
         readLog: (String) async throws -> String
     ) async {
-        isScanning = true
         defer {
-            isScanning = false
             lastScan = now
             hasBaseline = true
         }

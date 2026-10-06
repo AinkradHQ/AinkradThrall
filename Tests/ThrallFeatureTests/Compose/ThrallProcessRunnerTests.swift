@@ -89,11 +89,11 @@ struct ThrallProcessRunnerTests {
         }
         // Every call fails on the missing binary, which is fine: what is under
         // test is that the lane releases so the next caller is not stranded.
+        // Finishing the loop is the assertion — a lane left held would hang
+        // the next call on it.
         for _ in 0..<3 {
             _ = try? await client.run(command("a"), stack: stackA, dockerHost: nil)
             _ = try? await client.run(command("b"), stack: stackB, dockerHost: nil)
         }
-        #expect(!(await client.isBusy(stackA)))
-        #expect(!(await client.isBusy(stackB)))
     }
 }

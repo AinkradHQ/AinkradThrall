@@ -202,8 +202,7 @@ extension ThrallViewModel {
             let version = try await client.version()
             let containers = try await client.containers()
             engineVersion = version
-            // Disk candidates arrive with the indexer (Task F); until then the
-            // world is engine-only, which is exactly rule 1 of the
+            // The world is engine-only, which is exactly rule 1 of the
             // reconciler's precedence and renders correctly on its own.
             world = ThrallReconciler.reconcile(
                 engineKey: context.endpoint.engineKey,
@@ -245,15 +244,8 @@ extension ThrallViewModel {
             await supervisor.start(
                 onEvent: { [weak self] event in
                     await self?.handle(event, engineKey: engineKey)
-                },
-                onConnected: { [weak self] connected in
-                    await self?.setEventStreamConnected(connected)
                 })
         }
-    }
-
-    private func setEventStreamConnected(_ connected: Bool) {
-        eventStreamConnected = connected
     }
 
     /// **An event is an invalidation plus a history append, never a delta.**

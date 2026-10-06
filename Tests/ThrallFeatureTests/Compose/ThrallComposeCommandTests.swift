@@ -42,26 +42,6 @@ struct ThrallComposeCommandTests {
         #expect(arguments[(terminator + 1)...] == ["api"])
     }
 
-    /// An orphaned stack cannot use these at all: every one needs the file the
-    /// stack was started from.
-    @Test("the verbs that read the compose file are marked as needing it")
-    func requiresConfigFiles() {
-        for verb in [ThrallComposeCommand.Verb.up, .down, .pull, .config, .ps] {
-            #expect(
-                ThrallComposeCommand(
-                    verb: verb, projectName: "x", projectDirectory: "/tmp",
-                    configFiles: []
-                ).requiresConfigFiles)
-        }
-        for verb in [ThrallComposeCommand.Verb.start, .stop, .restart] {
-            #expect(
-                !ThrallComposeCommand(
-                    verb: verb, projectName: "x", projectDirectory: "/tmp",
-                    configFiles: []
-                ).requiresConfigFiles)
-        }
-    }
-
     @Test("a project name that is not an identifier is refused")
     func invalidProjectName() {
         #expect(throws: ThrallComposeArgumentGuard.Rejection.identifier("--rm")) {

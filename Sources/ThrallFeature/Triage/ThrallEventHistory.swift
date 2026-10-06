@@ -43,7 +43,7 @@ public struct ThrallEventHistory: Equatable, Sendable {
     /// stays open for the whole session and a flapping service produces one
     /// entry every few seconds.
     public let limitPerService: Int
-    private var deaths: [ServiceKey: [Death]] = [:]
+    private(set) var deaths: [ServiceKey: [Death]] = [:]
 
     public init(limitPerService: Int = 40) {
         self.limitPerService = limitPerService
@@ -79,8 +79,6 @@ public struct ThrallEventHistory: Equatable, Sendable {
     public func recentDeaths(for key: ServiceKey, since: Date) -> [Death] {
         (deaths[key] ?? []).filter { $0.at >= since }
     }
-
-    public var trackedServices: [ServiceKey] { Array(deaths.keys) }
 
     /// Drops history for services that no longer exist, so a long session does
     /// not accumulate dead keys.

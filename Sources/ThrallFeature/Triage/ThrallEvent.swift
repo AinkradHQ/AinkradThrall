@@ -44,7 +44,6 @@ public struct ThrallEvent: Equatable, Sendable {
     public var composeWorkingDirectory: String? {
         attributes["com.docker.compose.project.working_dir"]
     }
-    public var containerName: String? { attributes["name"] }
     /// Present on a `die`. The reason a crash loop can be fingerprinted at all.
     public var exitCode: Int? { attributes["exitCode"].flatMap(Int.init) }
 

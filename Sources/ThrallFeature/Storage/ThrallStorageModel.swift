@@ -147,7 +147,6 @@ public final class ThrallStorageModel: ObservableObject {
                 switch target.kind {
                 case .image: try await client.removeImage(id: target.identifier)
                 case .volume: try await client.removeVolume(name: target.identifier)
-                case .network: try await client.removeNetwork(id: target.identifier)
                 case .buildCache: continue
                 }
                 removed += 1

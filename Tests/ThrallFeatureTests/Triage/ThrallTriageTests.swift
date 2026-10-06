@@ -51,7 +51,6 @@ struct ThrallEventTests {
         #expect(event.exitCode == 1)
         #expect(event.composeProject == "aai1058")
         #expect(event.composeService == "worker")
-        #expect(event.containerName == "aai1058-worker-1")
     }
 
     /// A malformed event costs one history entry. A throw would kill the

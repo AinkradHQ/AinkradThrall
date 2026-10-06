@@ -44,7 +44,11 @@ struct ThrallRowBuilderTests {
         // Services appear directly under their stack, in the stack's order.
         let index = try #require(rows.firstIndex { $0.id == "s:\(optimus.id.description)" })
         let following = rows[(index + 1)...].prefix(optimus.services.count)
-        #expect(following.allSatisfy { $0.indentLevel == 1 })
+        #expect(
+            following.allSatisfy {
+                if case .service = $0 { return true }
+                return false
+            })
     }
 
     @Test("expanding a service adds its containers")
@@ -54,7 +58,11 @@ struct ThrallRowBuilderTests {
         let service = try #require(optimus.services.first { !$0.containers.isEmpty })
         let key = ThrallRowBuilder.serviceKey(stack: optimus.id, service: service.name)
         let rows = rows(world, stacks: [optimus.id], services: [key])
-        #expect(rows.filter { $0.indentLevel == 2 }.count == service.containers.count)
+        let containers = rows.filter {
+            if case .container = $0 { return true }
+            return false
+        }
+        #expect(containers.count == service.containers.count)
     }
 
     /// A service is only unique within its stack — two stacks both having a
@@ -111,7 +119,11 @@ struct ThrallRowBuilderTests {
         let shown = rows(world, showUnmanaged: true)
         let hidden = rows(world, showUnmanaged: false)
         #expect(shown.count == hidden.count + 1)
-        #expect(!hidden.contains { $0.stackID.isLoose })
+        #expect(
+            !hidden.contains {
+                if case .stack(let stack) = $0 { return stack.id.isLoose }
+                return false
+            })
     }
 
     @Test("expanding a stack that is not shown adds nothing")

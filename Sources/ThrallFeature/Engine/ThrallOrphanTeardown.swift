@@ -120,13 +120,6 @@ extension ThrallEngineClient {
             accepting: [204, 404])
     }
 
-    public func removeNetwork(id: String) async throws {
-        try await delete(
-            path: "/networks/\(try Self.identifier(id))",
-            query: [],
-            accepting: [204, 404])
-    }
-
     /// Deletes one build-cache record by id.
     ///
     /// The engine has no per-record delete — `/build/prune` is the only route,

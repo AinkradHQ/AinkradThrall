@@ -73,7 +73,6 @@ public final class ThrallViewModel: ObservableObject {
     /// Images, storage and networks. Its `/system/df` read costs 1.86 s, so it
     /// is loaded on demand by its own areas and never by `refresh()`.
     public let storage = ThrallStorageModel()
-    @Published public internal(set) var eventStreamConnected = false
 
     public init(
         host: HostServices,
