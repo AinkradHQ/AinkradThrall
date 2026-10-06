@@ -135,7 +135,7 @@ struct ThrallShell: View {
                 }
             }
         ) {
-            HStack(spacing: AinkradSpacing.xs) {
+            ThrallPullDownLabel {
                 Circle()
                     .fill(engineIndicator)
                     .frame(width: 6, height: 6)
@@ -147,16 +147,7 @@ struct ThrallShell: View {
                         .font(.system(size: 10).monospacedDigit())
                         .foregroundStyle(tokens.foreground.opacity(0.45))
                 }
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(tokens.foreground.opacity(0.4))
             }
-            .padding(.horizontal, AinkradSpacing.sm)
-            .padding(.vertical, 3)
-            .background(
-                RoundedRectangle(cornerRadius: AinkradRadius.sm, style: .continuous)
-                    .fill(tokens.foreground.opacity(0.06))
-            )
         }
         .fixedSize()
     }

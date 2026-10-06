@@ -42,18 +42,10 @@ struct LogsView: View {
                     }
                 }
             ) {
-                HStack(spacing: AinkradSpacing.xs) {
+                ThrallPullDownLabel {
                     Text(selectedStack?.displayName ?? "Choose a stack")
                         .font(.system(size: 11, weight: .medium))
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 8, weight: .semibold))
-                        .foregroundStyle(theme.foreground.opacity(0.4))
                 }
-                .padding(.horizontal, AinkradSpacing.sm)
-                .padding(.vertical, 3)
-                .background(
-                    RoundedRectangle(cornerRadius: AinkradRadius.sm, style: .continuous)
-                        .fill(theme.foreground.opacity(0.06)))
             }
             .fixedSize()
 
