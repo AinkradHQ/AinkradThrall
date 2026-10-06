@@ -1,21 +1,21 @@
 import Foundation
 
 /// What `GET /version` said, plus the version Thrall decided to speak.
-public struct ThrallEngineVersion: Equatable, Sendable {
-    public let engineVersion: String
-    public let apiVersion: ThrallAPIVersion
-    public let minimumAPIVersion: ThrallAPIVersion?
-    public let platformName: String?
-    public let os: String
-    public let arch: String
+struct ThrallEngineVersion: Equatable, Sendable {
+    let engineVersion: String
+    let apiVersion: ThrallAPIVersion
+    let minimumAPIVersion: ThrallAPIVersion?
+    let platformName: String?
+    let os: String
+    let arch: String
     /// The version every subsequent request will be pathed with.
-    public let negotiated: ThrallAPIVersion
+    let negotiated: ThrallAPIVersion
 
-    public var pathPrefix: String { negotiated.pathPrefix }
+    var pathPrefix: String { negotiated.pathPrefix }
 
     /// "Docker 29.4.0 · API 1.51" — the engine line for a subtitle. The API is
     /// the negotiated one, as in the advanced engine chip.
-    public var summary: String { "Docker \(engineVersion) · API \(negotiated)" }
+    var summary: String { "Docker \(engineVersion) · API \(negotiated)" }
 }
 
 /// The version handshake.
@@ -27,16 +27,16 @@ public struct ThrallEngineVersion: Equatable, Sendable {
 /// therefore sent **unversioned**: a version probe that needs a version to
 /// reach is a bootstrap problem, and `GET /version` has answered unversioned
 /// since the API existed.
-public enum ThrallEngineNegotiation {
+enum ThrallEngineNegotiation {
     /// The newest version Thrall is written against. Not raised casually:
     /// every endpoint used must exist at this version.
-    public static let target = ThrallAPIVersion(major: 1, minor: 51)
+    static let target = ThrallAPIVersion(major: 1, minor: 51)
     /// Below this, fail closed rather than degrade. `/system/df`'s build-cache
     /// section and the multiplexed log content type are both younger than
     /// 1.41, and half-working is worse here than not starting.
-    public static let floor = ThrallAPIVersion(major: 1, minor: 41)
+    static let floor = ThrallAPIVersion(major: 1, minor: 41)
 
-    public static func negotiate(
+    static func negotiate(
         reported: ThrallAPIVersion,
         serverMinimum: ThrallAPIVersion?
     ) throws -> ThrallAPIVersion {

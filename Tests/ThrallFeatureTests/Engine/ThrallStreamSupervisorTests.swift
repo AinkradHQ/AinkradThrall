@@ -27,7 +27,7 @@ struct ThrallStreamSupervisorTests {
     /// Unfiltered, this machine produced 256 events in an hour and every one
     /// was a healthcheck exec. The filter is what keeps the socket quiet.
     @Test("the event filter asks for container lifecycle only")
-    func filterExcludesExecNoise() {
+    func filterExcludesExecNoise() throws {
         let filters = ThrallStreamSupervisor.eventFilters
         #expect(filters.contains("\"type\":[\"container\"]"))
         #expect(filters.contains("\"die\""))
@@ -35,7 +35,7 @@ struct ThrallStreamSupervisorTests {
         #expect(!filters.contains("health_status"))
         // And it survives being put in a URL, which `ThrallHTTPRequest` will
         // otherwise refuse.
-        let target = ThrallEngineClient.target("/v1.51/events", query: [("filters", filters)])
+        let target = try ThrallEngineClient.target("/v1.51/events", query: [("filters", filters)])
         #expect(throws: Never.self) { try ThrallHTTPRequest(target: target).encoded() }
     }
 }

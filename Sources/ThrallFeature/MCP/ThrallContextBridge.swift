@@ -23,9 +23,9 @@ import Foundation
 /// The host's opt-out is keyed by `kind`, so the kind is a stable string the
 /// user can switch off in Settings and have it stay off.
 @MainActor
-public final class ThrallContextBridge {
+final class ThrallContextBridge {
     /// Stable, because the host's per-kind privacy toggle is keyed on it.
-    public static let kind = "thrall"
+    static let kind = "thrall"
     /// Under the host's 8000-char budget with room to spare, so nothing is cut
     /// mid-sentence.
     static let characterBudget = 6_000
@@ -34,7 +34,7 @@ public final class ThrallContextBridge {
 
     private weak var model: ThrallViewModel?
 
-    public init() {}
+    init() {}
 
     /// Every tool the assistant can call, so the brief never hides one.
     static let toolsLine =
@@ -42,17 +42,17 @@ public final class ThrallContextBridge {
         + "thrall_restart_service, thrall_stack_up, thrall_stack_down, "
         + "thrall_stack_teardown."
 
-    public func setSource(_ model: ThrallViewModel) {
+    func setSource(_ model: ThrallViewModel) {
         self.model = model
     }
 
-    public func clearSource(_ model: ThrallViewModel) {
+    func clearSource(_ model: ThrallViewModel) {
         if self.model === model { self.model = nil }
     }
 
     /// Nil when there is nothing worth saying. Returning an empty section
     /// every turn would spend prompt budget to tell the assistant nothing.
-    public func snapshot() -> AgentContextSnapshot? {
+    func snapshot() -> AgentContextSnapshot? {
         guard let model, model.activeContext != nil else { return nil }
         let world = model.world
         guard !world.stacks.isEmpty else { return nil }
@@ -169,7 +169,7 @@ public final class ThrallContextBridge {
     /// to the clipboard, which is the part that actually works today. The
     /// toast says so, because a button that silently does half of what it
     /// looks like is worse than one that explains itself.
-    public func handOff(model: ThrallViewModel, host: HostServices) -> String {
+    func handOff(model: ThrallViewModel, host: HostServices) -> String {
         let text = brief(model: model)
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)

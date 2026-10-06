@@ -21,6 +21,14 @@ struct ThrallLogFingerprintTests {
                 == ThrallLogFingerprint.normalise(second))
     }
 
+    /// A literal that fails to compile is dropped silently by `patterns`, and
+    /// the fingerprint would quietly stop collapsing that kind of noise.
+    @Test("every normalisation literal compiles")
+    func literalsCompile() {
+        #expect(ThrallLogFingerprint.patterns.count == ThrallLogFingerprint.specs.count)
+        #expect(ThrallLogFingerprint.specs.count == 7)
+    }
+
     @Test("a genuinely different error does not collapse")
     func differentCauseDifferentFingerprint() {
         #expect(

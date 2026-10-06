@@ -5,7 +5,7 @@ import Foundation
 /// touches a socket, and `ScriptedByteStream` in the tests is the one that
 /// replays captured bytes — including replays that split a frame across reads
 /// in the exact place that used to break it.
-public protocol ThrallByteStream: Sendable {
+protocol ThrallByteStream: Sendable {
     func connect() async throws
     func send(_ bytes: Data) async throws
     /// Reads whatever is available, blocking until at least one byte is.

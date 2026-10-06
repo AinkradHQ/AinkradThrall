@@ -9,20 +9,20 @@ import Foundation
 /// UI would look frozen while nothing was wrong. Two verbs against the *same*
 /// stack must still serialise — compose is not safe to run concurrently
 /// against one project, and `up` racing `down` leaves half a stack.
-public actor ThrallComposeClient {
+actor ThrallComposeClient {
     private let runner: ThrallProcessRunner
     /// Lane keys currently held.
     private var busy: Set<String> = []
     /// FIFO of callers waiting on each lane.
     private var waiting: [String: [CheckedContinuation<Void, Never>]] = [:]
 
-    public init(runner: ThrallProcessRunner) {
+    init(runner: ThrallProcessRunner) {
         self.runner = runner
     }
 
     /// Runs `command` against `stack`, serialised with anything else on that
     /// stack's lane.
-    public func run(
+    func run(
         _ command: ThrallComposeCommand,
         stack: ThrallStackID,
         dockerHost: String?

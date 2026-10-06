@@ -33,7 +33,8 @@ import Network
 ///     all fail it. A `read(timeout: nil)` on a quiet `/events` stream that
 ///     could not be failed would hang plugin teardown forever, with no timeout
 ///     able to break it.
-public final class ThrallConnection: ThrallByteStream, @unchecked Sendable {
+// @unchecked Sendable: all mutable state is confined to one private serial queue.
+final class ThrallConnection: ThrallByteStream, @unchecked Sendable {
     /// One suspended call. Identity is the object, so a completed call removes
     /// exactly its own entry. `@unchecked Sendable` because every field is
     /// touched on `queue` only and `fail` resumes through a lock-protected
@@ -56,7 +57,7 @@ public final class ThrallConnection: ThrallByteStream, @unchecked Sendable {
     /// suspended call.
     private var readyWaiters: [@Sendable () -> Void] = []
 
-    public init(socketPath: String, connectTimeout: Duration = .seconds(10)) {
+    init(socketPath: String, connectTimeout: Duration = .seconds(10)) {
         self.socketPath = socketPath
         self.connectTimeout = connectTimeout
     }
@@ -73,7 +74,7 @@ public final class ThrallConnection: ThrallByteStream, @unchecked Sendable {
 
     // MARK: - ThrallByteStream
 
-    public func connect() async throws {
+    func connect() async throws {
         try await withTaskCancellationHandler {
             // `[self]` is explicit so the `[weak self]` captures below read as
             // a deliberate difference from the enclosing scope rather than an
@@ -134,7 +135,7 @@ public final class ThrallConnection: ThrallByteStream, @unchecked Sendable {
         }
     }
 
-    public func send(_ bytes: Data) async throws {
+    func send(_ bytes: Data) async throws {
         try await withTaskCancellationHandler {
             try await suspendVoid { [self] guard_ in
                 guard !self.isClosed, let connection = self.connection else {
@@ -158,7 +159,7 @@ public final class ThrallConnection: ThrallByteStream, @unchecked Sendable {
         }
     }
 
-    public func read(timeout: Duration?) async throws -> Data {
+    func read(timeout: Duration?) async throws -> Data {
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 let guard_ = ThrallOneShotResumeGuard<Result<Data, ThrallTransportError>> { result in
@@ -207,7 +208,7 @@ public final class ThrallConnection: ThrallByteStream, @unchecked Sendable {
         }
     }
 
-    public func close() async {
+    func close() async {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             queue.async {
                 self.teardown(.closed)

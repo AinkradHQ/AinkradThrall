@@ -17,7 +17,7 @@ extension ThrallViewModel {
     /// needs the file it was started from. Those stacks get engine-level
     /// container verbs instead, which is what makes them actionable rather
     /// than merely visible.
-    public func actions(for stack: ThrallStack) -> [ThrallStackAction] {
+    func actions(for stack: ThrallStack) -> [ThrallStackAction] {
         if stack.isConfigMissing {
             return [.engineStart, .engineRestart, .engineStop]
         }
@@ -26,7 +26,7 @@ extension ThrallViewModel {
 
     /// `services` narrows a compose or engine verb to those services; empty
     /// means the whole stack.
-    public func perform(
+    func perform(
         _ action: ThrallStackAction, on stack: ThrallStack, services: [String] = []
     ) {
         if action == .down, settings.settings.confirmBeforeDown {
@@ -56,13 +56,13 @@ extension ThrallViewModel {
             .flatMap(\.containers)
     }
 
-    public func confirmPendingDown() {
+    func confirmPendingDown() {
         guard let stack = pendingDown else { return }
         pendingDown = nil
         run(.down, on: stack)
     }
 
-    public func confirmPendingTeardown() {
+    func confirmPendingTeardown() {
         guard let stack = pendingTeardown, let client else { return }
         pendingTeardown = nil
         lastUserAction[stack.id] = Date()
@@ -71,10 +71,14 @@ extension ThrallViewModel {
             let outcome = await ThrallOrphanTeardown.run(stack: stack, using: client)
             guard let self else { return }
             self.busyStacks.remove(stack.id)
-            self.lastActionMessage =
+            self.lastActionNotice =
                 outcome.failures.isEmpty
-                ? "Tore down \(stack.displayName) by label — \(outcome.summary)."
-                : "Teardown of \(stack.displayName) partly failed: \(outcome.summary)"
+                ? ThrallNotice(
+                    message: "Tore down \(stack.displayName) by label — \(outcome.summary).",
+                    status: .success)
+                : ThrallNotice(
+                    message: "Teardown of \(stack.displayName) partly failed: \(outcome.summary)",
+                    status: .danger)
             await self.refresh()
         }
     }
@@ -106,30 +110,37 @@ extension ThrallViewModel {
                 guard
                     let command = Self.composeCommand(verb, on: stack, services: services)
                 else {
-                    lastActionMessage = "\(stack.displayName) has no project directory to run in."
+                    lastActionNotice = ThrallNotice(
+                        message: "\(stack.displayName) has no project directory to run in.",
+                        status: .danger)
                     return
                 }
                 let result = try await compose.run(
                     command, stack: stack.id,
                     dockerHost: dockerHostValue)
-                lastActionMessage =
+                lastActionNotice =
                     result.succeeded
-                    ? "\(action.title) finished on \(stack.displayName)."
-                    : "\(action.title) failed on \(stack.displayName): \(result.summary)"
+                    ? ThrallNotice(
+                        message: "\(action.title) finished on \(stack.displayName).", status: .success)
+                    : ThrallNotice(
+                        message: "\(action.title) failed on \(stack.displayName): \(result.summary)",
+                        status: .danger)
             } else if let engineVerb = action.engineVerb {
                 try await runEngineVerb(engineVerb, on: stack, services: services)
-                lastActionMessage = "\(action.title) finished on \(stack.displayName)."
+                lastActionNotice = ThrallNotice(
+                    message: "\(action.title) finished on \(stack.displayName).", status: .success)
             }
         } catch let error as ThrallProcessError {
-            lastActionMessage = Self.describe(error)
+            lastActionNotice = ThrallNotice(message: Self.describe(error), status: .danger)
         } catch let error as ThrallComposeArgumentGuard.Rejection {
-            lastActionMessage = "Refused: \(error.message)"
+            lastActionNotice = ThrallNotice(message: "Refused: \(error.message)", status: .danger)
         } catch let error as ThrallEngineError {
-            lastActionMessage = Self.describe(error)
+            lastActionNotice = ThrallNotice(message: Self.describe(error), status: .danger)
         } catch is CancellationError {
-            lastActionMessage = "\(action.title) on \(stack.displayName) was cancelled."
+            lastActionNotice = ThrallNotice(
+                message: "\(action.title) on \(stack.displayName) was cancelled.", status: .neutral)
         } catch {
-            lastActionMessage = "\(error)"
+            lastActionNotice = ThrallNotice(message: error.localizedDescription, status: .danger)
         }
         await refresh()
     }
@@ -159,7 +170,7 @@ extension ThrallViewModel {
 
     // MARK: - Engine selection
 
-    public func resolveContexts() {
+    func resolveContexts() {
         let resolution = resolver.resolve()
         contexts = resolution.contexts
         contextNotes = resolution.notes
@@ -170,7 +181,7 @@ extension ThrallViewModel {
         }
     }
 
-    public func select(_ context: ThrallEngineContext?) {
+    func select(_ context: ThrallEngineContext?) {
         activeContext = context
         engineVersion = nil
         client = nil
@@ -189,13 +200,13 @@ extension ThrallViewModel {
         } catch let error as ThrallEngineError {
             state = .failed(Self.describe(error))
         } catch {
-            state = .failed("\(error)")
+            state = .failed(error.localizedDescription)
         }
     }
 
     // MARK: - Reading
 
-    public func refresh() async {
+    func refresh() async {
         guard let client, let context = activeContext else { return }
         if case .loaded = state {} else { state = .loading }
         do {
@@ -219,9 +230,10 @@ extension ThrallViewModel {
             state = .failed(Self.describe(error))
             host.log.error("Thrall: \(Self.describe(error))")
         } catch let error as ThrallTransportError {
+            Log.transport.error("refresh failed: \(String(describing: error))")
             state = .failed(Self.describe(error, endpoint: context.endpoint))
         } catch {
-            state = .failed("\(error)")
+            state = .failed(error.localizedDescription)
         }
     }
 
@@ -291,7 +303,7 @@ extension ThrallViewModel {
     }
 
     /// Runs a remedy. Only a state-destroying one confirms.
-    public func apply(_ remedy: ThrallRemedy, to incident: ThrallIncident) {
+    func apply(_ remedy: ThrallRemedy, to incident: ThrallIncident) {
         guard let stack = world.stack(incident.key.stack) else { return }
         switch remedy.kind {
         case .restartDependencyThenDependents, .restartServices:

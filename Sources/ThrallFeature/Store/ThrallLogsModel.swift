@@ -3,30 +3,30 @@ import Foundation
 
 /// Drives one log pane: which services, following or not, and the buffer.
 @MainActor
-public final class ThrallLogsModel: ObservableObject {
-    @Published public private(set) var buffer = AinkradLogBuffer()
-    @Published public var isFollowing = true
-    @Published public var filter = ""
-    @Published public private(set) var isLoading = false
-    @Published public private(set) var error: String?
+final class ThrallLogsModel: ObservableObject {
+    @Published private(set) var buffer = AinkradLogBuffer()
+    @Published var isFollowing = true
+    @Published var filter = ""
+    @Published private(set) var isLoading = false
+    @Published private(set) var error: String?
     /// Container ids currently tailed.
-    @Published public private(set) var tailing: Set<String> = []
+    @Published private(set) var tailing: Set<String> = []
 
     private var tasks: [String: Task<Void, Never>] = [:]
 
-    public init() {}
+    init() {}
 
-    public var visibleLines: [AinkradLogLine] {
+    var visibleLines: [AinkradLogLine] {
         buffer.filtered(filter)
     }
 
     /// True when more than one service is on the pane, which is when a line
     /// needs to say which service it came from.
-    public var showsServicePrefix: Bool { tailing.count > 1 }
+    var showsServicePrefix: Bool { tailing.count > 1 }
 
     /// Replaces what is being tailed. Cancels anything no longer selected, so
     /// switching stacks does not leave sockets open.
-    public func tail(
+    func tail(
         containers: [(id: String, service: String)],
         read: @escaping @Sendable (String) async throws -> [ThrallLogFrame]
     ) {
@@ -57,20 +57,20 @@ public final class ThrallLogsModel: ObservableObject {
                 } catch {
                     guard let self else { return }
                     self.isLoading = false
-                    self.error = "\(error)"
+                    self.error = error.localizedDescription
                 }
             }
         }
         if containers.isEmpty { isLoading = false }
     }
 
-    public func stop() {
+    func stop() {
         for task in tasks.values { task.cancel() }
         tasks = [:]
         tailing = []
     }
 
-    public func clear() {
+    func clear() {
         buffer.clear()
     }
 }

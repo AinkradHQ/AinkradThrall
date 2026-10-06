@@ -11,8 +11,8 @@ import Foundation
 /// Eliding the middle is also just better reading. `…/scratchpad/wt-1058` says
 /// which worktree; the 60 characters of UUID in front of it say nothing a
 /// person can use.
-public enum ThrallPathDisplay {
-    public static func abbreviate(_ path: String, maxLength: Int = 52) -> String {
+enum ThrallPathDisplay {
+    static func abbreviate(_ path: String, maxLength: Int = 52) -> String {
         let tilded = (path as NSString).abbreviatingWithTildeInPath
         guard tilded.count > maxLength else { return tilded }
 
@@ -44,7 +44,7 @@ public enum ThrallPathDisplay {
     }
 
     /// A one-line summary of what a service needs, capped so it cannot wrap.
-    public static func dependencySummary(
+    static func dependencySummary(
         _ dependencies: [ThrallDependency],
         limit: Int = 3
     ) -> String? {

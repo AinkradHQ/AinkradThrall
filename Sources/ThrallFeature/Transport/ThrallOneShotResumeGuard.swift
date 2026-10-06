@@ -8,6 +8,7 @@ import Foundation
 /// after a timeout — or after `close()`, or after task cancellation — is a
 /// no-op rather than a double resume, which is a crash and not a bug you get
 /// to debug later.
+// @unchecked Sendable: `hasFired` is read and written only under `lock`.
 final class ThrallOneShotResumeGuard<Value>: @unchecked Sendable {
     private let lock = NSLock()
     private var hasFired = false

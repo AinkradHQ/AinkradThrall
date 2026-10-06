@@ -13,7 +13,7 @@ extension ThrallEngineClient {
     /// Bounded on both axes. `tail` bounds what the engine sends; `maximumBytes`
     /// bounds what we keep, because a container that logs a megabyte per second
     /// exists and 24 of them are normal here.
-    public func logs(
+    func logs(
         containerID: String,
         tail: Int = 200,
         includeStdout: Bool = true,
@@ -22,7 +22,7 @@ extension ThrallEngineClient {
     ) async throws -> [ThrallLogFrame] {
         let prefix = try await version().pathPrefix
         let identifier = try Self.identifier(containerID)
-        let target = Self.target(
+        let target = try Self.target(
             prefix + "/containers/\(identifier)/logs",
             query: [
                 ("stdout", includeStdout ? "1" : "0"),
@@ -58,10 +58,10 @@ extension ThrallEngineClient {
                     }
                     decoder = ThrallLogFrameDecoder(framing: framing)
                 case .body(let chunk):
-                    guard decoder != nil else {
+                    guard let fed = try decoder?.feed(chunk) else {
                         throw ThrallTransportError.malformedResponse("log body before the head")
                     }
-                    for frame in try decoder!.feed(chunk) {
+                    for frame in fed {
                         kept += frame.payload.count
                         guard kept <= maximumBytes else { return frames }
                         frames.append(frame)
@@ -83,7 +83,7 @@ extension ThrallEngineClient {
     /// stderr, and interleaving a service's ordinary stdout chatter into the
     /// fingerprint is what makes two containers with the same cause look
     /// different.
-    public func logTail(
+    func logTail(
         containerID: String,
         lines: Int = 40,
         stderrOnly: Bool = true

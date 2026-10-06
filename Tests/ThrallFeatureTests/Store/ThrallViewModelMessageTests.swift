@@ -53,4 +53,27 @@ struct ThrallViewModelMessageTests {
             ThrallEngineError.apiTooOld(reported: "1.40", minimumSupported: "1.41"))
         #expect(message.contains("1.40") && message.contains("1.41"))
     }
+
+    /// A bare `"\(error)"` prints the case name and its payload. Every error a
+    /// view can show must instead carry the sentence the user reads.
+    @Test("Thrall's errors read as sentences through localizedDescription")
+    func localizedDescriptions() {
+        let errors: [any Error] = [
+            ThrallEngineError.http(status: 409, message: "conflict"),
+            ThrallTransportError.timedOut,
+            ThrallProcessError.cancelled,
+            ThrallExecError.emptyCommand,
+            ThrallComposeArgumentGuard.Rejection.subcommand("exec"),
+        ]
+        for error in errors {
+            let text = error.localizedDescription
+            #expect(!text.contains("ThrallFeature"), Comment(rawValue: text))
+            #expect(!text.contains("error 1"), Comment(rawValue: text))
+        }
+        #expect(
+            ThrallEngineError.http(status: 409, message: "conflict").localizedDescription
+                == "The engine returned 409: conflict")
+        #expect(ThrallTransportError.timedOut.localizedDescription == "The engine did not answer in time.")
+        #expect(ThrallExecError.emptyCommand.localizedDescription == "Type a command.")
+    }
 }

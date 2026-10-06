@@ -6,13 +6,13 @@ import Foundation
 /// because the log reads it does are the one expensive thing in the app and
 /// keeping them behind their own model makes the budget explicit.
 @MainActor
-public final class ThrallTriageModel: ObservableObject {
-    @Published public private(set) var incidents: [ThrallIncident] = []
-    @Published public private(set) var lastScan: Date?
+final class ThrallTriageModel: ObservableObject {
+    @Published private(set) var incidents: [ThrallIncident] = []
+    @Published private(set) var lastScan: Date?
     /// True until the first scan completes. The **first-scan suppression** gate
     /// reads this: the opening reconcile seeds a baseline and emits nothing,
     /// or opening Thrall today would fire 15 urgent notifications at once.
-    @Published public private(set) var hasBaseline = false
+    @Published private(set) var hasBaseline = false
 
     private var history = ThrallEventHistory()
     /// Log tails already read, keyed by container id, so a rescan does not
@@ -20,10 +20,10 @@ public final class ThrallTriageModel: ObservableObject {
     private var logCache: [String: String] = [:]
     private var inspectCache: [String: ThrallContainerInspectDTO] = [:]
 
-    public init() {}
+    init() {}
 
     /// Records an event into history. Called by the stream supervisor.
-    public func record(_ event: ThrallEvent, engineKey: String) {
+    func record(_ event: ThrallEvent, engineKey: String) {
         history.record(event, engineKey: engineKey)
     }
 
@@ -32,7 +32,7 @@ public final class ThrallTriageModel: ObservableObject {
     /// `readLog` and `inspect` are injected so this whole assembly is testable
     /// without a daemon — and so the caller decides how much log reading it
     /// can afford.
-    public func scan(
+    func scan(
         world: ThrallWorld,
         now: Date = Date(),
         inspect: (String) async throws -> ThrallContainerInspectDTO,
@@ -103,7 +103,7 @@ public final class ThrallTriageModel: ObservableObject {
     /// Prunes caches for containers that no longer exist. Without this a long
     /// session accumulates a log tail per container ever seen, and compose
     /// mints a new id on every recreate.
-    public func prune(world: ThrallWorld) {
+    func prune(world: ThrallWorld) {
         let live = Set(world.stacks.flatMap { $0.services.flatMap { $0.containers.map(\.id) } })
         logCache = logCache.filter { live.contains($0.key) }
         inspectCache = inspectCache.filter { live.contains($0.key) }
@@ -125,9 +125,14 @@ public final class ThrallTriageModel: ObservableObject {
         async -> ThrallContainerInspectDTO?
     {
         if let cached = inspectCache[id] { return cached }
-        guard let detail = try? await inspect(id) else { return nil }
-        inspectCache[id] = detail
-        return detail
+        do {
+            let detail = try await inspect(id)
+            inspectCache[id] = detail
+            return detail
+        } catch {
+            Log.triage.error("inspect failed: \(String(describing: error))")
+            return nil
+        }
     }
 
     private func logTail(
@@ -135,8 +140,13 @@ public final class ThrallTriageModel: ObservableObject {
         using readLog: (String) async throws -> String
     ) async -> String? {
         if let cached = logCache[id] { return cached }
-        guard let tail = try? await readLog(id) else { return nil }
-        logCache[id] = tail
-        return tail
+        do {
+            let tail = try await readLog(id)
+            logCache[id] = tail
+            return tail
+        } catch {
+            Log.triage.error("log tail failed: \(String(describing: error))")
+            return nil
+        }
     }
 }

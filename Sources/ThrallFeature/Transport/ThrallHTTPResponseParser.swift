@@ -1,12 +1,12 @@
 import Foundation
 
 /// The status line and header block of one response.
-public struct ThrallHTTPResponseHead: Equatable, Sendable {
-    public let statusCode: Int
-    public let reasonPhrase: String
-    public let headers: ThrallHTTPHeaders
+struct ThrallHTTPResponseHead: Equatable, Sendable {
+    let statusCode: Int
+    let reasonPhrase: String
+    let headers: ThrallHTTPHeaders
 
-    public var isSuccess: Bool { (200..<300).contains(statusCode) }
+    var isSuccess: Bool { (200..<300).contains(statusCode) }
 
     /// The media type with parameters stripped, lowercased — e.g.
     /// `application/vnd.docker.multiplexed-stream`.
@@ -14,7 +14,7 @@ public struct ThrallHTTPResponseHead: Equatable, Sendable {
     /// This one value decides how a log stream is framed, and getting it wrong
     /// renders garbage rather than failing, so the normalisation lives here
     /// once instead of at each call site.
-    public var contentType: String? {
+    var contentType: String? {
         guard let raw = headers.first("Content-Type") else { return nil }
         return raw.split(separator: ";", maxSplits: 1).first?
             .trimmingCharacters(in: .whitespaces).lowercased()
@@ -46,8 +46,8 @@ public struct ThrallHTTPResponseHead: Equatable, Sendable {
 ///     terminator: each throws. Once framing is lost HTTP/1.1 has no
 ///     resynchronisation point, so the only honest recovery is a new
 ///     connection — and this transport opens one per request anyway.
-public struct ThrallHTTPResponseParser {
-    public enum Output: Equatable, Sendable {
+struct ThrallHTTPResponseParser {
+    enum Output: Equatable, Sendable {
         case head(ThrallHTTPResponseHead)
         /// Decoded body bytes — dechunked, never empty, not necessarily
         /// aligned to any boundary the peer used.
@@ -66,12 +66,12 @@ public struct ThrallHTTPResponseParser {
     /// they are part of the contract rather than paranoia: `/events` frames
     /// carry a container's full label set and routinely exceed 1 KB, and a
     /// desynced chunk-size line can read as a gigabyte-scale hex number.
-    public struct Limits: Equatable, Sendable {
-        public var maximumStatusLine: Int
-        public var maximumHeaderBlock: Int
-        public var maximumChunkSize: Int
+    struct Limits: Equatable, Sendable {
+        var maximumStatusLine: Int
+        var maximumHeaderBlock: Int
+        var maximumChunkSize: Int
 
-        public init(
+        init(
             maximumStatusLine: Int = 8 * 1024,
             maximumHeaderBlock: Int = 256 * 1024,
             maximumChunkSize: Int = 64 * 1024 * 1024
@@ -81,7 +81,7 @@ public struct ThrallHTTPResponseParser {
             self.maximumChunkSize = maximumChunkSize
         }
 
-        public static let `default` = Limits()
+        static let `default` = Limits()
     }
 
     enum State: Equatable {
@@ -113,19 +113,19 @@ public struct ThrallHTTPResponseParser {
     var headers = ThrallHTTPHeaders()
     var trailers = ThrallHTTPHeaders()
 
-    public init(limits: Limits = .default) {
+    init(limits: Limits = .default) {
         self.limits = limits
     }
 
     /// True once `.end` or `.upgraded` has been emitted.
-    public var isFinished: Bool {
+    var isFinished: Bool {
         state == .complete || state == .upgraded
     }
 
     /// Feeds a read's worth of bytes and returns the framing events they
     /// completed. An empty return is normal — a partial header line produces
     /// nothing.
-    public mutating func feed(_ bytes: Data) throws -> [Output] {
+    mutating func feed(_ bytes: Data) throws -> [Output] {
         switch state {
         case .failed:
             throw ThrallTransportError.malformedResponse("parser already failed")
@@ -151,7 +151,7 @@ public struct ThrallHTTPResponseParser {
 
     /// Reports end-of-connection. For a body with no declared length this is
     /// the legitimate terminator; anywhere else it is a truncated response.
-    public mutating func finish() throws -> [Output] {
+    mutating func finish() throws -> [Output] {
         switch state {
         case .complete, .upgraded:
             return []

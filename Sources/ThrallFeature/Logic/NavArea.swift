@@ -7,7 +7,7 @@ import Foundation
 /// containers across 5 compose projects is 48 rows the user never thinks in,
 /// and the most valuable surface — what is broken right now — is not a
 /// destination there at all, only a filter on a list.
-public enum NavArea: String, CaseIterable, Identifiable, Sendable {
+enum NavArea: String, CaseIterable, Identifiable, Sendable {
     /// What is wrong right now. First, and the only area that carries a badge.
     case triage
     /// Compose projects. The core object, and the default landing area.
@@ -22,9 +22,9 @@ public enum NavArea: String, CaseIterable, Identifiable, Sendable {
     /// back") that would otherwise wear three nouns.
     case storage
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
-    public var title: String {
+    var title: String {
         switch self {
         case .triage: return "Triage"
         case .stacks: return "Stacks"
@@ -36,7 +36,7 @@ public enum NavArea: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// SF Symbol name, tinted from the host theme at the call site.
-    public var icon: String {
+    var icon: String {
         switch self {
         case .triage: return "exclamationmark.triangle"
         case .stacks: return "square.stack.3d.up"
@@ -52,5 +52,5 @@ public enum NavArea: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    public static var built: [NavArea] { allCases }
+    static var built: [NavArea] { allCases }
 }

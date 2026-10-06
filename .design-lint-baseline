@@ -12,7 +12,7 @@ raw-control 3
 file-length 0
 try-bang 0
 force-cast 0
-force-unwrap 3
+force-unwrap 0
 print 0
 opacity-literal 44
 frame-literal 12

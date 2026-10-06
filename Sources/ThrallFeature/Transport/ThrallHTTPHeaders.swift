@@ -12,26 +12,26 @@ import Foundation
 ///
 /// Insertion order is preserved because it is the only thing that makes a
 /// captured response byte-comparable in a test.
-public struct ThrallHTTPHeaders: Equatable, Sendable {
+struct ThrallHTTPHeaders: Equatable, Sendable {
     /// As received, in order. The spelling is kept for display and fixtures.
-    public private(set) var fields: [(name: String, value: String)] = []
+    private(set) var fields: [(name: String, value: String)] = []
     /// Lowercased name -> every value under it, in order.
     private var index: [String: [String]] = [:]
 
-    public init() {}
+    init() {}
 
-    public init(_ fields: [(String, String)]) {
+    init(_ fields: [(String, String)]) {
         for field in fields { append(name: field.0, value: field.1) }
     }
 
-    public mutating func append(name: String, value: String) {
+    mutating func append(name: String, value: String) {
         fields.append((name, value))
         index[name.lowercased(), default: []].append(value)
     }
 
     /// The first value under `name`, or nil. Use this for a field that is
     /// singular by definition (`Content-Type`, `Api-Version`).
-    public func first(_ name: String) -> String? {
+    func first(_ name: String) -> String? {
         index[name.lowercased()]?.first
     }
 
@@ -39,15 +39,15 @@ public struct ThrallHTTPHeaders: Equatable, Sendable {
     /// legal and *meaningful* — `Content-Length` appearing twice with
     /// different values is a framing attack, and the parser must be able to
     /// see both to refuse it rather than take the first and continue.
-    public func values(_ name: String) -> [String] {
+    func values(_ name: String) -> [String] {
         index[name.lowercased()] ?? []
     }
 
-    public func contains(_ name: String) -> Bool {
+    func contains(_ name: String) -> Bool {
         index[name.lowercased()] != nil
     }
 
-    public static func == (lhs: ThrallHTTPHeaders, rhs: ThrallHTTPHeaders) -> Bool {
+    static func == (lhs: ThrallHTTPHeaders, rhs: ThrallHTTPHeaders) -> Bool {
         lhs.fields.count == rhs.fields.count
             && zip(lhs.fields, rhs.fields).allSatisfy { $0.name == $1.name && $0.value == $1.value }
     }

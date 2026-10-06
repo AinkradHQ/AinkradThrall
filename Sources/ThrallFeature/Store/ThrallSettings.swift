@@ -4,21 +4,21 @@ import Foundation
 /// Thrall's own settings. Presentation (overlay vs pane) is **not** here — it
 /// lives in the host, through `HostServices.presentation`, so the host can act
 /// on it before any of Thrall's code runs.
-public struct ThrallSettings: Codable, Equatable, Sendable {
+struct ThrallSettings: Codable, Equatable, Sendable {
     /// Show the pseudo-stack holding containers with no compose project.
     /// Defaults on: two containers here have no labels at all, and an
     /// invisible running container is the worst thing a container manager can
     /// do.
-    public var showUnmanaged: Bool
+    var showUnmanaged: Bool
     /// Confirm before taking a stack down. On by default because `down`
     /// destroys state; `restart` and `up` never confirm.
-    public var confirmBeforeDown: Bool
+    var confirmBeforeDown: Bool
     /// Seconds between reconcile polls. The floor exists because `/events` can
     /// die silently on an engine restart, after which a purely event-driven UI
     /// freezes on stale state.
-    public var pollSeconds: Int
+    var pollSeconds: Int
 
-    public init(
+    init(
         showUnmanaged: Bool = true,
         confirmBeforeDown: Bool = true,
         pollSeconds: Int = 10
@@ -28,25 +28,25 @@ public struct ThrallSettings: Codable, Equatable, Sendable {
         self.pollSeconds = pollSeconds
     }
 
-    public static let `default` = ThrallSettings()
+    static let `default` = ThrallSettings()
     /// Clamped, so a hand-edited document cannot busy-loop the engine.
-    public var effectivePollSeconds: Int { min(max(pollSeconds, 2), 300) }
+    var effectivePollSeconds: Int { min(max(pollSeconds, 2), 300) }
 }
 
 /// The one observable settings store per plugin instance, shared by the root
 /// view, the settings pane and `chromeFill` — the trio that must agree, and
 /// that used to be three separate reads in every plugin.
 @MainActor
-public final class ThrallSettingsStore: ObservableObject {
+final class ThrallSettingsStore: ObservableObject {
     private static let documentKey = "thrall.settings.v1"
     private let documents: any PluginDocumentStore
     private var canSave = true
 
-    @Published public var settings: ThrallSettings {
+    @Published var settings: ThrallSettings {
         didSet { persist() }
     }
 
-    public init(documents: any PluginDocumentStore) {
+    init(documents: any PluginDocumentStore) {
         self.documents = documents
         let loaded = loadDocument(
             ThrallSettings.self, key: Self.documentKey, from: documents, app: "thrall")

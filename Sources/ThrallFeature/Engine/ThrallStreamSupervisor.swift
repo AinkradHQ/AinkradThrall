@@ -20,17 +20,17 @@ import Foundation
 /// A purely event-driven surface then freezes on stale state forever. So this
 /// reconnects with jittered backoff — and the view model's 10 s poll is the
 /// floor underneath it, which converges even if every reconnect fails.
-public actor ThrallStreamSupervisor {
-    public typealias EventHandler = @Sendable (ThrallEvent) async -> Void
+actor ThrallStreamSupervisor {
+    typealias EventHandler = @Sendable (ThrallEvent) async -> Void
     /// Called whenever the stream (re)connects or drops, so the UI can say so.
-    public typealias StateHandler = @Sendable (Bool) async -> Void
+    typealias StateHandler = @Sendable (Bool) async -> Void
 
     private let socketPath: String
     private let apiVersion: ThrallAPIVersion
     private let streamFactory: @Sendable () -> any ThrallByteStream
     private var task: Task<Void, Never>?
 
-    public init(
+    init(
         socketPath: String,
         apiVersion: ThrallAPIVersion,
         streamFactory: (@Sendable () -> any ThrallByteStream)? = nil
@@ -46,7 +46,7 @@ public actor ThrallStreamSupervisor {
         #"{"type":["container"],"#
         + #""event":["start","die","stop","kill","restart","create","destroy"]}"#
 
-    public func start(
+    func start(
         onEvent: @escaping EventHandler,
         onConnected: @escaping StateHandler = { _ in }
     ) {
@@ -67,6 +67,8 @@ public actor ThrallStreamSupervisor {
                     return
                 } catch {
                     attempt += 1
+                    Log.transport.error(
+                        "events stream dropped, retry \(attempt, privacy: .public): \(String(describing: error))")
                 }
                 await onConnected(false)
                 guard !Task.isCancelled else { return }
@@ -85,7 +87,7 @@ public actor ThrallStreamSupervisor {
         return .seconds(base * Double.random(in: 0.7...1.3))
     }
 
-    public func stop() {
+    func stop() {
         task?.cancel()
         task = nil
     }
@@ -96,7 +98,7 @@ public actor ThrallStreamSupervisor {
         onEvent: @escaping EventHandler,
         onConnected: @escaping StateHandler
     ) async throws {
-        let target = ThrallEngineClient.target(
+        let target = try ThrallEngineClient.target(
             apiVersion.pathPrefix + "/events",
             query: [("filters", eventFilters)])
         try await stream.connect()

@@ -26,16 +26,16 @@ import Foundation
 ///  4. **Identifiers are validated.** A service named `--rm` in a cloned
 ///     compose file becomes a flag the moment it is interpolated into argv.
 ///     Compose's own identifier rule is the allowlist.
-public enum ThrallComposeArgumentGuard {
+enum ThrallComposeArgumentGuard {
     /// The complete set of compose subcommands Thrall will run. `ls` is
     /// advisory only — it under-reports (2 of 5 projects here) and never
     /// decides anything.
-    public static let allowedSubcommands: Set<String> = [
+    static let allowedSubcommands: Set<String> = [
         "config", "up", "down", "start", "stop", "restart", "pull", "build", "ps", "ls",
     ]
 
     /// Bare options with no value.
-    public static let allowedFlags: Set<String> = [
+    static let allowedFlags: Set<String> = [
         "-d", "--detach", "--no-deps", "--remove-orphans", "--wait", "--quiet-pull",
         "--all", "--services", "--no-color", "--dry-run", "--timestamps",
         "--", "--end-of-options",
@@ -44,7 +44,7 @@ public enum ThrallComposeArgumentGuard {
     /// Options that take a value, mapped to the values that are permitted.
     /// An empty set means "any value, validated separately as a path or
     /// identifier".
-    public static let allowedValueOptions: [String: Set<String>] = [
+    static let allowedValueOptions: [String: Set<String>] = [
         // Pinned: `--format` otherwise accepts a Go template.
         "--format": ["json"],
         "--ansi": ["never"],
@@ -58,13 +58,13 @@ public enum ThrallComposeArgumentGuard {
 
     /// Rejected however they are spelled. Each one either reads a file into the
     /// environment or selects a *different engine* than the one on screen.
-    public static let forbiddenOptions: Set<String> = [
+    static let forbiddenOptions: Set<String> = [
         "--env-file", "--context", "-c", "-H", "--host",
         "--tls", "--tlsverify", "--tlscacert", "--tlscert", "--tlskey",
         "--parallel", "--profile", "--compatibility",
     ]
 
-    public enum Rejection: Error, Equatable, Sendable {
+    enum Rejection: LocalizedError, Equatable, Sendable {
         case subcommand(String)
         case option(String)
         case optionValue(option: String, value: String)
@@ -72,7 +72,9 @@ public enum ThrallComposeArgumentGuard {
         case identifier(String)
         case missingValue(String)
 
-        public var message: String {
+        var errorDescription: String? { message }
+
+        var message: String {
             switch self {
             case .subcommand(let name):
                 return "compose subcommand \(name.debugDescription) is not allowed"
@@ -93,7 +95,7 @@ public enum ThrallComposeArgumentGuard {
 
     /// Compose's identifier rule. Anchored at both ends, which is the point: a
     /// value that merely *contains* something valid is still rejected.
-    public static func isValidIdentifier(_ value: String) -> Bool {
+    static func isValidIdentifier(_ value: String) -> Bool {
         guard !value.isEmpty, value.count <= 255 else { return false }
         guard let first = value.first, first.isASCII, first.isLetter || first.isNumber else {
             return false
@@ -108,7 +110,7 @@ public enum ThrallComposeArgumentGuard {
     /// Checks a full argument vector, `compose` first.
     ///
     /// Returns nil when every argument is one this module authored.
-    public static func rejection(in arguments: [String]) -> Rejection? {
+    static func rejection(in arguments: [String]) -> Rejection? {
         guard let first = arguments.first, first == "compose" else {
             return .subcommand(arguments.first ?? "")
         }

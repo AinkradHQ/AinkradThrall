@@ -11,26 +11,26 @@ import Foundation
 /// only when the timing lines up. That is a bug that reproduces once a week
 /// and never on demand, so the residual is a constructor argument rather than
 /// something a call site is trusted to remember.
-public actor ThrallHijackedStream: ThrallByteStream {
+actor ThrallHijackedStream: ThrallByteStream {
     private let upstream: any ThrallByteStream
     /// Nil once handed out. Not appended to a buffer, so the first read after
     /// an upgrade returns exactly the bytes the engine already sent rather
     /// than waiting for more.
     private var residual: Data?
 
-    public init(upstream: any ThrallByteStream, residual: Data) {
+    init(upstream: any ThrallByteStream, residual: Data) {
         self.upstream = upstream
         self.residual = residual.isEmpty ? nil : residual
     }
 
     /// A no-op: the connection under this one is already open and upgraded.
-    public func connect() async throws {}
+    func connect() async throws {}
 
-    public func send(_ bytes: Data) async throws {
+    func send(_ bytes: Data) async throws {
         try await upstream.send(bytes)
     }
 
-    public func read(timeout: Duration?) async throws -> Data {
+    func read(timeout: Duration?) async throws -> Data {
         if let pending = residual {
             residual = nil
             return pending
@@ -38,7 +38,7 @@ public actor ThrallHijackedStream: ThrallByteStream {
         return try await upstream.read(timeout: timeout)
     }
 
-    public func close() async {
+    func close() async {
         residual = nil
         await upstream.close()
     }
