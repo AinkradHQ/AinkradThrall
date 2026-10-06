@@ -131,7 +131,7 @@ private struct StackRow: View {
                             .fixedSize()
                     }
                     AinkradStackedStatusBar(runs: statusRuns(for: stack.breakdown))
-                        .frame(width: 64)
+                        .frame(width: 64)  // design-lint: allow frame-literal token-gap stackedStatusBar.width
                     Text("\(stack.containerCount)")
                         .font(.system(size: 11, weight: .medium).monospacedDigit())
                         .foregroundStyle(theme.foreground.opacity(0.6))
