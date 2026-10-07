@@ -216,7 +216,7 @@ private struct ServiceRow: View {
                                 .opacity(service.containers.isEmpty ? 0 : skin.opacity.o45))
                     AinkradIconGlyph(
                         systemName: "shippingbox",
-                        size: 13)  // design-lint: allow frame-literal token-gap size.s13
+                        size: skin.size.s13)
                 }
                 .padding(.leading, AinkradSpacing.lg)
             },

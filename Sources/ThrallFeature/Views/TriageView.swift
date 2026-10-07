@@ -95,7 +95,7 @@ private struct IncidentCard: View {
                             ? 1
                             : spinnerPulseOpacity(
                                 date: date,
-                                period: 1.4))  // design-lint: allow motion-literal token-gap motion.durations.d1_4
+                                period: skin.motion.durations.d1_4))
             }
             .frame(width: skin.size.s8, height: skin.size.s8)
 
