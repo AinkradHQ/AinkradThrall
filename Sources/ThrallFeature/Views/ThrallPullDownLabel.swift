@@ -15,10 +15,28 @@ struct ThrallPullDownLabel<Content: View>: View {
     @Environment(\.ainkradSkin) private var skin
     @Environment(\.ainkradTypography) private var typo
 
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if #available(macOS 26, *), skin.usesNativeGlass {
+            // Liquid Glass: Apple's pop-up button look — the value and the
+            // up/down chevrons on an interactive glass capsule.
+            HStack(spacing: skin.spacing.xs) {
+                content
+                Image(systemName: "chevron.up.chevron.down")
+                    .imageScale(.small)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, skin.spacing.md)
+            .padding(.vertical, skin.spacing.sm)
+            .glassEffect(.regular.interactive(), in: .capsule)
+        } else {
+            kitBody
+        }
+    }
+
+    private var kitBody: some View {
         let trigger = skin.roles.trigger
         let shape = AinkradSkinShape(token: trigger.shape)
-        HStack(spacing: skin.spacing.xs) {
+        return HStack(spacing: skin.spacing.xs) {
             content
             Image(systemName: "chevron.down")
                 .font(skin.font(trigger.chevron, typography: typo))
