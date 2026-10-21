@@ -9,7 +9,7 @@ struct ThrallProcessRunnerTests {
     /// `DockerBackend`'s own test seam — so "docker is missing" is a
     /// deterministic state rather than something that depends on the machine.
     private var missingBinary: ThrallDockerBinary {
-        ThrallDockerBinary(primaryPath: "/nonexistent/docker", fallbackPaths: [])
+        ThrallDockerBinary(primaryPath: "/nonexistent/docker", fallbackPaths: [], standaloneComposePath: nil)
     }
 
     @Test("a missing docker binary fails closed with the paths it tried")
@@ -55,6 +55,21 @@ struct ThrallProcessRunnerTests {
             ).resolve()
                 == "/bin/sh")
         #expect(missingBinary.resolve() == nil)
+    }
+
+    @Test("with no docker, a compose command runs the standalone docker-compose without its first word")
+    func standaloneComposeFallback() throws {
+        let binary = ThrallDockerBinary(
+            primaryPath: "/nonexistent/docker", fallbackPaths: [], standaloneComposePath: "/bin/sh")
+        let invocation = try #require(binary.invocation(for: ["compose", "--ansi", "never", "ls"]))
+        #expect(invocation.executable == "/bin/sh")
+        #expect(invocation.arguments == ["--ansi", "never", "ls"])
+        // Only compose has a standalone binary.
+        #expect(binary.invocation(for: ["ps"]) == nil)
+        // A real docker always wins.
+        let both = ThrallDockerBinary(primaryPath: "/bin/sh", fallbackPaths: [], standaloneComposePath: "/bin/ls")
+        #expect(both.invocation(for: ["compose", "ls"])?.executable == "/bin/sh")
+        #expect(both.invocation(for: ["compose", "ls"])?.arguments == ["compose", "ls"])
     }
 
     @Test("the not-found message lists each path once")
