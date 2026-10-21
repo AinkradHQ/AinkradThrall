@@ -22,6 +22,10 @@ sideload: build
 	rm -rf "$(DEV_PLUGINS)/ThrallPlugin.bundle"
 	cp -R build/Build/Products/Debug/ThrallPlugin.bundle "$(DEV_PLUGINS)/ThrallPlugin.bundle"
 
+# The guest image Thrall's own engine boots. Needs a running Docker engine to
+# build; writes build/engine-image.
+engine-image: ; ./scripts/build-engine-image.sh
+
 # Publishing goes through scripts/release.sh, as it does in every other plugin
 # repo. `ainkrad publish` is NOT sufficient on its own: it does not codesign,
 # and the host demands a Developer-ID signature on every plugin as soon as the
@@ -41,6 +45,6 @@ releasebuild: generate
 #   SIGN_IDENTITY="Developer ID Application: ULINK sp. z o.o. (RT9AA68C38)" make release V=v0.1.0
 release: ; ./scripts/release.sh $(V)
 
-.PHONY: generate build test sideload release releasebuild
+.PHONY: generate build test sideload release releasebuild engine-image
 
 include scripts/guardrails.mk

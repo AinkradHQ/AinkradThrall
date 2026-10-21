@@ -1,0 +1,13 @@
+#!/sbin/openrc-run
+# Serves dockerd's socket on vsock port 2375. The host helper connects to this
+# port and serves it on the Mac as ~/.thrall/run/docker.sock.
+
+description="Bridge dockerd's socket to vsock"
+command=/usr/bin/socat
+command_args="VSOCK-LISTEN:2375,fork,reuseaddr UNIX-CONNECT:/var/run/docker.sock"
+command_background=yes
+pidfile=/run/thrall-socket.pid
+
+depend() {
+	need docker
+}

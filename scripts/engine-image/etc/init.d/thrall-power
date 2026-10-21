@@ -1,0 +1,14 @@
+#!/sbin/openrc-run
+# Powers the guest off when the host helper connects to vsock port 2376.
+#
+# The VM's power button is a device-tree `gpio-keys` device, and Alpine's
+# kernels are built without that driver, so `requestStop()` never reaches the
+# guest. A vsock connection can only come from the host, so this is the
+# graceful-stop path; the host's force-stop after the grace period still
+# covers a guest that hangs.
+
+description="Power off when the host asks over vsock"
+command=/usr/bin/socat
+command_args="VSOCK-LISTEN:2376,reuseaddr SYSTEM:/sbin/poweroff"
+command_background=yes
+pidfile=/run/thrall-power.pid
