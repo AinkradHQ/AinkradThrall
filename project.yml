@@ -96,13 +96,44 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
 
+  # The helper that owns the Linux VM behind Thrall's own engine. It runs
+  # outside the host process (launchd starts it), so it links no AinkradAppKit.
+  # Signed ad hoc even in Debug: Virtualization.framework refuses to create a
+  # VM in a process without the entitlement, and an unsigned binary has none.
+  ThrallEngine:
+    type: tool
+    platform: macOS
+    sources:
+      - path: Sources/ThrallEngine
+    settings:
+      base:
+        PRODUCT_NAME: thrall-engine
+        CODE_SIGNING_ALLOWED: YES
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_ENTITLEMENTS: config/ThrallEngine.entitlements
+
+  # Compiles the helper's Core sources directly: an executable target cannot
+  # be imported, and Core is the part with logic worth testing.
+  ThrallEngineTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/ThrallEngineTests
+      - path: Sources/ThrallEngine/Core
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+
 schemes:
   ThrallPlugin:
     build:
       targets:
         ThrallPlugin: all
+        ThrallEngine: all
         ThrallFeatureTests: [test]
+        ThrallEngineTests: [test]
     test:
       config: Debug
       targets:
         - ThrallFeatureTests
+        - ThrallEngineTests
