@@ -2,8 +2,9 @@ import Foundation
 import Virtualization
 
 /// Builds the VM: direct Linux boot, a read-write root disk, the data disk,
-/// NAT networking, a vsock device (the Docker socket bridge) and a console
-/// written to `console.log`.
+/// NAT networking, the home folder over virtiofs, a vsock device (the Docker
+/// socket bridge and the power channel) and a console written to
+/// `console.log`.
 enum ThrallVZConfiguration {
     static func make(
         spec: ThrallVMSpec,
@@ -15,7 +16,9 @@ enum ThrallVZConfiguration {
 
         let bootLoader = VZLinuxBootLoader(kernelURL: paths.kernel)
         bootLoader.initialRamdiskURL = paths.initialRamdisk
-        bootLoader.commandLine = ThrallVMSpec.kernelCommandLine
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let sharedHome = ThrallVMSpec.sharedHome(home.path)
+        bootLoader.commandLine = ThrallVMSpec.kernelCommandLine(sharedHome: sharedHome)
 
         let configuration = VZVirtualMachineConfiguration()
         configuration.platform = VZGenericPlatformConfiguration()
@@ -41,6 +44,12 @@ enum ThrallVZConfiguration {
         serial.attachment = VZFileHandleSerialPortAttachment(
             fileHandleForReading: nil, fileHandleForWriting: console)
         configuration.serialPorts = [serial]
+
+        if sharedHome != nil {
+            let share = VZVirtioFileSystemDeviceConfiguration(tag: "home")
+            share.share = VZSingleDirectoryShare(directory: VZSharedDirectory(url: home, readOnly: false))
+            configuration.directorySharingDevices = [share]
+        }
 
         configuration.socketDevices = [VZVirtioSocketDeviceConfiguration()]
         configuration.entropyDevices = [VZVirtioEntropyDeviceConfiguration()]

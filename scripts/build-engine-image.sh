@@ -39,14 +39,14 @@ cp /etc/apk/repositories $R/etc/apk/
 apk add -q --root $R --initdb $PACKAGES >/dev/null
 
 cp -r /overlay/. $R/
-chmod 755 $R/etc/init.d/thrall-data $R/etc/init.d/thrall-socket $R/etc/init.d/thrall-power
+chmod 755 $R/etc/init.d/thrall-data $R/etc/init.d/thrall-socket $R/etc/init.d/thrall-power $R/etc/init.d/thrall-home
 echo thrall > $R/etc/hostname
 echo "hvc0::respawn:/sbin/getty -L 0 hvc0 vt100" >> $R/etc/inittab
 
 chroot $R sh -c "
   for s in devfs dmesg mdev hwdrivers; do rc-update -q add \$s sysinit; done
   for s in modules sysctl hostname bootmisc syslog cgroups; do rc-update -q add \$s boot; done
-  for s in networking thrall-data docker thrall-socket thrall-power; do rc-update -q add \$s default; done
+  for s in networking thrall-data thrall-home docker thrall-socket thrall-power; do rc-update -q add \$s default; done
   for s in mount-ro killprocs savecache; do rc-update -q add \$s shutdown; done
 "
 

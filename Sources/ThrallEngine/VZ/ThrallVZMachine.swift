@@ -10,12 +10,15 @@ import Virtualization
 final class ThrallVZMachine: NSObject, ThrallVirtualMachine {
     private let machine: VZVirtualMachine
     private let console: FileHandle
+    /// The guest's MAC, used to find its IP in the DHCP lease file.
+    let macAddress: String?
     private var stopReason: ThrallVMStopReason?
     private var waiters: [CheckedContinuation<ThrallVMStopReason, Never>] = []
 
     init(configuration: VZVirtualMachineConfiguration, console: FileHandle) {
         machine = VZVirtualMachine(configuration: configuration)
         self.console = console
+        macAddress = configuration.networkDevices.first?.macAddress.string
         super.init()
         machine.delegate = self
     }
@@ -42,6 +45,26 @@ final class ThrallVZMachine: NSObject, ThrallVirtualMachine {
 
     /// Matches `thrall-power` in the guest image.
     static let powerPort: UInt32 = 2376
+    /// Matches `thrall-socket` in the guest image.
+    static let dockerPort: UInt32 = 2375
+
+    /// Connects to a vsock port in the guest and returns a socket descriptor
+    /// the caller owns.
+    ///
+    /// The descriptor is a `dup` of the connection's own, and the connection
+    /// object is closed at once: the socket stays open until the caller
+    /// closes its copy, and the caller never has to keep a Virtualization
+    /// object alive off the main actor.
+    func connect(toPort port: UInt32) async throws -> Int32 {
+        guard let socket = machine.socketDevices.first as? VZVirtioSocketDevice else {
+            throw ThrallEngineConfigError.invalidConfiguration("the VM has no vsock device")
+        }
+        let connection = try await socket.connect(toPort: port)
+        let descriptor = dup(connection.fileDescriptor)
+        connection.close()
+        guard descriptor >= 0 else { throw POSIXError(.EBADF) }
+        return descriptor
+    }
 
     func forceStop() async throws {
         // `stop()` does not call the delegate, so the stop is recorded here.

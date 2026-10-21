@@ -33,12 +33,34 @@ while let flag = arguments.first {
 let paths = ThrallEnginePaths.user(imageDirectory: imageDirectory)
 let spec = ThrallVMSpec.defaults()
 
+// A write to a socket whose peer has gone must fail with EPIPE, not kill the
+// helper and every container connection with it.
+signal(SIGPIPE, SIG_IGN)
+
+let services = ThrallEngineServices(paths: paths, log: log)
+do {
+    try services.start()
+} catch {
+    log("cannot serve \(services.dockerSocketPath): \(error)")
+    exit(1)
+}
+
+var currentMachine: ThrallVZMachine?
 let supervisor = ThrallEngineSupervisor {
     let console = try ThrallEngineDisk.openConsoleLog(at: paths.consoleLog)
     let configuration = try ThrallVZConfiguration.make(spec: spec, paths: paths, console: console)
-    return ThrallVZMachine(configuration: configuration, console: console)
+    let machine = ThrallVZMachine(configuration: configuration, console: console)
+    currentMachine = machine
+    return machine
 }
-supervisor.onStateChange = { log("\($0)") }
+supervisor.onStateChange = { state in
+    log("\(state)")
+    if state == .running, let currentMachine {
+        services.machineDidStart(currentMachine)
+    } else if state != .running {
+        services.machineDidStop()
+    }
+}
 
 // Signals are handled by dispatch sources, so the default handlers must not
 // kill the process first.
@@ -57,6 +79,7 @@ for number in [SIGTERM, SIGINT] {
 
 Task { @MainActor in
     await supervisor.run()
+    services.stop()
     if case .failed(let reason) = supervisor.state {
         log(reason)
         exit(78)  // EX_CONFIG: launchd must not restart a broken configuration.

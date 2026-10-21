@@ -21,6 +21,19 @@ struct ThrallVMSpec: Sendable, Equatable {
     /// The guest kernel's command line. `rw` because the guest writes
     /// `/etc/resolv.conf` and logs to its root; user data still lives on the
     /// separate data disk, so replacing the root filesystem stays safe.
-    static let kernelCommandLine =
-        "console=hvc0 root=/dev/vda rootfstype=ext4 rw modules=virtio_blk,ext4"
+    ///
+    /// `thrall.home` tells the guest's `thrall-home` service where to mount
+    /// the shared home folder: the same path as on the Mac, so a compose bind
+    /// mount like `./src:/app` resolves unchanged.
+    static func kernelCommandLine(sharedHome: String?) -> String {
+        let base = "console=hvc0 root=/dev/vda rootfstype=ext4 rw modules=virtio_blk,ext4"
+        return sharedHome.map { "\(base) thrall.home=\($0)" } ?? base
+    }
+
+    /// The home folder to share, or nil when its path has whitespace: the
+    /// kernel command line splits on it, and a half path would mount in the
+    /// wrong place.
+    static func sharedHome(_ path: String) -> String? {
+        path.contains(where: \.isWhitespace) ? nil : path
+    }
 }
