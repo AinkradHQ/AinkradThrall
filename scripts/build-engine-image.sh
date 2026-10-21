@@ -4,7 +4,9 @@
 #
 #   scripts/build-engine-image.sh [OUT_DIR]     (default: build/engine-image)
 #
-# Writes Image, initramfs, rootfs.img and manifest.json (SHA-256 of each).
+# Writes Image, initramfs, rootfs.img and manifest.json (SHA-256 of each),
+# plus thrall-engine-image.tar.gz, the release asset the plugin downloads.
+# bsdtar keeps rootfs.img sparse both ways: 2 GiB apparent, ~300 MB on disk.
 #
 # Build-time only: it needs a Docker engine to run an arm64 Alpine container,
 # which is where apk, mkinitfs and mke2fs live. The image it produces is what
@@ -76,4 +78,6 @@ cd "$OUT"
   printf '\n  }\n}\n'
 } > manifest.json
 rm kernel-version
+tar -czf thrall-engine-image.tar.gz Image initramfs rootfs.img manifest.json
 echo "build-engine-image: wrote $OUT"
+shasum -a 256 thrall-engine-image.tar.gz
