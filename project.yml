@@ -61,6 +61,15 @@ targets:
       - target: ThrallFeature
       - package: AinkradAppKit
         embed: false
+      # thrall-engine ships inside the bundle at Contents/Helpers; the
+      # installer copies it to ~/.thrall/bin, a path launchd can keep using
+      # across plugin updates.
+      - target: ThrallEngine
+        link: false
+        embed: true
+        copy:
+          destination: wrapper
+          subpath: Contents/Helpers
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ainkrad.plugin.thrall
