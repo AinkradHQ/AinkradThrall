@@ -28,6 +28,7 @@ struct ThrallVMSpec: Sendable, Equatable {
         if let config {
             spec.cpuCount = max(1, min(config.cpuCount, processorCount))
             spec.memoryBytes = UInt64(max(1, config.memoryGiB)) * gibibyte
+            spec.dataDiskBytes = UInt64(max(ThrallEngineConfig.defaultDiskGiB, config.diskGiB)) * gibibyte
         }
         return spec
     }

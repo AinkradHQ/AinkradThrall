@@ -18,6 +18,9 @@ struct ThrallEnginePanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AinkradSpacing.md) {
             header
+            if engine.updateAvailable, engine.phase.isInstalled {
+                update
+            }
             content
             if let error = engine.actionError {
                 AinkradBadge(text: error, status: .danger)
@@ -73,6 +76,17 @@ struct ThrallEnginePanel: View {
 
     private var dotColor: Color {
         ThrallEngineDot.color(for: engine.phase, theme: theme, skin: skin)
+    }
+
+    /// An update replaces the VM image and the helper, never the data disk,
+    /// and it restarts the engine: so it says both before the click.
+    private var update: some View {
+        HStack(spacing: AinkradSpacing.sm) {
+            AinkradCaption(
+                "An engine update is available. Updating restarts the engine; containers and volumes are kept.")
+            Spacer(minLength: 0)
+            AinkradButton(title: "Update", style: .primary) { engine.install() }
+        }
     }
 
     // MARK: - Content
