@@ -8,7 +8,7 @@ enum ThrallEngineConfigError: Error, Equatable, CustomStringConvertible {
     var description: String {
         switch self {
         case .missingImageFile(let path):
-            return "The engine image is incomplete: \(path) does not exist. Run scripts/build-engine-image.sh."
+            return "The engine image is incomplete: \(path) does not exist."
         case .invalidMACAddress(let value):
             return "The saved MAC address \"\(value)\" is not valid. Delete ~/.thrall/vm/mac to regenerate it."
         case .invalidConfiguration(let reason):

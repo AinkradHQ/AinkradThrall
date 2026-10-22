@@ -73,6 +73,9 @@ final class ThrallViewModel: ObservableObject {
     /// Images, storage and networks. Its `/system/df` read costs 1.86 s, so it
     /// is loaded on demand by its own areas and never by `refresh()`.
     let storage = ThrallStorageModel()
+    /// Thrall's own engine: installed or not, running or not. Its own model
+    /// because it changes on its own schedule, not on the engine poll.
+    let ownEngine = ThrallOwnEngineModel()
 
     init(
         host: HostServices,
@@ -104,6 +107,7 @@ final class ThrallViewModel: ObservableObject {
 
     func bootstrap() {
         guard case .idle = state else { return }
+        ownEngine.onBecameReady = { [weak self] in self?.ownEngineBecameReady() }
         resolveContexts()
         Task { await refresh() }
     }
@@ -115,6 +119,7 @@ final class ThrallViewModel: ObservableObject {
     /// poll is what guarantees the screen converges on the truth even when
     /// every other mechanism has failed.
     func startPolling() {
+        ownEngine.startPolling()
         guard pollTask == nil else { return }
         let seconds = settings.settings.effectivePollSeconds
         pollTask = Task { [weak self] in
@@ -127,6 +132,7 @@ final class ThrallViewModel: ObservableObject {
     }
 
     func shutdown() {
+        ownEngine.stopPolling()
         pollTask?.cancel()
         pollTask = nil
         // The one long-lived socket in the app. An uncancelled `NWConnection`
@@ -160,6 +166,47 @@ final class ThrallViewModel: ObservableObject {
         logs.tail(containers: containers) { id in
             try await client.logs(containerID: id, tail: 400)
         }
+    }
+
+    // MARK: - Thrall's own engine
+
+    /// The engine just came up. Its context may be new (a first install
+    /// registers it), so the store is re-read; and when nothing else was
+    /// working, or the user was already on it, Thrall switches to it.
+    private func ownEngineBecameReady() {
+        let resolution = resolver.resolve()
+        contexts = resolution.contexts
+        contextNotes = resolution.notes
+        let onOwnEngine = activeContext?.name == ThrallOwnEngine.contextName
+        let nothingWorking: Bool = {
+            if case .failed = state { return true }
+            return activeContext == nil
+        }()
+        if onOwnEngine || nothingWorking { selectOwnEngine() }
+    }
+
+    /// Switches to the `thrall` context, starting the engine first when it
+    /// is installed but stopped, so the user is never switched to a dead
+    /// socket.
+    func selectOwnEngine() {
+        if ownEngine.phase == .stopped { ownEngine.start() }
+        guard let context = contexts.first(where: { $0.name == ThrallOwnEngine.contextName }) else { return }
+        select(context)
+        Task { await refresh() }
+    }
+
+    /// What uninstalling would delete, read from the engine itself. Nil when
+    /// it is not running, and the confirmation then says "everything".
+    func countOwnEngineContents() async -> ThrallEngineContents? {
+        guard ownEngine.phase.isRunning,
+            let client = try? ThrallEngineClient(endpoint: .unixSocket(path: ownEngine.paths.dockerSocket.path)),
+            let containers = try? await client.containers(all: true),
+            let images = try? await client.images(),
+            let volumes = try? await client.volumes()
+        else { return nil }
+        return ThrallEngineContents(
+            containers: containers.count, images: images.count,
+            volumeNames: volumes.volumes.map(\.name).sorted())
     }
 
     // MARK: - Row interaction

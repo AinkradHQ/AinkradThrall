@@ -81,6 +81,32 @@ enum ThrallOwnEngine {
         return try PropertyListSerialization.data(fromPropertyList: job, format: .xml, options: 0)
     }
 
+    /// Virtualization.framework runs Linux guests on Intel too, but the
+    /// published image is arm64 only.
+    static var isAppleSilicon: Bool {
+        var value: Int32 = 0
+        var size = MemoryLayout<Int32>.size
+        return sysctlbyname("hw.optional.arm64", &value, &size, nil, 0) == 0 && value == 1
+    }
+
+    /// The VM size in effect: `engine.json`, or the helper's own defaults.
+    /// The defaults are restated here (half the cores up to 4, and 4 GB)
+    /// because the helper's `ThrallVMSpec` is not compiled into the plugin.
+    static func config(_ paths: Paths) -> ThrallEngineConfig {
+        ThrallEngineConfig.read(from: paths.config)
+            ?? ThrallEngineConfig(
+                cpuCount: max(1, min(4, ProcessInfo.processInfo.activeProcessorCount / 2)), memoryGiB: 4)
+    }
+
+    /// The LaunchAgent's `RunAtLoad`, read back from the plist: the plist is
+    /// the setting, so there is no second copy to drift from it.
+    static func startsAtLogin(_ paths: Paths) -> Bool {
+        guard let data = try? Data(contentsOf: paths.plist),
+            let job = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
+        else { return true }
+        return job["RunAtLoad"] as? Bool ?? true
+    }
+
     /// The helper built into this plugin bundle, at `Contents/Helpers`.
     static var bundledHelper: URL? {
         let url = Bundle(for: ThrallConnection.self).bundleURL

@@ -18,7 +18,9 @@ public struct ThrallApp: AinkradApp, AinkradAppTeardown, AinkradAppMCP {
     }
 
     public static func settingsCatalog(host: HostServices) -> SettingsPage? {
-        ThrallSettingsCatalog.page(store: ThrallRuntime.settingsStore(for: host))
+        ThrallSettingsCatalog.page(
+            store: ThrallRuntime.settingsStore(for: host),
+            engine: ThrallRuntime.viewModel(for: host).ownEngine)
     }
 
     /// Empty: the host draws Thrall's settings from `settingsCatalog`, and

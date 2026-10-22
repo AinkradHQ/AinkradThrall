@@ -30,5 +30,16 @@ struct ThrallEngineInstallLiveTests {
             if version == nil { try await Task.sleep(for: .seconds(1)) }
         }
         #expect(version != nil)
+
+        // The plugin's own model reads the running engine from launchd and
+        // the helper's status.json.
+        let model = await MainActor.run { ThrallOwnEngineModel(installer: installer) }
+        for _ in 0..<20 {
+            await model.refresh()
+            if await model.phase.isRunning { break }
+            try await Task.sleep(for: .milliseconds(500))
+        }
+        #expect(await model.phase.isRunning)
+        #expect(ThrallEngineStatus.read(from: installer.paths.status)?.phase == .running)
     }
 }
