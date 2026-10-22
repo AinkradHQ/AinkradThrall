@@ -32,6 +32,9 @@ struct ThrallEnginePaths: Sendable, Equatable {
     /// stays the same across boots.
     var macAddress: URL { vmDirectory.appendingPathComponent("mac") }
 
+    var statusFile: URL { root.appendingPathComponent("run/status.json") }
+    var configFile: URL { root.appendingPathComponent("engine.json") }
+
     var logsDirectory: URL { root.appendingPathComponent("logs") }
     var consoleLog: URL { logsDirectory.appendingPathComponent("console.log") }
 

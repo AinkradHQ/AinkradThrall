@@ -18,6 +18,20 @@ struct ThrallVMSpec: Sendable, Equatable {
             dataDiskBytes: 64 * gibibyte)
     }
 
+    /// The defaults with the user's choices from `engine.json` applied. The
+    /// VM layer still clamps both to what the hypervisor allows.
+    static func resolved(
+        config: ThrallEngineConfig?,
+        processorCount: Int = ProcessInfo.processInfo.activeProcessorCount
+    ) -> ThrallVMSpec {
+        var spec = defaults(processorCount: processorCount)
+        if let config {
+            spec.cpuCount = max(1, min(config.cpuCount, processorCount))
+            spec.memoryBytes = UInt64(max(1, config.memoryGiB)) * gibibyte
+        }
+        return spec
+    }
+
     /// The guest kernel's command line. `rw` because the guest writes
     /// `/etc/resolv.conf` and logs to its root; user data still lives on the
     /// separate data disk, so replacing the root filesystem stays safe.

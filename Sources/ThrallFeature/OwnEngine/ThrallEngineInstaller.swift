@@ -27,11 +27,17 @@ enum ThrallEngineInstallError: Error, Equatable, CustomStringConvertible {
 /// The seams (`download`, `run`) exist so the whole install is tested without
 /// a network, launchd or a VM.
 struct ThrallEngineInstaller: Sendable {
+    /// The install's steps in order, as the installing panel lists them.
+    /// A download's fraction is nil until the server has sent its length.
     enum Step: Equatable, Sendable {
-        case downloadingImage, downloadingCompose, installingHelper, starting
+        case downloadingImage(fraction: Double?)
+        case downloadingCompose(fraction: Double?)
+        case verifying
+        case starting
     }
 
-    typealias Download = @Sendable (URL) async throws -> URL
+    typealias Progress = @Sendable (Double?) -> Void
+    typealias Download = @Sendable (URL, @escaping Progress) async throws -> URL
     typealias Run = @Sendable (_ executable: String, _ arguments: [String]) throws -> Int32
 
     var paths: ThrallOwnEngine.Paths
@@ -41,6 +47,8 @@ struct ThrallEngineInstaller: Sendable {
     var download: Download
     var run: Run
     var userID: uid_t
+    /// The LaunchAgent's `RunAtLoad`: whether the engine starts at login.
+    var startsAtLogin = true
     /// How long `stop()` waits for the guest to finish shutting down. Longer
     /// than the helper's own 15 s grace before it forces the VM off.
     var stopTimeout: Duration = .seconds(35)
@@ -73,7 +81,7 @@ struct ThrallEngineInstaller: Sendable {
     /// swapping `rootfs.img` under a running guest corrupts it. An install
     /// with nothing to change does not stop it at all, so running containers
     /// survive a re-run.
-    func install(progress: @Sendable (Step) -> Void = { _ in }) async throws {
+    func install(progress: @escaping @Sendable (Step) -> Void = { _ in }) async throws {
         guard let helperSource else { throw ThrallEngineInstallError.helperMissing }
         let fileManager = FileManager.default
         for directory in [paths.vm, paths.bin, paths.engineLog.deletingLastPathComponent(), paths.launchAgents] {
@@ -84,17 +92,30 @@ struct ThrallEngineInstaller: Sendable {
         // installed engine exactly as it was.
         var stagedImage: URL?
         if installedVersion("image") != image.version {
-            progress(.downloadingImage)
-            stagedImage = try await fetchVerified(image, name: "engine image")
+            progress(.downloadingImage(fraction: nil))
+            stagedImage = try await fetch(image) { progress(.downloadingImage(fraction: $0)) }
         }
         var stagedCompose: URL?
         if installedVersion("compose") != compose.version || !fileManager.isExecutableFile(atPath: paths.compose.path) {
-            progress(.downloadingCompose)
-            stagedCompose = try await fetchVerified(compose, name: "docker-compose")
+            progress(.downloadingCompose(fraction: nil))
+            stagedCompose = try await fetch(compose) { progress(.downloadingCompose(fraction: $0)) }
         }
-        progress(.installingHelper)
+        if stagedImage != nil || stagedCompose != nil {
+            progress(.verifying)
+            // Both are checked before either is used, and a failure removes
+            // both, so nothing half-verified is ever left behind.
+            do {
+                if let stagedImage { try verify(stagedImage, against: image, name: "engine image") }
+                if let stagedCompose { try verify(stagedCompose, against: compose, name: "docker-compose") }
+            } catch {
+                for staged in [stagedImage, stagedCompose].compactMap({ $0 }) {
+                    try? fileManager.removeItem(at: staged)
+                }
+                throw error
+            }
+        }
         let helperChanged = !fileManager.contentsEqual(atPath: helperSource.path, andPath: paths.helper.path)
-        let plist = try ThrallOwnEngine.launchAgentPlist(paths)
+        let plist = try ThrallOwnEngine.launchAgentPlist(paths, startsAtLogin: startsAtLogin)
         let plistChanged = (try? Data(contentsOf: paths.plist)) != plist
 
         if stagedImage != nil || helperChanged || plistChanged, isLoaded() {
@@ -122,6 +143,42 @@ struct ThrallEngineInstaller: Sendable {
     }
 
     // MARK: - Control
+
+    /// Installed means the job and the helper it runs both exist.
+    var isInstalled: Bool {
+        FileManager.default.fileExists(atPath: paths.plist.path)
+            && FileManager.default.isExecutableFile(atPath: paths.helper.path)
+    }
+
+    /// Rewrites `RunAtLoad` without touching a running engine: launchd reads
+    /// it at the next login, and a running job keeps running.
+    func setStartsAtLogin(_ on: Bool) throws {
+        guard isInstalled else { return }
+        try ThrallOwnEngine.launchAgentPlist(paths, startsAtLogin: on).write(to: paths.plist, options: .atomic)
+    }
+
+    /// Writes the VM size the helper reads before its next boot.
+    func writeConfig(_ config: ThrallEngineConfig) throws {
+        try FileManager.default.createDirectory(at: paths.root, withIntermediateDirectories: true)
+        try config.write(to: paths.config)
+    }
+
+    /// Stops the engine and deletes everything it owns: `~/.thrall` (the VM,
+    /// its disk with every container and volume, the helper, compose), the
+    /// LaunchAgent and the `thrall` Docker context. Project folders are not
+    /// touched; they were shared with the VM, never copied into it.
+    func uninstall() async throws {
+        try await stop()
+        let fileManager = FileManager.default
+        for url in [paths.plist, paths.root, paths.dockerContextMeta] where fileManager.fileExists(atPath: url.path) {
+            try fileManager.removeItem(at: url)
+        }
+    }
+
+    func restart() async throws {
+        try await stop()
+        try start()
+    }
 
     func isLoaded() -> Bool {
         (try? run("/bin/launchctl", ["print", service])) == 0
@@ -161,17 +218,19 @@ struct ThrallEngineInstaller: Sendable {
         try version.write(to: marker, atomically: true, encoding: .utf8)
     }
 
-    private func fetchVerified(_ artifact: ThrallOwnEngine.Artifact, name: String) async throws -> URL {
+    private func fetch(_ artifact: ThrallOwnEngine.Artifact, progress: @escaping Progress) async throws -> URL {
         guard let url = URL(string: artifact.url) else { throw URLError(.badURL) }
-        let downloaded = try await download(url)
+        let downloaded = try await download(url, progress)
         let staged = paths.root.appendingPathComponent(".download-\(UUID().uuidString)")
         try FileManager.default.moveItem(at: downloaded, to: staged)
+        return staged
+    }
+
+    private func verify(_ staged: URL, against artifact: ThrallOwnEngine.Artifact, name: String) throws {
         let actual = try Self.sha256(of: staged)
         guard actual == artifact.sha256 else {
-            try? FileManager.default.removeItem(at: staged)
             throw ThrallEngineInstallError.checksumMismatch(artifact: name, expected: artifact.sha256, actual: actual)
         }
-        return staged
     }
 
     /// Unpacks into a staging directory, then moves each file over the old
@@ -222,12 +281,47 @@ struct ThrallEngineInstaller: Sendable {
         return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
-    static let urlSessionDownload: Download = { url in
-        let (file, response) = try await URLSession.shared.download(from: url)
-        if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-            throw URLError(.badServerResponse)
+    /// Downloads with a plain `downloadTask` so its `Progress` can be
+    /// observed, and cancels the task when the calling task is cancelled.
+    static let urlSessionDownload: Download = { url, progress in
+        let box = DownloadBox()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<URL, Error>) in
+                let task = URLSession.shared.downloadTask(with: url) { file, response, error in
+                    box.observation?.invalidate()
+                    if let error {
+                        continuation.resume(throwing: error)
+                        return
+                    }
+                    guard let file, (response as? HTTPURLResponse)?.statusCode == 200 else {
+                        continuation.resume(throwing: URLError(.badServerResponse))
+                        return
+                    }
+                    // The system deletes `file` when this handler returns.
+                    let kept = FileManager.default.temporaryDirectory
+                        .appendingPathComponent("thrall-\(UUID().uuidString)")
+                    do {
+                        try FileManager.default.moveItem(at: file, to: kept)
+                        continuation.resume(returning: kept)
+                    } catch {
+                        continuation.resume(throwing: error)
+                    }
+                }
+                box.observation = task.progress.observe(\.completedUnitCount) { value, _ in
+                    progress(value.totalUnitCount > 0 ? value.fractionCompleted : nil)
+                }
+                box.task = task
+                task.resume()
+            }
+        } onCancel: {
+            box.task?.cancel()
         }
-        return file
+    }
+
+    /// Holds the task and its progress observation across the continuation.
+    private final class DownloadBox: @unchecked Sendable {
+        var task: URLSessionDownloadTask?
+        var observation: NSKeyValueObservation?
     }
 
     static let spawn: Run = { executable, arguments in

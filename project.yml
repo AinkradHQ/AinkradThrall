@@ -48,6 +48,8 @@ targets:
     platform: macOS
     sources:
       - path: Sources/ThrallFeature
+      # The status and config files the plugin shares with thrall-engine.
+      - path: Sources/ThrallEngine/Core/ThrallEngineShared.swift
     dependencies:
       - package: AinkradAppKit
         embed: false

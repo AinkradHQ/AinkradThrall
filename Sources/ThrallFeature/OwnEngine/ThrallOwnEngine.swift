@@ -25,6 +25,9 @@ enum ThrallOwnEngine {
         sha256: "fcce41226abd2b7b2936094e688bbd61284673dddafea542e08cb9a3b4423a8b")
 
     static let label = "com.ainkrad.thrall.engine"
+    /// The Docker context the helper registers.
+    static let contextName = "thrall"
+    static let contextDirectory = "0c74d684c7bf7876e23301c2008a3e464bfcf55d828e78c43c8e0c40aba42514"
     static let imageFiles = ["Image", "initramfs", "rootfs.img", "manifest.json"]
 
     struct Paths: Sendable, Equatable {
@@ -45,6 +48,16 @@ enum ThrallOwnEngine {
         var engineLog: URL { root.appendingPathComponent("logs/engine.log") }
         var dockerSocket: URL { root.appendingPathComponent("run/docker.sock") }
         var plist: URL { launchAgents.appendingPathComponent("\(label).plist") }
+        var status: URL { root.appendingPathComponent("run/status.json") }
+        var config: URL { root.appendingPathComponent("engine.json") }
+        var consoleLog: URL { root.appendingPathComponent("logs/console.log") }
+        var dataDisk: URL { vm.appendingPathComponent("data.img") }
+        /// The `thrall` entry in the Docker context store, which the helper
+        /// registers under `sha256("thrall")`.
+        var dockerContextMeta: URL {
+            launchAgents.deletingLastPathComponent().deletingLastPathComponent()
+                .appendingPathComponent(".docker/contexts/meta/\(ThrallOwnEngine.contextDirectory)")
+        }
         /// The version of each installed artifact, so an unchanged one is
         /// never downloaded again.
         func marker(_ name: String) -> URL { root.appendingPathComponent("versions/\(name)") }
@@ -55,11 +68,11 @@ enum ThrallOwnEngine {
     /// or a configuration error (exit 78) must stay down. `ExitTimeOut` is
     /// longer than the helper's 15 s guest shutdown, so `bootout` never cuts
     /// `dockerd` off mid-stop.
-    static func launchAgentPlist(_ paths: Paths) throws -> Data {
+    static func launchAgentPlist(_ paths: Paths, startsAtLogin: Bool = true) throws -> Data {
         let job: [String: Any] = [
             "Label": label,
             "ProgramArguments": [paths.helper.path, "run"],
-            "RunAtLoad": true,
+            "RunAtLoad": startsAtLogin,
             "KeepAlive": ["Crashed": true],
             "ExitTimeOut": 30,
             "StandardErrorPath": paths.engineLog.path,

@@ -55,6 +55,13 @@ private final class FakeSystem: @unchecked Sendable {
     }
 }
 
+private final class StepLog: @unchecked Sendable {
+    private let lock = NSLock()
+    private var steps: [ThrallEngineInstaller.Step] = []
+    var all: [ThrallEngineInstaller.Step] { lock.withLock { steps } }
+    func append(_ step: ThrallEngineInstaller.Step) { lock.withLock { steps.append(step) } }
+}
+
 @Suite("ThrallEngineInstaller")
 struct ThrallEngineInstallerTests {
     private let scratch: URL
@@ -102,7 +109,10 @@ struct ThrallEngineInstallerTests {
             helperSource: helper,
             image: .init(version: imageVersion, url: imageURL.absoluteString, sha256: try imageSHA ?? sha(image)),
             compose: .init(version: "compose-1", url: composeURL.absoluteString, sha256: try sha(compose)),
-            download: { try system.download($0) },
+            download: { url, progress in
+                progress(0.5)
+                return try system.download(url)
+            },
             run: { try system.run($0, $1) },
             userID: 501)
     }
@@ -188,6 +198,54 @@ struct ThrallEngineInstallerTests {
         subject = try installer(hung, image: Data(), compose: Data())
         subject.stopTimeout = .milliseconds(300)
         await #expect(throws: ThrallEngineInstallError.stopTimedOut) { try await subject.stop() }
+    }
+
+    @Test("progress walks the steps in order and reports download fractions")
+    func progressSteps() async throws {
+        let image = try imageArchive()
+        let compose = Data("compose binary".utf8)
+        let system = FakeSystem(artifacts: [imageURL: image, composeURL: compose], scratch: scratch)
+        let steps = StepLog()
+        try await installer(system, image: image, compose: compose).install { steps.append($0) }
+        #expect(
+            steps.all == [
+                .downloadingImage(fraction: nil), .downloadingImage(fraction: 0.5),
+                .downloadingCompose(fraction: nil), .downloadingCompose(fraction: 0.5),
+                .verifying, .starting,
+            ])
+    }
+
+    @Test("start at login rewrites RunAtLoad and leaves a running engine alone")
+    func startsAtLogin() async throws {
+        let image = try imageArchive()
+        let compose = Data("compose binary".utf8)
+        let system = FakeSystem(artifacts: [imageURL: image, composeURL: compose], scratch: scratch)
+        let subject = try installer(system, image: image, compose: compose)
+        try await subject.install()
+        try subject.setStartsAtLogin(false)
+        let job = try #require(
+            try PropertyListSerialization.propertyList(from: Data(contentsOf: paths.plist), format: nil)
+                as? [String: Any])
+        #expect(job["RunAtLoad"] as? Bool == false)
+        #expect(system.launchctlCalls == ["bootstrap"])
+    }
+
+    @Test("uninstall stops the engine and removes the job, ~/.thrall and the Docker context")
+    func uninstall() async throws {
+        let image = try imageArchive()
+        let compose = Data("compose binary".utf8)
+        let system = FakeSystem(artifacts: [imageURL: image, composeURL: compose], scratch: scratch)
+        let subject = try installer(system, image: image, compose: compose)
+        try await subject.install()
+        try FileManager.default.createDirectory(at: paths.dockerContextMeta, withIntermediateDirectories: true)
+        #expect(subject.isInstalled)
+
+        try await subject.uninstall()
+        #expect(system.launchctlCalls == ["bootstrap", "bootout"])
+        for url in [paths.plist, paths.root, paths.dockerContextMeta] {
+            #expect(!FileManager.default.fileExists(atPath: url.path))
+        }
+        #expect(!subject.isInstalled)
     }
 
     @Test("a build without the helper refuses before downloading anything")

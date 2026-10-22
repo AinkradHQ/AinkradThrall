@@ -15,6 +15,10 @@ final class ThrallEngineServices {
     private var guestAddress: String?
     private var dockerSocket: ThrallSocket?
     private var pollTask: Task<Void, Never>?
+    /// Called after the set of forwarded or conflicted ports changes.
+    var onPortsChanged: (() -> Void)?
+    var forwardedPorts: [Int] { forwarder.listeners.keys.sorted() }
+    var conflictedPorts: [Int] { forwarder.conflicts.sorted() }
     private lazy var forwarder = ThrallPortForwarder(
         open: { [unowned self] port in try self.openForward(port) },
         report: log)
@@ -68,7 +72,9 @@ final class ThrallEngineServices {
     func machineDidStop() {
         pollTask?.cancel()
         pollTask = nil
+        let hadPorts = !forwarder.listeners.isEmpty || !forwarder.conflicts.isEmpty
         forwarder.stopAll()
+        if hadPorts { onPortsChanged?() }
         machine = nil
         guestAddress = nil
     }
@@ -108,7 +114,9 @@ final class ThrallEngineServices {
         let request = ThrallPortForwarder.containersRequest
         let response = await Task.detached { Self.exchange(request, over: guest) }.value
         guard self.machine === machine, let wanted = ThrallPortForwarder.wanted(fromResponse: response) else { return }
+        let before = (forwardedPorts, conflictedPorts)
         forwarder.reconcile(wanted)
+        if before != (forwardedPorts, conflictedPorts) { onPortsChanged?() }
     }
 
     /// Writes a request, reads to EOF and closes the socket. Blocking, so it
