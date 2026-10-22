@@ -1,0 +1,7 @@
+virtio_net
+vsock
+vmw_vsock_virtio_transport
+fuse
+virtiofs
+overlay
+binfmt_misc

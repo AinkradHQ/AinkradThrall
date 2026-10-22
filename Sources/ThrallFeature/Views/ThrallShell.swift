@@ -14,7 +14,11 @@ struct ThrallShell: View {
     /// and nothing invalidated this body. Caught by screenshot.
     @ObservedObject private var triage: ThrallTriageModel
     @ObservedObject private var settings: ThrallSettingsStore
+    /// Observed separately for the same reason as `triage`.
+    @ObservedObject private var ownEngine: ThrallOwnEngineModel
     @State private var area: NavArea = .stacks
+    @State private var showsEnginePanel = false
+    @State private var confirmingEngineStop = false
     @Environment(\.ainkradReduceMotion) private var reduceMotion
     @Environment(\.ainkradToastCenter) private var toasts
     @Environment(\.ainkradSkin) private var skin
@@ -24,6 +28,7 @@ struct ThrallShell: View {
         let model = ThrallRuntime.viewModel(for: host)
         self.model = model
         self.triage = model.triage
+        self.ownEngine = model.ownEngine
         self.settings = ThrallRuntime.settingsStore(for: host)
     }
 
@@ -55,6 +60,21 @@ struct ThrallShell: View {
             isDestructive: true,
             onConfirm: { model.confirmPendingTeardown() }
         )
+        .ainkradConfirmDialog(
+            isPresented: $confirmingEngineStop,
+            title: "Stop Thrall's engine?",
+            message: "Every container on it stops. Containers and volumes are kept on its disk.",
+            confirmTitle: "Stop",
+            isDestructive: false,
+            onConfirm: { ownEngine.stop() }
+        )
+        .task {
+            ownEngine.onNewConflict = { [toasts] port in
+                toasts.show(
+                    "localhost:\(port) is taken by another app, so Thrall's engine cannot forward it.",
+                    status: .warning)
+            }
+        }
         .ainkradToastHost()
         .onChange(of: model.storage.lastReclaim) { _, notice in
             guard let notice else { return }
@@ -123,18 +143,26 @@ struct ThrallShell: View {
     /// negotiated API version were being silently dropped from the chip.
     private var engineChip: some View {
         AinkradMenuButton(
-            items: model.contexts.map { context in
-                AinkradMenuItem(
-                    title: context.isSupported ? context.name : "\(context.name) — unavailable",
-                    systemName: context.isSupported ? "bolt.horizontal" : "bolt.horizontal.circle"
-                ) {
-                    // An unsupported context still appears, and selecting it shows
-                    // the reason rather than doing nothing — a control that
-                    // silently ignores a click is worse than one that explains.
-                    model.select(context)
-                    Task { await model.refresh() }
-                }
-            }
+            items: ThrallEngineMenu.items(
+                contexts: model.contexts,
+                activeContext: model.activeContext,
+                activeState: model.state,
+                ownEngine: ownEngine.phase,
+                select: { context in
+                    if context.name == ThrallOwnEngine.contextName {
+                        model.selectOwnEngine()
+                    } else {
+                        // An unsupported context still appears, and selecting it
+                        // shows the reason rather than doing nothing — a control
+                        // that silently ignores a click is worse than one that
+                        // explains.
+                        model.select(context)
+                        Task { await model.refresh() }
+                    }
+                },
+                start: { ownEngine.start() },
+                stop: { confirmingEngineStop = true },
+                manage: { showsEnginePanel = true })
         ) {
             ThrallPullDownLabel {
                 Circle()
@@ -151,6 +179,10 @@ struct ThrallShell: View {
             }
         }
         .fixedSize()
+        .ainkradPopover(isPresented: $showsEnginePanel) {
+            ThrallEnginePanel(engine: ownEngine, countContents: { await model.countOwnEngineContents() })
+                .ainkradHostTheme(host.theme)
+        }
     }
 
     private var engineIndicator: Color {

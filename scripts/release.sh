@@ -31,6 +31,23 @@ rm -rf dist && mkdir -p dist
 # like it simply has no apps.
 if [[ -n "${SIGN_IDENTITY:-}" ]]; then
   echo "> Signing with: ${SIGN_IDENTITY}"
+  # The engine helper goes first, with its OWN entitlements. Signing it like
+  # the other nested code (no --entitlements) would strip
+  # com.apple.security.virtualization, and Virtualization.framework then
+  # refuses to create the VM: the plugin installs and Thrall's engine never
+  # boots. The assertion below catches that before anything ships.
+  HELPER="$BUNDLE/Contents/Helpers/thrall-engine"
+  [[ -x "$HELPER" ]] || { echo "error: ${HELPER} is missing from the bundle" >&2; exit 1; }
+  codesign --force --options runtime --timestamp \
+    --entitlements config/ThrallEngine.entitlements --sign "$SIGN_IDENTITY" "$HELPER"
+  HELPER_ENTITLEMENTS="$(codesign -d --entitlements - "$HELPER" 2>&1 || true)"
+  case "$HELPER_ENTITLEMENTS" in
+    *"com.apple.security.virtualization"*) ;;
+    *)
+      echo "error: ${HELPER} lost its virtualization entitlement while signing" >&2
+      exit 1
+      ;;
+  esac
   # Inside-out: nested code-bearing bundles first, then the plugin itself.
   # `--deep` is intentionally avoided (Apple discourages it).
   while IFS= read -r -d '' item; do

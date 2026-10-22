@@ -14,6 +14,10 @@ import Foundation
 struct ThrallDockerBinary: Sendable {
     var primaryPath: String
     var fallbackPaths: [String]
+    /// The standalone `docker-compose` Thrall's own engine installs. It is the
+    /// last resort, used only when no `docker` exists, so a Mac with no other
+    /// engine still has compose verbs.
+    var standaloneComposePath: String?
 
     init(
         primaryPath: String = "/usr/local/bin/docker",
@@ -21,10 +25,25 @@ struct ThrallDockerBinary: Sendable {
             "/opt/homebrew/bin/docker",
             "/usr/bin/docker",
             "/usr/local/bin/docker",
-        ]
+        ],
+        standaloneComposePath: String? = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".thrall/bin/docker-compose").path
     ) {
         self.primaryPath = primaryPath
         self.fallbackPaths = fallbackPaths
+        self.standaloneComposePath = standaloneComposePath
+    }
+
+    /// What to spawn for `docker <arguments>`: the `docker` binary, or, for a
+    /// `compose` command when there is none, the standalone `docker-compose`
+    /// with the leading `compose` dropped. The two take the same arguments
+    /// after that word.
+    func invocation(for arguments: [String]) -> (executable: String, arguments: [String])? {
+        if let docker = resolve() { return (docker, arguments) }
+        guard arguments.first == "compose", let standaloneComposePath,
+            FileManager.default.isExecutableFile(atPath: standaloneComposePath)
+        else { return nil }
+        return (standaloneComposePath, Array(arguments.dropFirst()))
     }
 
     /// The first executable candidate, or nil.

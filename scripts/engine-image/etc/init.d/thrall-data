@@ -1,0 +1,26 @@
+#!/sbin/openrc-run
+# Thrall's data disk holds /var/lib/docker: images, containers and volumes.
+# It is a separate disk so a new root filesystem never touches user data.
+# First boot finds it blank and formats it; every later boot only mounts it.
+#
+# "Blank" means the first MiB is all zeros, never "no filesystem detected".
+# ext4's superblock sits at byte 1024, so a formatted disk is never zero
+# there, and a disk whose superblock is damaged fails to mount instead of
+# being reformatted over the user's volumes.
+
+description="Format on first boot and mount Thrall's data disk"
+
+depend() {
+	need localmount
+	before docker
+}
+
+start() {
+	ebegin "Mounting Thrall data disk"
+	if [ -z "$(head -c 1048576 /dev/vdb | tr -d '\0')" ]; then
+		mkfs.ext4 -q -L thrall-data /dev/vdb || { eend 1 "formatting /dev/vdb failed"; return 1; }
+	fi
+	mkdir -p /var/lib/docker
+	mountpoint -q /var/lib/docker || mount -o discard /dev/vdb /var/lib/docker
+	eend $?
+}

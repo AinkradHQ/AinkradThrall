@@ -29,4 +29,33 @@ enum ThrallConfirmations {
             + "\(count == 1 ? "" : "s") by matching the compose project label. "
             + "**Volumes are not touched.**"
     }
+
+    /// Uninstalling Thrall's own engine deletes its whole disk. The message
+    /// names what is on it, volumes by name, because that is the one thing a
+    /// user cannot get back; and it says what is safe, the project folders.
+    static func uninstallEngine(_ contents: ThrallEngineContents?) -> String {
+        let deleted: String
+        if let contents {
+            let names = contents.volumeNames.prefix(4).joined(separator: ", ")
+            let more = contents.volumeNames.count > 4 ? ", and \(contents.volumeNames.count - 4) more" : ""
+            let volumes =
+                contents.volumeNames.isEmpty
+                ? "no volumes"
+                : "\(contents.volumeNames.count) volume\(contents.volumeNames.count == 1 ? "" : "s") (\(names)\(more))"
+            deleted =
+                "\(contents.containers) container\(contents.containers == 1 ? "" : "s"), \(volumes) and "
+                + "\(contents.images) image\(contents.images == 1 ? "" : "s")"
+        } else {
+            deleted = "every container, volume and image on its disk"
+        }
+        return "This stops the engine and deletes ~/.thrall, with \(deleted). Your project folders are "
+            + "not touched: they were shared with the VM, never copied into it."
+    }
+
+    /// The destructive button repeats the count, so it cannot be pressed
+    /// without reading it.
+    static func uninstallEngineButton(_ contents: ThrallEngineContents?) -> String {
+        guard let count = contents?.volumeNames.count, count > 0 else { return "Uninstall" }
+        return "Delete \(count) volume\(count == 1 ? "" : "s") and uninstall"
+    }
 }

@@ -67,7 +67,7 @@ struct ThrallProcessRunner: Sendable {
         if let rejection = ThrallComposeArgumentGuard.rejection(in: arguments) {
             throw ThrallProcessError.rejected(rejection.message)
         }
-        guard let executable = binary.resolve() else {
+        guard let invocation = binary.invocation(for: arguments) else {
             throw ThrallProcessError.binaryNotFound(binary.notFoundMessage)
         }
         let handle = ProcessHandle()
@@ -76,8 +76,8 @@ struct ThrallProcessRunner: Sendable {
                 Self.queue.async {
                     do {
                         let result = try Self.runBlocking(
-                            executable: executable,
-                            arguments: arguments,
+                            executable: invocation.executable,
+                            arguments: invocation.arguments,
                             workingDirectory: workingDirectory,
                             environment: environment,
                             handle: handle)

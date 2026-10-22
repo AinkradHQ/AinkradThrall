@@ -1,0 +1,20 @@
+#!/sbin/openrc-run
+# Mounts the Mac's home folder (virtiofs tag "home") at the same path it has
+# on the Mac, read from `thrall.home=` on the kernel command line. Same path
+# means a compose bind mount such as ./src:/app resolves without rewriting.
+
+description="Mount the Mac's home folder at the same path"
+
+depend() {
+	need localmount
+	before docker
+}
+
+start() {
+	home=$(sed -n 's/.*thrall\.home=\([^ ]*\).*/\1/p' /proc/cmdline)
+	[ -n "$home" ] || return 0
+	ebegin "Mounting $home"
+	mkdir -p "$home"
+	mountpoint -q "$home" || mount -t virtiofs home "$home"
+	eend $?
+}

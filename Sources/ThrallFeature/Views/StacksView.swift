@@ -4,6 +4,16 @@ import SwiftUI
 /// The stacks list: one flat, lazy column of rows.
 struct StacksView: View {
     @ObservedObject var model: ThrallViewModel
+    /// Observed separately: a nested `ObservableObject` does not invalidate
+    /// its parent's observers.
+    @ObservedObject var ownEngine: ThrallOwnEngineModel
+    /// "I'll start my own engine" hides the offer for this window.
+    @State private var offerDismissed = false
+
+    init(model: ThrallViewModel) {
+        self.model = model
+        self.ownEngine = model.ownEngine
+    }
 
     @Environment(\.ainkradTheme) private var theme
     @Environment(\.ainkradReduceMotion) private var reduceMotion
@@ -14,6 +24,8 @@ struct StacksView: View {
             case .idle,
                 .loading where model.world.stacks.isEmpty:
                 AinkradLoadingState(label: "Reading the engine…")
+            case .failed where model.world.stacks.isEmpty && showsOffer:
+                ThrallEngineOffer(engine: ownEngine, dismiss: { offerDismissed = true })
             case .failed(let message) where model.world.stacks.isEmpty:
                 AinkradErrorState(message: "No engine\n\(message)")
             default:
@@ -29,6 +41,16 @@ struct StacksView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Mockup screen 2: offered only when the selected engine is not
+    /// answering and Thrall's own is not installed (or failed to install).
+    private var showsOffer: Bool {
+        guard !offerDismissed else { return false }
+        switch ownEngine.phase {
+        case .notInstalled, .installFailed, .unsupported: return true
+        default: return false
+        }
     }
 
     private var list: some View {
