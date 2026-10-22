@@ -15,11 +15,33 @@ depend() {
 	before docker
 }
 
+# The host only ever grows data.img (Settings → Disk size). The filesystem is
+# grown to match before it is mounted: online resize failed on this kernel
+# (64 → 128 GiB worked once, 128 → 256 GiB did not), offline resize does not.
+# It runs only when the disk is bigger than the filesystem, after a forced
+# check, and a check that finds problems skips the resize rather than risk it.
+# resize2fs ships in e2fsprogs-extra. Every failure is logged, never silent.
+grow_filesystem() {
+	disk=$(blockdev --getsize64 /dev/vdb)
+	blocks=$(dumpe2fs -h /dev/vdb 2>/dev/null | sed -n 's/^Block count: *//p')
+	size=$(dumpe2fs -h /dev/vdb 2>/dev/null | sed -n 's/^Block size: *//p')
+	[ -n "$blocks" ] && [ -n "$size" ] || return 0
+	[ $((blocks * size)) -lt "$disk" ] || return 0
+	# Exit 0 is clean and 1 is "errors fixed"; anything higher needs a human.
+	e2fsck -f -p /dev/vdb >/dev/null 2>&1
+	if [ $? -le 1 ]; then
+		resize2fs /dev/vdb >/dev/null 2>&1 || ewarn "Could not grow the data disk's filesystem"
+	else
+		ewarn "The data disk needs a manual check; not growing it"
+	fi
+}
+
 start() {
 	ebegin "Mounting Thrall data disk"
 	if [ -z "$(head -c 1048576 /dev/vdb | tr -d '\0')" ]; then
 		mkfs.ext4 -q -L thrall-data /dev/vdb || { eend 1 "formatting /dev/vdb failed"; return 1; }
 	fi
+	grow_filesystem
 	mkdir -p /var/lib/docker
 	mountpoint -q /var/lib/docker || mount -o discard /dev/vdb /var/lib/docker
 	eend $?

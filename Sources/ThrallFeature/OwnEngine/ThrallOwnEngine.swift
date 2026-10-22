@@ -15,9 +15,9 @@ enum ThrallOwnEngine {
     }
 
     static let image = Artifact(
-        version: "engine-image-v1",
-        url: "https://github.com/AinkradHQ/AinkradThrall/releases/download/engine-image-v1/thrall-engine-image.tar.gz",
-        sha256: "4eeaacde0adad10498cb4c3da2c2b3eb03aef726d00320f65459a137d4ab5c77")
+        version: "engine-image-v2",
+        url: "https://github.com/AinkradHQ/AinkradThrall/releases/download/engine-image-v2/thrall-engine-image.tar.gz",
+        sha256: "d92874d7089919d5e9daafac2550e73c3122816185232d3f52c8ae6b49c3d6e7")
 
     static let compose = Artifact(
         version: "v5.6.1",

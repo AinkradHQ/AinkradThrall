@@ -63,8 +63,8 @@ enum ThrallSettingsCatalog {
         return SettingsGroup(
             path: group,
             title: "Thrall's engine",
-            footerNote: "CPUs and memory apply the next time the engine starts. Changing them never "
-                + "restarts a running engine.",
+            footerNote: "CPUs, memory and disk size apply the next time the engine starts. Changing them "
+                + "never restarts a running engine.",
             fields: [
                 SettingsField(
                     path: group.appending("cpus"),
@@ -105,6 +105,26 @@ enum ThrallSettingsCatalog {
                     isModified: { false },
                     reset: {}),
                 SettingsField(
+                    path: group.appending("disk"),
+                    label: "Disk size",
+                    help: "The most the engine's disk can hold: images, containers and volumes. It can "
+                        + "only grow, because shrinking would cut off the volumes stored at its end. "
+                        + "It takes space on this Mac only as it fills.",
+                    keywords: ["disk", "storage", "size", "engine", "volumes"],
+                    kind: .select(
+                        options: diskOptions(engine),
+                        selection: Binding(
+                            get: { "\(config().diskGiB)" },
+                            set: { value in
+                                guard let gib = Int(value), gib >= config().diskGiB else { return }
+                                var next = config()
+                                next.diskGiB = gib
+                                engine.writeConfig(next)
+                            })),
+                    defaultDescription: "\(ThrallEngineConfig.defaultDiskGiB) GB",
+                    isModified: { false },
+                    reset: {}),
+                SettingsField(
                     path: group.appending("login"),
                     label: "Start at login",
                     help: "Start Thrall's engine when you log in, before Ainkrad is opened. Off keeps it "
@@ -118,5 +138,18 @@ enum ThrallSettingsCatalog {
                     isModified: { !ThrallOwnEngine.startsAtLogin(engine.paths) },
                     reset: { engine.setStartsAtLogin(true) }),
             ])
+    }
+
+    /// Sizes at or above both the chosen size and the disk as it exists:
+    /// never an option that would ask for a shrink.
+    private static func diskOptions(_ engine: ThrallOwnEngineModel) -> [SettingsOption] {
+        let existing =
+            (try? engine.paths.dataDisk.resourceValues(forKeys: [.fileSizeKey]).fileSize).map {
+                Int(($0 + (1 << 30) - 1) >> 30)
+            } ?? 0
+        let floor = max(existing, ThrallOwnEngine.config(engine.paths).diskGiB)
+        var sizes = ThrallEngineConfig.diskChoices.filter { $0 >= floor }
+        if !sizes.contains(floor) { sizes.insert(floor, at: 0) }
+        return sizes.map { SettingsOption(id: "\($0)", title: "\($0) GB") }
     }
 }

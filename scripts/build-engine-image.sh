@@ -22,7 +22,7 @@ set -eu
 ALPINE=3.22
 OUT=${1:-build/engine-image}
 ROOTFS_SIZE=2G
-PACKAGES="alpine-base linux-virt docker docker-openrc socat e2fsprogs"
+PACKAGES="alpine-base linux-virt docker docker-openrc socat e2fsprogs e2fsprogs-extra"
 
 command -v docker >/dev/null || { echo "build-engine-image: needs docker to build" >&2; exit 1; }
 mkdir -p "$OUT"
