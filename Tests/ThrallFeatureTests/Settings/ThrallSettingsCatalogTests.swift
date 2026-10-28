@@ -46,7 +46,7 @@ struct ThrallSettingsCatalogTests {
         let engine = Self.engine()
         let page = ThrallSettingsCatalog.page(store: ThrallSettingsStore(documents: MemoryDocs()), engine: engine)
         let fields = try #require(page.groups.last?.fields)
-        #expect(fields.map(\.label) == ["CPUs", "Memory", "Start at login"])
+        #expect(fields.map(\.label) == ["CPUs", "Memory", "Disk size", "Start at login"])
         guard case .select(_, let cpus) = fields[0].kind, case .select(let memoryOptions, let memory) = fields[1].kind
         else {
             Issue.record("not selects")
@@ -56,5 +56,27 @@ struct ThrallSettingsCatalogTests {
         memory.wrappedValue = "8"
         #expect(ThrallEngineConfig.read(from: engine.paths.config) == ThrallEngineConfig(cpuCount: 1, memoryGiB: 8))
         #expect(memoryOptions.map(\.id) == ThrallEngineConfig.memoryChoices.map(String.init))
+    }
+
+    @Test("disk size only offers sizes at or above the current one, and never writes a shrink")
+    func diskOnlyGrows() throws {
+        let engine = Self.engine()
+        try ThrallEngineConfig(cpuCount: 2, memoryGiB: 4, diskGiB: 128).write(to: Self.prepared(engine.paths.config))
+        let page = ThrallSettingsCatalog.page(store: ThrallSettingsStore(documents: MemoryDocs()), engine: engine)
+        let fields = try #require(page.groups.last?.fields)
+        guard case .select(let options, let disk) = fields[2].kind else {
+            Issue.record("not a select")
+            return
+        }
+        #expect(options.map(\.id) == ["128", "256", "512"])
+        disk.wrappedValue = "64"
+        #expect(ThrallEngineConfig.read(from: engine.paths.config)?.diskGiB == 128)
+        disk.wrappedValue = "256"
+        #expect(ThrallEngineConfig.read(from: engine.paths.config)?.diskGiB == 256)
+    }
+
+    private static func prepared(_ url: URL) throws -> URL {
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        return url
     }
 }

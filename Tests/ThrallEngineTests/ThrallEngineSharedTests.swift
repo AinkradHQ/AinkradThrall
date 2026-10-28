@@ -14,6 +14,16 @@ struct ThrallEngineSharedTests {
                 == 10)
     }
 
+    @Test("an engine.json from before diskGiB keeps its CPUs and memory")
+    func configWithoutDisk() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("engine-\(UUID().uuidString).json")
+        try Data(#"{"cpuCount":6,"memoryGiB":8}"#.utf8).write(to: url)
+        #expect(ThrallEngineConfig.read(from: url) == ThrallEngineConfig(cpuCount: 6, memoryGiB: 8, diskGiB: 64))
+        let spec = ThrallVMSpec.resolved(
+            config: ThrallEngineConfig(cpuCount: 2, memoryGiB: 4, diskGiB: 128), processorCount: 10)
+        #expect(spec.dataDiskBytes == 128 * ThrallVMSpec.gibibyte)
+    }
+
     @Test("status.json round-trips, and an unreadable file reads as no status")
     func statusRoundTrip() throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("status-\(UUID().uuidString).json")

@@ -57,8 +57,29 @@ struct ThrallEngineStatus: Codable, Equatable, Sendable {
 struct ThrallEngineConfig: Codable, Equatable, Sendable {
     var cpuCount: Int
     var memoryGiB: Int
+    /// The data disk's size. It only ever grows: the helper never shrinks
+    /// `data.img`, and the guest grows its filesystem to match on boot.
+    var diskGiB: Int
 
     static let memoryChoices = [2, 4, 6, 8, 12, 16]
+    static let diskChoices = [64, 128, 256, 512]
+    static let defaultDiskGiB = 64
+
+    init(cpuCount: Int, memoryGiB: Int, diskGiB: Int = Self.defaultDiskGiB) {
+        self.cpuCount = cpuCount
+        self.memoryGiB = memoryGiB
+        self.diskGiB = diskGiB
+    }
+
+    /// `diskGiB` arrived after the first `engine.json` files were written. A
+    /// strict decode would reject those files whole and silently reset the
+    /// user's CPUs and memory to the defaults.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        cpuCount = try container.decode(Int.self, forKey: .cpuCount)
+        memoryGiB = try container.decode(Int.self, forKey: .memoryGiB)
+        diskGiB = try container.decodeIfPresent(Int.self, forKey: .diskGiB) ?? Self.defaultDiskGiB
+    }
 
     static func read(from url: URL) -> ThrallEngineConfig? {
         guard let data = try? Data(contentsOf: url) else { return nil }

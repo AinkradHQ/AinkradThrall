@@ -41,6 +41,10 @@ final class ThrallOwnEngineModel: ObservableObject {
     @Published private(set) var diskSizeBytes: Int64?
     /// The guest console's last lines, read while the engine boots.
     @Published private(set) var consoleTail: [String] = []
+    /// This build carries a newer image, compose or helper than the
+    /// installed engine. Updating restarts the engine, so it waits for the
+    /// user's click.
+    @Published private(set) var updateAvailable = false
     /// A verb in flight (start, stop, restart, uninstall), for its button.
     @Published private(set) var isBusy = false
     /// The last verb's failure, shown in the panel until the next verb.
@@ -96,10 +100,11 @@ final class ThrallOwnEngineModel: ObservableObject {
     func refresh() async {
         if case .installing = phase { return }
         let installer = self.installer
-        let (installed, loaded) = await Task.detached {
+        let (installed, loaded, update) = await Task.detached {
             let installed = installer.isInstalled
-            return (installed, installed && installer.isLoaded())
+            return (installed, installed && installer.isLoaded(), installer.needsUpdate)
         }.value
+        updateAvailable = update
         let status = ThrallEngineStatus.read(from: paths.status)
         let wasRunning = phase.isRunning
         let next = Self.phase(installed: installed, loaded: loaded, status: status, isAppleSilicon: isAppleSilicon)

@@ -150,6 +150,18 @@ struct ThrallEngineInstaller: Sendable {
             && FileManager.default.isExecutableFile(atPath: paths.helper.path)
     }
 
+    /// This build pins a different image or compose than the installed ones,
+    /// or carries a different helper: running `install()` again updates it.
+    /// The data disk is never part of an update, so volumes survive it.
+    var needsUpdate: Bool {
+        guard isInstalled else { return false }
+        if installedVersion("image") != image.version || installedVersion("compose") != compose.version { return true }
+        if let helperSource, !FileManager.default.contentsEqual(atPath: helperSource.path, andPath: paths.helper.path) {
+            return true
+        }
+        return false
+    }
+
     /// Rewrites `RunAtLoad` without touching a running engine: launchd reads
     /// it at the next login, and a running job keeps running.
     func setStartsAtLogin(_ on: Bool) throws {

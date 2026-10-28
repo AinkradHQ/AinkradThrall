@@ -230,6 +230,20 @@ struct ThrallEngineInstallerTests {
         #expect(system.launchctlCalls == ["bootstrap"])
     }
 
+    @Test("an installed engine needs an update when this build pins a new image or carries a new helper")
+    func needsUpdate() async throws {
+        let image = try imageArchive()
+        let compose = Data("compose binary".utf8)
+        let system = FakeSystem(artifacts: [imageURL: image, composeURL: compose], scratch: scratch)
+        let subject = try installer(system, image: image, compose: compose)
+        #expect(!subject.needsUpdate)
+        try await subject.install()
+        #expect(!subject.needsUpdate)
+        #expect(try installer(system, image: image, compose: compose, imageVersion: "image-2").needsUpdate)
+        try Data("helper v2".utf8).write(to: helper)
+        #expect(subject.needsUpdate)
+    }
+
     @Test("uninstall stops the engine and removes the job, ~/.thrall and the Docker context")
     func uninstall() async throws {
         let image = try imageArchive()
